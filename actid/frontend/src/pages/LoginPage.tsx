@@ -1,6 +1,6 @@
 import { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { authApi } from "@/lib/api";
+import { authApi, getErrMsg } from "@/lib/api";
 import { useAuthStore } from "@/store/authStore";
 import { Button, Input, Alert } from "@/components/ui";
 
@@ -37,8 +37,8 @@ export default function LoginPage() {
       setUserName(data.user_name);
       setOtpMessage(data.message);
       setStep("2fa");
-    } catch (e: any) {
-      setError(e.response?.data?.detail || "Autentificare eșuată. Verifică datele.");
+    } catch (err) {
+      setError(getErrMsg(err, "Autentificare eșuată. Verifică datele."));
     } finally {
       setLoading(false);
     }
@@ -74,8 +74,8 @@ export default function LoginPage() {
       const data = res.data;
       setUser(data.user, data.access_token);
       navigate("/dashboard", { replace: true });
-    } catch (e: any) {
-      setError(e.response?.data?.detail || "Cod OTP incorect");
+    } catch (err) {
+      setError(getErrMsg(err, "Cod OTP incorect"));
       setOtp(["", "", "", "", "", ""]);
       otpRefs.current[0]?.focus();
     } finally {

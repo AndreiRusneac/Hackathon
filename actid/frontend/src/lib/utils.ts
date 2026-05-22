@@ -101,4 +101,5 @@ export const ACTION_LABELS: Record<string, { label: string; icon: string; color:
   DELEGATION_CREATE: { label: "Acordare delegare", icon: "🤝", color: "text-teal-600" },
   DELEGATION_REVOKE: { label: "Revocare delegare", icon: "❌", color: "text-red-600" },
   SYSTEM_INIT: { label: "Inițializare sistem", icon: "🚀", color: "text-gray-600" },
+  RENEWAL_REQUEST: { label: "Cerere reînnoire", icon: "🔄", color: "text-blue-600" },
 };

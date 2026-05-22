@@ -1,9 +1,9 @@
-import { useEffect, useState } from "react";
-import { familyApi, documentsApi } from "@/lib/api";
+import { useCallback, useEffect, useState } from "react";
+import { familyApi, documentsApi, getErrMsg } from "@/lib/api";
 import { useNotificationStore } from "@/store/notificationStore";
 import { useDocumentStore } from "@/store/documentStore";
 import { useAuthStore } from "@/store/authStore";
-import { Card, CardContent, Badge, Button, Input, Alert } from "@/components/ui";
+import { Card, CardContent, Badge, Button, Input, Alert, ConfirmDialog } from "@/components/ui";
 import { DocumentCard } from "@/components/documents/DocumentCard";
 import { formatDate, formatDateTime } from "@/lib/utils";
 import type { DelegationGrant } from "@/types";
@@ -25,6 +25,7 @@ export default function FamilyPage() {
   const [myDelegations, setMyDelegations] = useState<DelegationGrant[]>([]);
   const [delegationsToMe, setDelegationsToMe] = useState<DelegationGrant[]>([]);
   const [loading, setLoading] = useState(true);
+  const [confirmRevokeId, setConfirmRevokeId] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [activeTab, setActiveTab] = useState<"received" | "given">("received");
   const [form, setForm] = useState({
@@ -37,11 +38,7 @@ export default function FamilyPage() {
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState("");
 
-  useEffect(() => {
-    load();
-  }, []);
-
-  const load = async () => {
+  const load = useCallback(async () => {
     setLoading(true);
     try {
       const [myRes, toMeRes, delegatedRes] = await Promise.all([
@@ -52,12 +49,14 @@ export default function FamilyPage() {
       setMyDelegations(myRes.data);
       setDelegationsToMe(toMeRes.data);
       setDelegatedDocuments(delegatedRes.data);
-    } catch {
-      addToast("Eroare la încărcarea delegărilor", "error");
+    } catch (err) {
+      addToast(getErrMsg(err, "Eroare la încărcarea delegărilor"), "error");
     } finally {
       setLoading(false);
     }
-  };
+  }, [setDelegatedDocuments, addToast]);
+
+  useEffect(() => { load(); }, [load]);
 
   const toggleCategory = (cat: string) => {
     setForm((prev) => ({
@@ -95,26 +94,48 @@ export default function FamilyPage() {
       setShowForm(false);
       setForm({ delegate_email: "", document_categories: [], permissions: ["read"], valid_days: 365, notes: "" });
       addToast("Delegare creată cu succes!", "success");
-    } catch (e: any) {
-      setFormError(e.response?.data?.detail || "Eroare la creare delegare");
+    } catch (err) {
+      setFormError(getErrMsg(err, "Eroare la creare delegare"));
     } finally {
       setSubmitting(false);
     }
   };
 
-  const handleRevoke = async (id: string) => {
-    if (!confirm("Revocare delegare? Persoana delegată va pierde accesul imediat.")) return;
+  const handleRenewalRequest = async (docId: string) => {
+    try {
+      await documentsApi.renewalRequest(docId);
+      addToast("Cerere de reînnoire trimisă!", "success");
+    } catch (err) {
+      addToast(getErrMsg(err, "Eroare la trimiterea cererii"), "error");
+      throw err;
+    }
+  };
+
+  const handleConfirmRevoke = async () => {
+    if (!confirmRevokeId) return;
+    const id = confirmRevokeId;
+    setConfirmRevokeId(null);
     try {
       await familyApi.revokeDelegation(id);
       setMyDelegations((prev) => prev.filter((d) => d.id !== id));
       addToast("Delegare revocată", "success");
-    } catch {
-      addToast("Eroare la revocare", "error");
+    } catch (err) {
+      addToast(getErrMsg(err, "Eroare la revocare"), "error");
     }
   };
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-6 space-y-5">
+      <ConfirmDialog
+        open={!!confirmRevokeId}
+        title="Revocare delegare?"
+        description="Persoana delegată va pierde accesul la documentele tale imediat."
+        confirmLabel="Revocă"
+        destructive
+        onConfirm={handleConfirmRevoke}
+        onCancel={() => setConfirmRevokeId(null)}
+      />
+
       {/* Header */}
       <div className="flex items-start justify-between">
         <div>
@@ -342,7 +363,9 @@ export default function FamilyPage() {
                       <DocumentCard
                         key={doc.id}
                         doc={doc}
-                        delegatedFrom={doc.delegated_from?.full_name}
+                        delegatedFrom={`De la: ${doc.delegated_from?.full_name}`}
+                        canRenewal={doc.delegation_permissions?.includes("request_renewal")}
+                        onRenewalRequest={() => handleRenewalRequest(doc.id)}
                       />
                     ))}
                   </div>
@@ -397,15 +420,29 @@ export default function FamilyPage() {
                         {grant.document_categories.map((cat) => (
                           <Badge key={cat} variant="info" className="text-[10px]">{cat}</Badge>
                         ))}
+                        {grant.permissions.includes("request_renewal") && (
+                          <Badge variant="warning" className="text-[10px]">🔄 Poate reînnoi</Badge>
+                        )}
                       </div>
                       <p className="text-xs text-muted-foreground mt-1.5">
-                        Consimțământ: {formatDateTime(grant.consent_timestamp)}
+                        Valabil până:{" "}
+                        {grant.valid_until ? formatDate(grant.valid_until) : "Nelimitat"}
+                        {grant.valid_until && (() => {
+                          const daysLeft = Math.ceil(
+                            (new Date(grant.valid_until).getTime() - Date.now()) / 86400000
+                          );
+                          if (daysLeft <= 0)
+                            return <Badge variant="danger" className="ml-1 text-[10px]">Expirată</Badge>;
+                          if (daysLeft <= 30)
+                            return <Badge variant="warning" className="ml-1 text-[10px]">{daysLeft}z rămase</Badge>;
+                          return null;
+                        })()}
                       </p>
                     </div>
                     <Button
                       size="sm"
                       variant="ghost"
-                      onClick={() => handleRevoke(grant.id)}
+                      onClick={() => setConfirmRevokeId(grant.id)}
                       className="text-red-500 hover:text-red-700 flex-shrink-0"
                     >
                       Revocă

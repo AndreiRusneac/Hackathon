@@ -1,9 +1,9 @@
-import { useEffect, useState } from "react";
-import { auditApi } from "@/lib/api";
+import { useCallback, useEffect, useState } from "react";
+import { auditApi, getErrMsg } from "@/lib/api";
 import { useNotificationStore } from "@/store/notificationStore";
 import { Card, CardContent, Badge, Button } from "@/components/ui";
 import { formatDateTime, truncateHash, ACTION_LABELS } from "@/lib/utils";
-import type { AuditEntry } from "@/types";
+import type { AuditEntry, AuditStats } from "@/types";
 
 export default function AuditLogPage() {
   const { addToast } = useNotificationStore();
@@ -15,14 +15,10 @@ export default function AuditLogPage() {
     entries_checked: number;
     message: string;
   } | null>(null);
-  const [stats, setStats] = useState<any>(null);
+  const [stats, setStats] = useState<AuditStats | null>(null);
   const [expanded, setExpanded] = useState<string | null>(null);
 
-  useEffect(() => {
-    load();
-  }, []);
-
-  const load = async () => {
+  const load = useCallback(async () => {
     setLoading(true);
     try {
       const [entriesRes, statsRes] = await Promise.all([
@@ -31,12 +27,14 @@ export default function AuditLogPage() {
       ]);
       setEntries(entriesRes.data);
       setStats(statsRes.data);
-    } catch {
-      addToast("Eroare la încărcarea jurnalului", "error");
+    } catch (err) {
+      addToast(getErrMsg(err, "Eroare la încărcarea jurnalului"), "error");
     } finally {
       setLoading(false);
     }
-  };
+  }, [addToast]);
+
+  useEffect(() => { load(); }, [load]);
 
   const handleVerify = async () => {
     setVerifying(true);
@@ -47,8 +45,8 @@ export default function AuditLogPage() {
         res.data.valid ? "✓ Lanț valid — nicio modificare detectată" : "⚠ Erori detectate în lanț",
         res.data.valid ? "success" : "error"
       );
-    } catch {
-      addToast("Eroare la verificare", "error");
+    } catch (err) {
+      addToast(getErrMsg(err, "Eroare la verificare"), "error");
     } finally {
       setVerifying(false);
     }

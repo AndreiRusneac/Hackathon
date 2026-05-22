@@ -62,6 +62,15 @@ backend/app/
     notifications.py — /api/notifications/*
 ```
 
+## Key Flows
+
+1. Login → ROeID branding → 2FA (code: 123456) → Dashboard
+2. Ion's buletin expires in 30 days → alert on dashboard
+3. Alex (London) → sees Maria's delegated documents
+4. Create QR share → funcționar scans → audit log updated
+5. Audit log → blockchain chain visualization
+6. Alex (delegate) → Family → expand delegated doc → "Solicită reînnoire" → audit log gets RENEWAL_REQUEST entry
+
 ## API Endpoints
 
 ### Auth
@@ -76,7 +85,7 @@ backend/app/
 - `POST   /api/documents/` — create document
 - `DELETE /api/documents/{id}` — owner only
 - `GET    /api/documents/delegated` — docs delegated to current user
-- `POST   /api/documents/renewal-request` — body: `{document_id, note}`; owner or delegate
+- `POST   /api/documents/renewal-request` — body: `{document_id, note}`; owner or delegate with `request_renewal` permission
 
 ### Sharing
 - `POST   /api/sharing/tokens` — create QR token
@@ -105,7 +114,7 @@ backend/app/
 ## RBAC Rules
 - **cetățean**: own documents only; can delegate, share, request renewal
 - **funcționar**: scan QR tokens only; 403 on all `/api/documents/*` endpoints
-- Delegation validity: checked via `is_active=True` AND `valid_until > now`
+- Delegation validity: checked via `is_active.is_(True)` AND `valid_until > now`
 
 ## Audit Pattern
 ```python

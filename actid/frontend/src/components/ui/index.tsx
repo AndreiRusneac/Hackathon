@@ -201,6 +201,68 @@ interface ToastItem {
   type: "success" | "error" | "info";
 }
 
+// ─── Confirm Dialog ───────────────────────────────────────────────────────────
+
+interface ConfirmDialogProps {
+  open: boolean;
+  title: string;
+  description: string;
+  confirmLabel?: string;
+  onConfirm: () => void;
+  onCancel: () => void;
+  destructive?: boolean;
+}
+
+export const ConfirmDialog = ({
+  open,
+  title,
+  description,
+  confirmLabel = "Confirmă",
+  onConfirm,
+  onCancel,
+  destructive = false,
+}: ConfirmDialogProps) => {
+  React.useEffect(() => {
+    if (!open) return;
+    const handler = (e: KeyboardEvent) => { if (e.key === "Escape") onCancel(); };
+    document.addEventListener("keydown", handler);
+    return () => document.removeEventListener("keydown", handler);
+  }, [open, onCancel]);
+
+  if (!open) return null;
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="confirm-dialog-title"
+    >
+      <div
+        className="absolute inset-0 bg-black/40 animate-fade-in"
+        onClick={onCancel}
+        aria-hidden="true"
+      />
+      <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-sm p-6 space-y-4 animate-fade-in">
+        <h2 id="confirm-dialog-title" className="font-bold text-lg">{title}</h2>
+        <p className="text-sm text-muted-foreground">{description}</p>
+        <div className="flex gap-3">
+          <Button variant="secondary" onClick={onCancel} className="flex-1">
+            Anulează
+          </Button>
+          <Button
+            variant={destructive ? "destructive" : "primary"}
+            onClick={onConfirm}
+            className="flex-1"
+          >
+            {confirmLabel}
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 export const ToastContainer = ({ toasts, onRemove }: { toasts: ToastItem[]; onRemove: (id: string) => void }) => {
   if (!toasts.length) return null;
   return (

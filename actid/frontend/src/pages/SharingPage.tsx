@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { documentsApi, sharingApi } from "@/lib/api";
+import { documentsApi, sharingApi, getErrMsg } from "@/lib/api";
 import { useDocumentStore } from "@/store/documentStore";
 import { useNotificationStore } from "@/store/notificationStore";
 import { QRGenerator } from "@/components/sharing/QRGenerator";
@@ -26,8 +26,8 @@ export default function SharingPage() {
         ]);
         setDocuments(docsRes.data);
         setTokens(tokensRes.data);
-      } catch {
-        addToast("Eroare la încărcare", "error");
+      } catch (err) {
+        addToast(getErrMsg(err, "Eroare la încărcare"), "error");
       } finally {
         setLoading(false);
       }
@@ -42,8 +42,8 @@ export default function SharingPage() {
         prev.map((t) => (t.id === id ? { ...t, is_active: false } : t))
       );
       addToast("Token revocat", "success");
-    } catch {
-      addToast("Eroare la revocare", "error");
+    } catch (err) {
+      addToast(getErrMsg(err, "Eroare la revocare"), "error");
     }
   };
 
@@ -56,8 +56,20 @@ export default function SharingPage() {
       const res = await sharingApi.scanToken(scanToken.trim());
       setScanResult(res.data);
       addToast("Token scanat cu succes!", "success");
-    } catch (e: any) {
-      addToast(e.response?.data?.detail || "Token invalid sau expirat", "error");
+    } catch (err: any) {
+      const status = err.response?.status;
+      const detail = err.response?.data?.detail;
+      if (!err.response) {
+        addToast("Verifică conexiunea la internet", "error");
+      } else if (status === 410) {
+        addToast(detail || "Token expirat sau deja utilizat", "error");
+      } else if (status === 404) {
+        addToast("Token negăsit — verifică codul QR", "error");
+      } else if (status === 500) {
+        addToast("Eroare server, încearcă din nou", "error");
+      } else {
+        addToast(detail || "Token invalid", "error");
+      }
     } finally {
       setScanning(false);
     }

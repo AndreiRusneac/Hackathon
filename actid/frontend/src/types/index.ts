@@ -121,6 +121,14 @@ export interface AuditEntry {
   block_number: number;
 }
 
+// ─── Audit stats ─────────────────────────────────────────────────────────────
+
+export interface AuditStats {
+  total_entries: number;
+  user_entries: number;
+  chain_valid: boolean;
+}
+
 // ─── UI helpers ───────────────────────────────────────────────────────────────
 
 export interface Notification {
