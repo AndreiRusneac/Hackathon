@@ -52,8 +52,8 @@ export default function FamilyPage() {
       setMyDelegations(myRes.data);
       setDelegationsToMe(toMeRes.data);
       setDelegatedDocuments(delegatedRes.data);
-    } catch {
-      addToast("Eroare la încărcarea delegărilor", "error");
+    } catch (err: any) {
+      addToast(err.userMessage || "Eroare la încărcarea delegărilor", "error");
     } finally {
       setLoading(false);
     }
@@ -95,10 +95,20 @@ export default function FamilyPage() {
       setShowForm(false);
       setForm({ delegate_email: "", document_categories: [], permissions: ["read"], valid_days: 365, notes: "" });
       addToast("Delegare creată cu succes!", "success");
-    } catch (e: any) {
-      setFormError(e.response?.data?.detail || "Eroare la creare delegare");
+    } catch (err: any) {
+      setFormError(err.userMessage || "Eroare la creare delegare");
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleRenewalRequest = async (docId: string) => {
+    try {
+      await documentsApi.renewalRequest(docId);
+      addToast("Cerere de reînnoire trimisă!", "success");
+    } catch (err: any) {
+      addToast(err.userMessage || "Eroare la trimiterea cererii", "error");
+      throw err;
     }
   };
 
@@ -108,8 +118,8 @@ export default function FamilyPage() {
       await familyApi.revokeDelegation(id);
       setMyDelegations((prev) => prev.filter((d) => d.id !== id));
       addToast("Delegare revocată", "success");
-    } catch {
-      addToast("Eroare la revocare", "error");
+    } catch (err: any) {
+      addToast(err.userMessage || "Eroare la revocare", "error");
     }
   };
 
@@ -342,7 +352,9 @@ export default function FamilyPage() {
                       <DocumentCard
                         key={doc.id}
                         doc={doc}
-                        delegatedFrom={doc.delegated_from?.full_name}
+                        delegatedFrom={`De la: ${doc.delegated_from?.full_name}`}
+                        canRenewal={doc.delegation_permissions?.includes("request_renewal")}
+                        onRenewalRequest={() => handleRenewalRequest(doc.id)}
                       />
                     ))}
                   </div>
@@ -397,9 +409,23 @@ export default function FamilyPage() {
                         {grant.document_categories.map((cat) => (
                           <Badge key={cat} variant="info" className="text-[10px]">{cat}</Badge>
                         ))}
+                        {grant.permissions.includes("request_renewal") && (
+                          <Badge variant="warning" className="text-[10px]">🔄 Poate reînnoi</Badge>
+                        )}
                       </div>
                       <p className="text-xs text-muted-foreground mt-1.5">
-                        Consimțământ: {formatDateTime(grant.consent_timestamp)}
+                        Valabil până:{" "}
+                        {grant.valid_until ? formatDate(grant.valid_until) : "Nelimitat"}
+                        {grant.valid_until && (() => {
+                          const daysLeft = Math.ceil(
+                            (new Date(grant.valid_until).getTime() - Date.now()) / 86400000
+                          );
+                          if (daysLeft <= 0)
+                            return <Badge variant="danger" className="ml-1 text-[10px]">Expirată</Badge>;
+                          if (daysLeft <= 30)
+                            return <Badge variant="warning" className="ml-1 text-[10px]">{daysLeft}z rămase</Badge>;
+                          return null;
+                        })()}
                       </p>
                     </div>
                     <Button

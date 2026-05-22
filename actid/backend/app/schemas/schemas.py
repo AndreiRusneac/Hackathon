@@ -122,6 +122,13 @@ class DelegationResponse(BaseModel):
     model_config = {"from_attributes": True}
 
 
+# ─── Renewal Request ─────────────────────────────────────────────────────────
+
+class RenewalRequestCreate(BaseModel):
+    document_id: str
+    note: Optional[str] = None
+
+
 # ─── Audit ───────────────────────────────────────────────────────────────────
 
 class AuditEntryResponse(BaseModel):

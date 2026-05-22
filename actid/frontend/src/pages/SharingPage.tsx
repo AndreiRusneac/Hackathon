@@ -56,8 +56,20 @@ export default function SharingPage() {
       const res = await sharingApi.scanToken(scanToken.trim());
       setScanResult(res.data);
       addToast("Token scanat cu succes!", "success");
-    } catch (e: any) {
-      addToast(e.response?.data?.detail || "Token invalid sau expirat", "error");
+    } catch (err: any) {
+      const status = err.response?.status;
+      const detail = err.response?.data?.detail;
+      if (!err.response) {
+        addToast("Verifică conexiunea la internet", "error");
+      } else if (status === 410) {
+        addToast(detail || "Token expirat sau deja utilizat", "error");
+      } else if (status === 404) {
+        addToast("Token negăsit — verifică codul QR", "error");
+      } else if (status === 500) {
+        addToast("Eroare server, încearcă din nou", "error");
+      } else {
+        addToast(detail || "Token invalid", "error");
+      }
     } finally {
       setScanning(false);
     }

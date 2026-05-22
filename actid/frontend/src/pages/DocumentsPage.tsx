@@ -47,8 +47,8 @@ export default function DocumentsPage() {
       const res = await documentsApi.list();
       setDocuments(res.data);
       generateFromDocuments(res.data);
-    } catch {
-      addToast("Eroare la încărcarea documentelor", "error");
+    } catch (err: any) {
+      addToast(err.userMessage || "Eroare la încărcarea documentelor", "error");
     } finally {
       setLoading(false);
     }
@@ -60,8 +60,8 @@ export default function DocumentsPage() {
       await documentsApi.delete(doc.id);
       removeDocument(doc.id);
       addToast("Document șters", "success");
-    } catch {
-      addToast("Eroare la ștergere", "error");
+    } catch (err: any) {
+      addToast(err.userMessage || "Eroare la ștergere", "error");
     }
   };
 
@@ -81,8 +81,8 @@ export default function DocumentsPage() {
       setShowAddForm(false);
       setNewDoc({ doc_type: "CI", doc_number: "", issued_by: "", issued_date: "", expires_date: "", description: "" });
       addToast("Document adăugat!", "success");
-    } catch (e: any) {
-      addToast(e.response?.data?.detail || "Eroare la adăugare", "error");
+    } catch (err: any) {
+      addToast(err.userMessage || "Eroare la adăugare", "error");
     } finally {
       setAdding(false);
     }

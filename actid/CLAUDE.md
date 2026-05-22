@@ -45,6 +45,7 @@ VITE_API_URL=http://localhost:8000 npm run dev
 3. Alex (London) → sees Maria's delegated documents
 4. Create QR share → funcționar scans → audit log updated
 5. Audit log → blockchain chain visualization
+6. Alex (delegate) → Family → expand delegated doc → "Solicită reînnoire" → audit log gets RENEWAL_REQUEST entry
 
 ## Scoring
 

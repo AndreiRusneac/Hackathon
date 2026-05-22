@@ -8,7 +8,9 @@ interface DocumentCardProps {
   onShare?: (doc: Document) => void;
   onView?: (doc: Document) => void;
   onDelete?: (doc: Document) => void;
+  onRenewalRequest?: () => Promise<void>;
   delegatedFrom?: string;
+  canRenewal?: boolean;
   compact?: boolean;
 }
 
@@ -17,14 +19,29 @@ export function DocumentCard({
   onShare,
   onView,
   onDelete,
+  onRenewalRequest,
   delegatedFrom,
+  canRenewal = false,
   compact = false,
 }: DocumentCardProps) {
   const [expanded, setExpanded] = useState(false);
+  const [renewalSent, setRenewalSent] = useState(false);
+  const [renewalPending, setRenewalPending] = useState(false);
   const status = (doc.status || "valid") as DocStatus;
   const cfg = STATUS_CONFIG[status];
   const icon = DOC_ICONS[doc.doc_type] || "📄";
   const label = DOC_LABELS[doc.doc_type] || doc.doc_type;
+
+  const handleRenewal = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setRenewalPending(true);
+    try {
+      await onRenewalRequest?.();
+      setRenewalSent(true);
+    } finally {
+      setRenewalPending(false);
+    }
+  };
 
   return (
     <div
@@ -66,7 +83,7 @@ export function DocumentCard({
                   <p className="text-xs text-purple-600 mt-0.5">👤 {delegatedFrom}</p>
                 )}
               </div>
-              <div className="flex-shrink-0">
+              <div className="flex-shrink-0 flex flex-col items-end gap-1">
                 <Badge
                   variant={
                     status === "valid"
@@ -82,6 +99,9 @@ export function DocumentCard({
                     ? "✕ Expirat"
                     : `⚡ ${doc.days_remaining}z`}
                 </Badge>
+                {renewalSent && (
+                  <Badge variant="info" className="text-[10px]">🔄 Reînnoire solicitată</Badge>
+                )}
               </div>
             </div>
 
@@ -144,6 +164,17 @@ export function DocumentCard({
               {onShare && (
                 <Button size="sm" variant="outline" onClick={() => onShare(doc)} className="flex-1">
                   📱 Distribuie
+                </Button>
+              )}
+              {canRenewal && !renewalSent && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={handleRenewal}
+                  loading={renewalPending}
+                  className="flex-1 border-blue-200 text-blue-700 hover:bg-blue-50"
+                >
+                  🔄 Solicită reînnoire
                 </Button>
               )}
               {onDelete && (

@@ -9,7 +9,7 @@ from ..api.auth import get_current_user_dep
 from ..database import get_db
 from ..ledger import add_audit_entry
 from ..models.models import DelegationGrant, Document, User
-from ..schemas.schemas import DocumentCreate, DocumentResponse
+from ..schemas.schemas import DocumentCreate, DocumentResponse, RenewalRequestCreate
 
 router = APIRouter(prefix="/documents", tags=["documents"])
 
@@ -170,6 +170,50 @@ def create_document(
     db.commit()
     db.refresh(doc)
     return _serialize_doc(doc)
+
+
+@router.post("/renewal-request")
+def request_renewal(
+    data: RenewalRequestCreate,
+    current_user: User = Depends(get_current_user_dep),
+    db: Session = Depends(get_db),
+):
+    doc = db.query(Document).filter(Document.id == data.document_id).first()
+    if not doc:
+        raise HTTPException(status_code=404, detail="Document negăsit")
+
+    if doc.owner_id != current_user.id:
+        grant = (
+            db.query(DelegationGrant)
+            .filter(
+                DelegationGrant.delegator_id == doc.owner_id,
+                DelegationGrant.delegate_id == current_user.id,
+                DelegationGrant.is_active == True,
+            )
+            .first()
+        )
+        if not grant:
+            raise HTTPException(status_code=403, detail="Acces interzis")
+        permissions = json.loads(grant.permissions)
+        if "request_renewal" not in permissions:
+            raise HTTPException(status_code=403, detail="Nu ai permisiunea de a solicita reînnoirea")
+
+    add_audit_entry(
+        db,
+        action="RENEWAL_REQUEST",
+        actor_id=current_user.id,
+        actor_name=current_user.full_name,
+        actor_role=current_user.role,
+        target_document_id=data.document_id,
+        target_user_id=doc.owner_id,
+        metadata={
+            "doc_type": doc.doc_type,
+            "note": data.note,
+            "requested_by": current_user.full_name,
+        },
+    )
+    db.commit()
+    return {"success": True}
 
 
 @router.delete("/{doc_id}")
