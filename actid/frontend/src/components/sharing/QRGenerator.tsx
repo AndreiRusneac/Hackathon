@@ -1,9 +1,11 @@
 import { useState } from "react";
 import { QRCodeSVG } from "qrcode.react";
+import { QrCode } from "lucide-react";
 import { sharingApi } from "@/lib/api";
 import { useNotificationStore } from "@/store/notificationStore";
 import { Button, Card, CardContent, Badge } from "@/components/ui";
-import { formatDateTime } from "@/lib/utils";
+import { DocTypeIcon } from "@/components/documents/DocumentCard";
+import { formatDateTime, DOC_LABELS } from "@/lib/utils";
 import type { Document, ShareToken } from "@/types";
 
 interface QRGeneratorProps {
@@ -153,20 +155,20 @@ export function QRGenerator({ documents, onTokenCreated }: QRGeneratorProps) {
                   }`}
                   aria-pressed={selected}
                 >
+                  <div className="w-8 h-8 bg-gray-50 rounded-lg flex items-center justify-center flex-shrink-0 border border-border">
+                    <DocTypeIcon type={doc.doc_type} size={16} className="text-actid-blue" />
+                  </div>
                   <div
                     className={`w-5 h-5 rounded flex items-center justify-center border-2 flex-shrink-0 transition-all ${
                       selected ? "bg-actid-blue border-actid-blue" : "border-gray-300"
                     }`}
+                    aria-hidden="true"
                   >
                     {selected && <span className="text-white text-xs font-bold">✓</span>}
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium truncate">
-                      {doc.doc_type === "CI"
-                        ? "Carte de Identitate"
-                        : doc.doc_type === "PASAPORT"
-                        ? "Pașaport"
-                        : doc.doc_type}
+                      {DOC_LABELS[doc.doc_type as keyof typeof DOC_LABELS] || doc.doc_type}
                     </p>
                     {doc.doc_number && (
                       <p className="text-xs text-muted-foreground font-mono">{doc.doc_number}</p>
@@ -227,10 +229,10 @@ export function QRGenerator({ documents, onTokenCreated }: QRGeneratorProps) {
           onClick={generate}
           loading={loading}
           disabled={selectedDocs.length === 0}
-          className="w-full"
+          className="w-full gap-1.5"
           size="lg"
         >
-          📱 Generează QR
+          <QrCode size={18} aria-hidden="true" /> Generează QR
         </Button>
       </CardContent>
     </Card>

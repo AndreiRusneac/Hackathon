@@ -6,6 +6,7 @@ interface NotificationState {
   toasts: Array<{ id: string; message: string; type: "success" | "error" | "info" }>;
   generateFromDocuments: (docs: Document[]) => void;
   dismiss: (id: string) => void;
+  dismissAll: () => void;
   addToast: (message: string, type?: "success" | "error" | "info") => void;
   removeToast: (id: string) => void;
 }
@@ -72,6 +73,11 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
       notifications: s.notifications.map((n) =>
         n.id === id ? { ...n, dismissed: true } : n
       ),
+    })),
+
+  dismissAll: () =>
+    set((s) => ({
+      notifications: s.notifications.map((n) => ({ ...n, dismissed: true })),
     })),
 
   addToast: (message, type = "info") => {

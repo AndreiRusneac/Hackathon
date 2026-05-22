@@ -8,6 +8,8 @@ import DocumentsPage from "@/pages/DocumentsPage";
 import SharingPage from "@/pages/SharingPage";
 import FamilyPage from "@/pages/FamilyPage";
 import AuditLogPage from "@/pages/AuditLogPage";
+import NotificationsPage from "@/pages/NotificationsPage";
+import FunctionarPage from "@/pages/FunctionarPage";
 
 export default function App() {
   const { hydrate } = useAuthStore();
@@ -26,6 +28,8 @@ export default function App() {
         <Route path="/sharing" element={<SharingPage />} />
         <Route path="/family" element={<FamilyPage />} />
         <Route path="/audit" element={<AuditLogPage />} />
+        <Route path="/notifications" element={<NotificationsPage />} />
+        <Route path="/functionar" element={<FunctionarPage />} />
       </Route>
 
       <Route path="/" element={<Navigate to="/dashboard" replace />} />

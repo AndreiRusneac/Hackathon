@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Files, ShieldCheck, Clock, ShieldAlert, Plus, X, FileText, type LucideIcon } from "lucide-react";
 import { documentsApi } from "@/lib/api";
 import { useDocumentStore } from "@/store/documentStore";
 import { useNotificationStore } from "@/store/notificationStore";
@@ -9,11 +10,11 @@ import { DOC_LABELS } from "@/lib/utils";
 
 type Filter = "all" | "valid" | "expiră_curând" | "expirat";
 
-const FILTERS: { key: Filter; label: string; icon: string }[] = [
-  { key: "all", label: "Toate", icon: "📁" },
-  { key: "valid", label: "Valide", icon: "✅" },
-  { key: "expiră_curând", label: "Expiră curând", icon: "⚡" },
-  { key: "expirat", label: "Expirate", icon: "🚨" },
+const FILTERS: { key: Filter; label: string; Icon: LucideIcon }[] = [
+  { key: "all",          label: "Toate",        Icon: Files },
+  { key: "valid",        label: "Valide",        Icon: ShieldCheck },
+  { key: "expiră_curând", label: "Expiră curând", Icon: Clock },
+  { key: "expirat",      label: "Expirate",      Icon: ShieldAlert },
 ];
 
 const DOC_TYPES: DocType[] = [
@@ -28,6 +29,7 @@ export default function DocumentsPage() {
   const [search, setSearch] = useState("");
   const [showAddForm, setShowAddForm] = useState(false);
   const [adding, setAdding] = useState(false);
+  const [deletePending, setDeletePending] = useState<Document | null>(null);
   const [newDoc, setNewDoc] = useState({
     doc_type: "CI" as DocType,
     doc_number: "",
@@ -54,8 +56,14 @@ export default function DocumentsPage() {
     }
   };
 
-  const handleDelete = async (doc: Document) => {
-    if (!confirm(`Ștergi ${DOC_LABELS[doc.doc_type] || doc.doc_type}?`)) return;
+  const handleDelete = (doc: Document) => {
+    setDeletePending(doc);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!deletePending) return;
+    const doc = deletePending;
+    setDeletePending(null);
     try {
       await documentsApi.delete(doc.id);
       removeDocument(doc.id);
@@ -109,8 +117,8 @@ export default function DocumentsPage() {
           <h1 className="text-2xl font-bold">Documentele mele</h1>
           <p className="text-sm text-muted-foreground mt-0.5">{documents.length} documente înregistrate</p>
         </div>
-        <Button size="sm" onClick={() => setShowAddForm(!showAddForm)}>
-          {showAddForm ? "✕ Anulează" : "+ Adaugă"}
+        <Button size="sm" onClick={() => setShowAddForm(!showAddForm)} className="gap-1.5">
+          {showAddForm ? <><X size={14} aria-hidden="true" /> Anulează</> : <><Plus size={14} aria-hidden="true" /> Adaugă</>}
         </Button>
       </div>
 
@@ -187,6 +195,7 @@ export default function DocumentsPage() {
             f.key === "all"
               ? documents.length
               : documents.filter((d) => d.status === f.key).length;
+          const FilterIcon = f.Icon;
           return (
             <button
               key={f.key}
@@ -199,7 +208,7 @@ export default function DocumentsPage() {
                   : "border-border text-foreground hover:border-gray-300"
               }`}
             >
-              <span>{f.icon}</span>
+              <FilterIcon size={14} aria-hidden="true" />
               {f.label}
               {count > 0 && (
                 <span
@@ -215,6 +224,26 @@ export default function DocumentsPage() {
         })}
       </div>
 
+      {/* Delete confirmation */}
+      {deletePending && (
+        <Card className="border-actid-red/30 bg-red-50/50">
+          <CardContent className="py-4">
+            <p className="text-sm font-semibold text-red-800">
+              Ștergi &ldquo;{DOC_LABELS[deletePending.doc_type]}&rdquo;?
+            </p>
+            <p className="text-xs text-red-600 mt-0.5">Această acțiune nu poate fi anulată.</p>
+            <div className="flex gap-2 mt-3">
+              <Button size="sm" variant="destructive" onClick={handleDeleteConfirm} className="flex-1">
+                Da, șterge
+              </Button>
+              <Button size="sm" variant="secondary" onClick={() => setDeletePending(null)} className="flex-1">
+                Anulează
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Document list */}
       <div className="space-y-3" role="list" aria-label="Lista documente">
         {loading ? (
@@ -222,9 +251,9 @@ export default function DocumentsPage() {
         ) : filtered.length === 0 ? (
           <Card>
             <CardContent className="text-center py-12">
-              <p className="text-4xl mb-3">
-                {filter === "expirat" ? "✅" : filter === "expiră_curând" ? "🎉" : "🔍"}
-              </p>
+              <div className="w-12 h-12 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-3">
+                <FileText size={22} className="text-muted-foreground" aria-hidden="true" />
+              </div>
               <p className="font-semibold">
                 {search
                   ? "Niciun document găsit"
@@ -241,7 +270,7 @@ export default function DocumentsPage() {
                   className="mt-4"
                   onClick={() => setShowAddForm(true)}
                 >
-                  + Adaugă primul document
+                  Adaugă primul document
                 </Button>
               )}
             </CardContent>
