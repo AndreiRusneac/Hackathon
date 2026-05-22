@@ -1,5 +1,18 @@
 import axios from "axios";
 
+declare module "axios" {
+  interface AxiosError {
+    userMessage?: string;
+  }
+}
+
+export function getErrMsg(err: unknown, fallback = "A apărut o eroare"): string {
+  if (err && typeof err === "object" && "userMessage" in err) {
+    return (err as { userMessage?: string }).userMessage || fallback;
+  }
+  return fallback;
+}
+
 const API_BASE = import.meta.env.VITE_API_URL
   ? `${import.meta.env.VITE_API_URL}/api`
   : "/api";
@@ -23,7 +36,7 @@ api.interceptors.response.use(
     if (err.response?.status === 401) {
       localStorage.removeItem("actid_token");
       localStorage.removeItem("actid_user");
-      window.location.href = "/login";
+      window.dispatchEvent(new CustomEvent("actid:logout"));
     }
     // Attach a human-readable message so catch blocks can use err.userMessage
     if (!err.response) {

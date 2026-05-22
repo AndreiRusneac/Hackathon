@@ -1,9 +1,9 @@
-import { useEffect, useState } from "react";
-import { documentsApi } from "@/lib/api";
+import { useCallback, useEffect, useState } from "react";
+import { documentsApi, getErrMsg } from "@/lib/api";
 import { useDocumentStore } from "@/store/documentStore";
 import { useNotificationStore } from "@/store/notificationStore";
 import { DocumentCard, DocumentCardSkeleton } from "@/components/documents/DocumentCard";
-import { Button, Card, CardContent, Input } from "@/components/ui";
+import { Button, Card, CardContent, ConfirmDialog, Input } from "@/components/ui";
 import type { Document, DocType } from "@/types";
 import { DOC_LABELS } from "@/lib/utils";
 
@@ -28,6 +28,7 @@ export default function DocumentsPage() {
   const [search, setSearch] = useState("");
   const [showAddForm, setShowAddForm] = useState(false);
   const [adding, setAdding] = useState(false);
+  const [confirmDoc, setConfirmDoc] = useState<Document | null>(null);
   const [newDoc, setNewDoc] = useState({
     doc_type: "CI" as DocType,
     doc_number: "",
@@ -37,31 +38,33 @@ export default function DocumentsPage() {
     description: "",
   });
 
-  useEffect(() => {
-    load();
-  }, []);
-
-  const load = async () => {
+  const load = useCallback(async () => {
     setLoading(true);
     try {
       const res = await documentsApi.list();
       setDocuments(res.data);
       generateFromDocuments(res.data);
-    } catch (err: any) {
-      addToast(err.userMessage || "Eroare la încărcarea documentelor", "error");
+    } catch (err) {
+      addToast(getErrMsg(err, "Eroare la încărcarea documentelor"), "error");
     } finally {
       setLoading(false);
     }
-  };
+  }, [setLoading, setDocuments, generateFromDocuments, addToast]);
 
-  const handleDelete = async (doc: Document) => {
-    if (!confirm(`Ștergi ${DOC_LABELS[doc.doc_type] || doc.doc_type}?`)) return;
+  useEffect(() => { load(); }, [load]);
+
+  const handleDeleteRequest = (doc: Document) => setConfirmDoc(doc);
+
+  const handleConfirmDelete = async () => {
+    if (!confirmDoc) return;
+    const doc = confirmDoc;
+    setConfirmDoc(null);
     try {
       await documentsApi.delete(doc.id);
       removeDocument(doc.id);
       addToast("Document șters", "success");
-    } catch (err: any) {
-      addToast(err.userMessage || "Eroare la ștergere", "error");
+    } catch (err) {
+      addToast(getErrMsg(err, "Eroare la ștergere"), "error");
     }
   };
 
@@ -81,8 +84,8 @@ export default function DocumentsPage() {
       setShowAddForm(false);
       setNewDoc({ doc_type: "CI", doc_number: "", issued_by: "", issued_date: "", expires_date: "", description: "" });
       addToast("Document adăugat!", "success");
-    } catch (err: any) {
-      addToast(err.userMessage || "Eroare la adăugare", "error");
+    } catch (err) {
+      addToast(getErrMsg(err, "Eroare la adăugare"), "error");
     } finally {
       setAdding(false);
     }
@@ -103,6 +106,16 @@ export default function DocumentsPage() {
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-6 space-y-5">
+      <ConfirmDialog
+        open={!!confirmDoc}
+        title="Ștergi documentul?"
+        description={`${DOC_LABELS[confirmDoc?.doc_type ?? "CI"] ?? confirmDoc?.doc_type} va fi eliminat definitiv din portofel.`}
+        confirmLabel="Șterge"
+        destructive
+        onConfirm={handleConfirmDelete}
+        onCancel={() => setConfirmDoc(null)}
+      />
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -251,7 +264,7 @@ export default function DocumentsPage() {
             <div key={doc.id} role="listitem">
               <DocumentCard
                 doc={doc}
-                onDelete={handleDelete}
+                onDelete={handleDeleteRequest}
                 onShare={() => {}}
                 onView={() => {}}
               />

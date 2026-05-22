@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { documentsApi, sharingApi } from "@/lib/api";
+import { documentsApi, sharingApi, getErrMsg } from "@/lib/api";
 import { useDocumentStore } from "@/store/documentStore";
 import { useNotificationStore } from "@/store/notificationStore";
 import { QRGenerator } from "@/components/sharing/QRGenerator";
@@ -26,8 +26,8 @@ export default function SharingPage() {
         ]);
         setDocuments(docsRes.data);
         setTokens(tokensRes.data);
-      } catch {
-        addToast("Eroare la încărcare", "error");
+      } catch (err) {
+        addToast(getErrMsg(err, "Eroare la încărcare"), "error");
       } finally {
         setLoading(false);
       }
@@ -42,8 +42,8 @@ export default function SharingPage() {
         prev.map((t) => (t.id === id ? { ...t, is_active: false } : t))
       );
       addToast("Token revocat", "success");
-    } catch {
-      addToast("Eroare la revocare", "error");
+    } catch (err) {
+      addToast(getErrMsg(err, "Eroare la revocare"), "error");
     }
   };
 

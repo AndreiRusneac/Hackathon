@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { documentsApi, auditApi } from "@/lib/api";
+import { documentsApi, auditApi, getErrMsg } from "@/lib/api";
 import { useAuthStore } from "@/store/authStore";
 import { useDocumentStore } from "@/store/documentStore";
 import { useNotificationStore } from "@/store/notificationStore";
@@ -25,32 +25,29 @@ const ACTION_ICONS: Record<string, string> = {
 export default function DashboardPage() {
   const { user } = useAuthStore();
   const { documents, setDocuments, loading, setLoading } = useDocumentStore();
-  const { generateFromDocuments, notifications } = useNotificationStore();
+  const { generateFromDocuments, notifications, addToast } = useNotificationStore();
   const navigate = useNavigate();
   const [recentActivity, setRecentActivity] = useState<AuditEntry[]>([]);
-  const [auditStats, setAuditStats] = useState<any>(null);
 
   useEffect(() => {
     const load = async () => {
       setLoading(true);
       try {
-        const [docsRes, activityRes, statsRes] = await Promise.all([
+        const [docsRes, activityRes] = await Promise.all([
           documentsApi.list(),
           auditApi.listEntries(5),
-          auditApi.stats(),
         ]);
         setDocuments(docsRes.data);
         generateFromDocuments(docsRes.data);
         setRecentActivity(activityRes.data);
-        setAuditStats(statsRes.data);
-      } catch (e) {
-        console.error(e);
+      } catch (err) {
+        addToast(getErrMsg(err, "Eroare la încărcarea datelor"), "error");
       } finally {
         setLoading(false);
       }
     };
     load();
-  }, []);
+  }, [setLoading, setDocuments, generateFromDocuments, addToast]);
 
   const validDocs = documents.filter((d) => d.status === "valid");
   const expiringSoon = documents.filter((d) => d.status === "expiră_curând");
