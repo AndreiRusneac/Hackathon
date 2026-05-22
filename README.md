@@ -159,6 +159,11 @@ cd actid
 docker-compose up --build
 ```
 
+- Aplicație: **http://localhost** (frontend static servit de Nginx pe portul 80)
+- API: **http://localhost:8000**
+
+Frontend-ul rulează ca build static în Nginx, care direcționează `/api` către containerul backend. Baza de date SQLite este persistată într-un volum Docker (`actid-db`) — nu sunt necesari pași manuali.
+
 ---
 
 ## API Reference
@@ -177,6 +182,7 @@ Documentație interactivă: **http://localhost:8000/docs**
 | `/api/family/delegations` | GET/POST | Gestionare delegări |
 | `/api/audit/entries` | GET | Jurnal de audit |
 | `/api/audit/verify` | GET | Verificare integritate lanț SHA-256 |
+| `/api/audit/stats` | GET | Statistici audit (total, documente, QR, delegări) |
 
 ---
 
@@ -196,11 +202,22 @@ Documentație interactivă: **http://localhost:8000/docs**
 
 | Criteriu | Punctaj | Status |
 |---|---|---|
-| UX / Usabilitate | 25 pts | 🔄 în progres |
-| Impact Social | 25 pts | 🔄 în progres |
+| UX / Usabilitate | 25 pts | ✅ mobile-first, WCAG AA, română |
+| Impact Social | 25 pts | ✅ diaspora, vârstnici, delegare familie |
 | Demo funcțional | 20 pts | ✅ toate fluxurile verificate |
-| Fezabilitate tehnică | 20 pts | ✅ arhitectură curată |
+| Fezabilitate tehnică | 20 pts | ✅ arhitectură curată, Docker prod |
 | Coerență Digital Romania | 10 pts | ✅ context românesc complet |
+
+---
+
+---
+
+## Materiale demo & jurizare
+
+| Fișier | Conținut |
+|---|---|
+| `actid/DEMO_SCRIPT.md` | Script demo 3 minute cu cronometraj și Plan B |
+| `actid/SCORING.md` | Mapare completă criterii → implementare → fișiere |
 
 ---
 

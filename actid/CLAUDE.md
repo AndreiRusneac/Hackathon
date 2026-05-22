@@ -18,7 +18,14 @@ python3 -m uvicorn app.main:app --reload --port 8000
 cd frontend
 npm install
 VITE_API_URL=http://localhost:8000 npm run dev
+
+# Production (Docker) — frontend on :80, backend on :8000
+cd actid
+docker-compose up --build
 ```
+
+> **Windows:** first backend start may crash on seed emoji (`UnicodeEncodeError`).
+> DB is still seeded — just restart, or prefix with `PYTHONIOENCODING=utf-8`.
 
 ## Demo Accounts
 
@@ -45,6 +52,14 @@ VITE_API_URL=http://localhost:8000 npm run dev
 3. Alex (London) → sees Maria's delegated documents
 4. Create QR share → funcționar scans → audit log updated
 5. Audit log → blockchain chain visualization
+
+## Pitch Materials
+
+| File | Purpose |
+|---|---|
+| `DEMO_SCRIPT.md` | 3-minute judge demo script with hook, diaspora scenario, blockchain flow, Plan B |
+| `SCORING.md` | Every hackathon criterion mapped to implementation + files |
+| `README.md` (repo root) | Full Romanian README for judges |
 
 ## Scoring
 

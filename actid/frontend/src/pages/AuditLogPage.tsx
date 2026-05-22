@@ -1,22 +1,40 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { auditApi } from "@/lib/api";
 import { useNotificationStore } from "@/store/notificationStore";
 import { Card, CardContent, Badge, Button } from "@/components/ui";
-import { formatDateTime, truncateHash, ACTION_LABELS } from "@/lib/utils";
+import {
+  formatDateTime,
+  ACTION_LABELS,
+  ACTION_STYLE,
+  DEFAULT_ACTION_STYLE,
+} from "@/lib/utils";
 import type { AuditEntry } from "@/types";
+
+interface ChainStatus {
+  valid: boolean;
+  entries_checked: number;
+  message: string;
+}
+
+interface AuditStats {
+  total_entries: number;
+  user_entries: number;
+  documents_created: number;
+  qr_shares: number;
+  delegations: number;
+  chain_valid: boolean;
+}
 
 export default function AuditLogPage() {
   const { addToast } = useNotificationStore();
   const [entries, setEntries] = useState<AuditEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [verifying, setVerifying] = useState(false);
-  const [chainStatus, setChainStatus] = useState<{
-    valid: boolean;
-    entries_checked: number;
-    message: string;
-  } | null>(null);
-  const [stats, setStats] = useState<any>(null);
+  const [chainStatus, setChainStatus] = useState<ChainStatus | null>(null);
+  const [stats, setStats] = useState<AuditStats | null>(null);
   const [expanded, setExpanded] = useState<string | null>(null);
+  const [actionFilter, setActionFilter] = useState<string>("");
+  const [actorFilter, setActorFilter] = useState<string>("");
 
   useEffect(() => {
     load();
@@ -26,7 +44,7 @@ export default function AuditLogPage() {
     setLoading(true);
     try {
       const [entriesRes, statsRes] = await Promise.all([
-        auditApi.listEntries(30),
+        auditApi.listEntries(100),
         auditApi.stats(),
       ]);
       setEntries(entriesRes.data);
@@ -44,7 +62,9 @@ export default function AuditLogPage() {
       const res = await auditApi.verifyChain();
       setChainStatus(res.data);
       addToast(
-        res.data.valid ? "✓ Lanț valid — nicio modificare detectată" : "⚠ Erori detectate în lanț",
+        res.data.valid
+          ? `✓ Lanț valid — ${res.data.entries_checked} înregistrări`
+          : "✗ Integritate compromisă",
         res.data.valid ? "success" : "error"
       );
     } catch {
@@ -54,42 +74,83 @@ export default function AuditLogPage() {
     }
   };
 
+  const actions = useMemo(
+    () => Array.from(new Set(entries.map((e) => e.action))).sort(),
+    [entries]
+  );
+  const actors = useMemo(
+    () =>
+      Array.from(new Set(entries.map((e) => e.actor_name).filter(Boolean))).sort() as string[],
+    [entries]
+  );
+
+  const filtered = useMemo(
+    () =>
+      entries.filter(
+        (e) =>
+          (!actionFilter || e.action === actionFilter) &&
+          (!actorFilter || e.actor_name === actorFilter)
+      ),
+    [entries, actionFilter, actorFilter]
+  );
+
+  const hasFilter = Boolean(actionFilter || actorFilter);
+
   return (
     <div className="max-w-2xl mx-auto px-4 py-6 space-y-5">
       {/* Header */}
       <div>
         <h1 className="text-2xl font-bold">Jurnal de Audit</h1>
         <p className="text-sm text-muted-foreground mt-0.5">
-          Registru imutabil cu SHA-256 · Append-only · Verificabil
+          Registru imutabil SHA-256 · Append-only · Verificabil de oricine
         </p>
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-3 gap-3">
-        <div className="bg-white rounded-2xl border border-border p-3 text-center">
-          <p className="text-xl font-bold text-actid-blue">{stats?.total_entries ?? "—"}</p>
-          <p className="text-xs text-muted-foreground">Intrări totale</p>
-        </div>
-        <div className="bg-white rounded-2xl border border-border p-3 text-center">
-          <p className="text-xl font-bold text-actid-blue">{stats?.user_entries ?? "—"}</p>
-          <p className="text-xs text-muted-foreground">Ale mele</p>
-        </div>
-        <div className="bg-white rounded-2xl border border-border p-3 text-center">
-          <p className="text-xl font-bold text-green-600">
-            {chainStatus === null ? "—" : chainStatus.valid ? "✓" : "✕"}
-          </p>
-          <p className="text-xs text-muted-foreground">Lanț valid</p>
-        </div>
+      {/* Stats cards */}
+      <div className="grid grid-cols-2 gap-3">
+        <StatCard
+          value={stats?.total_entries}
+          label="Înregistrări totale"
+          icon="🔗"
+          loading={loading}
+        />
+        <StatCard
+          value={stats?.documents_created}
+          label="Documente create"
+          icon="📤"
+          loading={loading}
+        />
+        <StatCard
+          value={stats?.qr_shares}
+          label="Partajări QR"
+          icon="📱"
+          loading={loading}
+        />
+        <StatCard
+          value={stats?.delegations}
+          label="Delegări familie"
+          icon="🤝"
+          loading={loading}
+        />
       </div>
 
-      {/* Verify button */}
-      <Card className={chainStatus ? (chainStatus.valid ? "border-green-200" : "border-red-200") : ""}>
+      {/* Verify chain */}
+      <Card
+        className={
+          chainStatus
+            ? chainStatus.valid
+              ? "border-green-300"
+              : "border-red-300"
+            : ""
+        }
+      >
         <CardContent className="py-4">
-          <div className="flex items-center justify-between">
-            <div>
+          <div className="flex items-center justify-between gap-3">
+            <div className="min-w-0">
               <p className="font-semibold text-sm">Verificare integritate lanț</p>
               <p className="text-xs text-muted-foreground mt-0.5">
-                Verifică că niciun bloc nu a fost modificat
+                Recalculează fiecare hash și confirmă că niciun bloc nu a fost
+                modificat
               </p>
             </div>
             <Button
@@ -97,20 +158,22 @@ export default function AuditLogPage() {
               variant={chainStatus?.valid ? "outline" : "primary"}
               onClick={handleVerify}
               loading={verifying}
+              className="flex-shrink-0"
             >
-              🔍 Verifică
+              {verifying ? "Verific…" : "🔍 Verifică"}
             </Button>
           </div>
           {chainStatus && (
             <div
-              className={`mt-3 p-3 rounded-xl text-sm font-medium ${
+              className={`mt-3 p-3 rounded-xl text-sm font-semibold ${
                 chainStatus.valid
                   ? "bg-green-50 text-green-700"
                   : "bg-red-50 text-red-700"
               }`}
             >
-              {chainStatus.valid ? "✅" : "❌"} {chainStatus.message} ·{" "}
-              {chainStatus.entries_checked} blocuri verificate
+              {chainStatus.valid
+                ? `✓ Lanț valid — ${chainStatus.entries_checked} înregistrări`
+                : `✗ Integritate compromisă — ${chainStatus.message}`}
             </div>
           )}
         </CardContent>
@@ -118,9 +181,54 @@ export default function AuditLogPage() {
 
       {/* Chain visualization */}
       <div>
-        <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">
-          Blockchain Audit Log
-        </p>
+        <div className="flex items-center justify-between mb-3">
+          <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+            Lanț blockchain de audit
+          </p>
+          {hasFilter && (
+            <button
+              onClick={() => {
+                setActionFilter("");
+                setActorFilter("");
+              }}
+              className="text-xs text-actid-blue font-medium hover:underline"
+            >
+              Resetează filtre
+            </button>
+          )}
+        </div>
+
+        {/* Filters */}
+        {!loading && entries.length > 0 && (
+          <div className="flex gap-2 mb-3">
+            <select
+              value={actionFilter}
+              onChange={(e) => setActionFilter(e.target.value)}
+              aria-label="Filtrează după acțiune"
+              className="flex-1 h-9 rounded-xl border border-input bg-white px-3 text-xs focus:outline-none focus:ring-2 focus:ring-actid-blue/30"
+            >
+              <option value="">Toate acțiunile</option>
+              {actions.map((a) => (
+                <option key={a} value={a}>
+                  {ACTION_LABELS[a]?.label ?? a}
+                </option>
+              ))}
+            </select>
+            <select
+              value={actorFilter}
+              onChange={(e) => setActorFilter(e.target.value)}
+              aria-label="Filtrează după actor"
+              className="flex-1 h-9 rounded-xl border border-input bg-white px-3 text-xs focus:outline-none focus:ring-2 focus:ring-actid-blue/30"
+            >
+              <option value="">Toți actorii</option>
+              {actors.map((a) => (
+                <option key={a} value={a}>
+                  {a}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
 
         {loading ? (
           <div className="space-y-3">
@@ -137,29 +245,63 @@ export default function AuditLogPage() {
               </div>
             ))}
           </div>
-        ) : entries.length === 0 ? (
+        ) : filtered.length === 0 ? (
           <Card>
             <CardContent className="text-center py-12">
               <p className="text-4xl mb-3">🔗</p>
-              <p className="font-semibold">Jurnal gol</p>
+              <p className="font-semibold">
+                {hasFilter ? "Niciun rezultat" : "Jurnal gol"}
+              </p>
               <p className="text-sm text-muted-foreground mt-1">
-                Nu există intrări înregistrate
+                {hasFilter
+                  ? "Niciun bloc nu corespunde filtrelor selectate"
+                  : "Nu există intrări înregistrate"}
               </p>
             </CardContent>
           </Card>
         ) : (
           <div className="space-y-0">
-            {entries.map((entry, idx) => (
+            {filtered.map((entry, idx) => (
               <AuditBlock
                 key={entry.id}
                 entry={entry}
-                isLast={idx === entries.length - 1}
+                isLast={idx === filtered.length - 1}
                 isExpanded={expanded === entry.id}
-                onToggle={() => setExpanded(expanded === entry.id ? null : entry.id)}
+                onToggle={() =>
+                  setExpanded(expanded === entry.id ? null : entry.id)
+                }
               />
             ))}
           </div>
         )}
+      </div>
+    </div>
+  );
+}
+
+function StatCard({
+  value,
+  label,
+  icon,
+  loading,
+}: {
+  value: number | undefined;
+  label: string;
+  icon: string;
+  loading: boolean;
+}) {
+  return (
+    <div className="bg-white rounded-2xl border border-border p-3 flex items-center gap-3">
+      <span className="text-2xl flex-shrink-0">{icon}</span>
+      <div className="min-w-0">
+        {loading ? (
+          <div className="skeleton h-6 w-10 rounded mb-1" />
+        ) : (
+          <p className="text-xl font-bold text-actid-blue leading-tight">
+            {value ?? "—"}
+          </p>
+        )}
+        <p className="text-xs text-muted-foreground">{label}</p>
       </div>
     </div>
   );
@@ -181,6 +323,8 @@ function AuditBlock({
     icon: "📋",
     color: "text-gray-600",
   };
+  const style = ACTION_STYLE[entry.action] || DEFAULT_ACTION_STYLE;
+  const isGenesis = entry.block_number === 0;
 
   const roleColors: Record<string, string> = {
     "cetățean": "bg-blue-50 text-blue-700",
@@ -194,13 +338,17 @@ function AuditBlock({
       <div className="flex flex-col items-center flex-shrink-0 pt-3">
         <button
           onClick={onToggle}
-          className="w-8 h-8 bg-actid-blue rounded-xl flex items-center justify-center text-white text-xs font-bold shadow-sm hover:bg-actid-blue-light transition-colors"
-          aria-label={`Block #${entry.block_number}`}
-          title={`Block #${entry.block_number}`}
+          className={`w-9 h-9 ${style.block} rounded-xl flex items-center justify-center text-white text-xs font-bold shadow-sm ring-2 ${style.ring} hover:opacity-90 transition-opacity`}
+          aria-label={`Bloc #${entry.block_number} — ${actionInfo.label}`}
+          title={`Bloc #${entry.block_number}`}
         >
           {entry.block_number}
         </button>
-        {!isLast && <div className="chain-connector mt-1" />}
+        {!isLast && (
+          <div
+            className={`w-0.5 h-7 bg-gradient-to-b ${style.line} mx-auto`}
+          />
+        )}
       </div>
 
       {/* Block content */}
@@ -220,8 +368,15 @@ function AuditBlock({
                 <p className={`text-sm font-semibold ${actionInfo.color}`}>
                   {actionInfo.label}
                 </p>
+                {isGenesis && (
+                  <Badge className="text-[10px] bg-violet-50 text-violet-700 ring-1 ring-violet-200">
+                    ⛓ Bloc geneză
+                  </Badge>
+                )}
                 <Badge
-                  className={`text-[10px] ${roleColors[entry.actor_role] || "bg-gray-100 text-gray-600"}`}
+                  className={`text-[10px] ${
+                    roleColors[entry.actor_role] || "bg-gray-100 text-gray-600"
+                  }`}
                 >
                   {entry.actor_role}
                 </Badge>
@@ -230,19 +385,28 @@ function AuditBlock({
                 {entry.actor_name || "Sistem"} · {formatDateTime(entry.timestamp)}
               </p>
               <p className="font-mono text-[10px] text-muted-foreground mt-1">
-                🔐 {truncateHash(entry.hash, 10)}
+                🔐 {entry.hash.slice(0, 8)}…{entry.hash.slice(-8)}
               </p>
             </div>
+            <span className="text-muted-foreground text-xs flex-shrink-0">
+              {isExpanded ? "▲" : "▼"}
+            </span>
           </div>
 
           {isExpanded && (
             <div className="mt-3 pt-3 border-t border-border space-y-2 animate-fade-in">
-              <HashRow label="Hash" value={entry.hash} />
-              <HashRow label="Hash anterior" value={entry.prev_hash} dimmed />
+              <HashRow label="Hash bloc" value={entry.hash} />
+              <HashRow
+                label={isGenesis ? "Hash anterior (geneză)" : "Hash bloc anterior"}
+                value={entry.prev_hash}
+                dimmed
+              />
 
               {entry.metadata && Object.keys(entry.metadata).length > 0 && (
                 <div className="bg-gray-50 rounded-xl p-3">
-                  <p className="text-xs font-semibold text-muted-foreground mb-2">Metadate</p>
+                  <p className="text-xs font-semibold text-muted-foreground mb-2">
+                    Metadate
+                  </p>
                   <pre className="text-xs text-foreground overflow-x-auto whitespace-pre-wrap break-all">
                     {JSON.stringify(entry.metadata, null, 2)}
                   </pre>
@@ -253,13 +417,17 @@ function AuditBlock({
                 {entry.target_document_id && (
                   <div>
                     <span className="text-muted-foreground">Document:</span>{" "}
-                    <span className="font-mono">{entry.target_document_id.slice(0, 12)}…</span>
+                    <span className="font-mono">
+                      {entry.target_document_id.slice(0, 12)}…
+                    </span>
                   </div>
                 )}
                 {entry.target_user_id && (
                   <div>
-                    <span className="text-muted-foreground">User:</span>{" "}
-                    <span className="font-mono">{entry.target_user_id.slice(0, 12)}…</span>
+                    <span className="text-muted-foreground">Utilizator:</span>{" "}
+                    <span className="font-mono">
+                      {entry.target_user_id.slice(0, 12)}…
+                    </span>
                   </div>
                 )}
               </div>
@@ -282,7 +450,9 @@ function HashRow({
 }) {
   return (
     <div>
-      <p className="text-[10px] text-muted-foreground uppercase tracking-wide">{label}</p>
+      <p className="text-[10px] text-muted-foreground uppercase tracking-wide">
+        {label}
+      </p>
       <p
         className={`font-mono text-[10px] break-all ${
           dimmed ? "text-muted-foreground" : "text-actid-blue"
