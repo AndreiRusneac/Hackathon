@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <rect width="32" height="32" rx="8" fill="#002B7F"/>
+  <text x="5" y="14" font-family="Arial Black, sans-serif" font-size="10" font-weight="900" fill="white">AC</text>
+  <text x="5" y="26" font-family="Arial Black, sans-serif" font-size="10" font-weight="900" fill="#CE1126">TID</text>
+</svg>
