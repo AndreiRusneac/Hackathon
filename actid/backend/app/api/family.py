@@ -56,11 +56,13 @@ def list_delegated_to_me(
     db: Session = Depends(get_db),
 ):
     """Delegations others have given to me."""
+    now = datetime.utcnow()
     grants = (
         db.query(DelegationGrant)
         .filter(
             DelegationGrant.delegate_id == current_user.id,
             DelegationGrant.is_active == True,
+            (DelegationGrant.valid_until == None) | (DelegationGrant.valid_until > now),
         )
         .all()
     )

@@ -9,7 +9,7 @@ from ..api.auth import get_current_user_dep
 from ..database import get_db
 from ..ledger import add_audit_entry
 from ..models.models import DelegationGrant, Document, User
-from ..schemas.schemas import DocumentCreate, DocumentResponse
+from ..schemas.schemas import DocumentCreate, DocumentResponse, RenewalRequestCreate, RenewalRequestResponse
 
 router = APIRouter(prefix="/documents", tags=["documents"])
 
@@ -44,11 +44,49 @@ def _serialize_doc(doc: Document) -> DocumentResponse:
     )
 
 
+@router.post("/renewal-request", response_model=RenewalRequestResponse)
+def request_renewal(
+    data: RenewalRequestCreate,
+    current_user: User = Depends(get_current_user_dep),
+    db: Session = Depends(get_db),
+):
+    doc = db.query(Document).filter(Document.id == data.document_id).first()
+    if not doc:
+        raise HTTPException(status_code=404, detail="Document negăsit")
+
+    if doc.owner_id != current_user.id:
+        grant = (
+            db.query(DelegationGrant)
+            .filter(
+                DelegationGrant.delegator_id == doc.owner_id,
+                DelegationGrant.delegate_id == current_user.id,
+                DelegationGrant.is_active == True,
+            )
+            .first()
+        )
+        if not grant:
+            raise HTTPException(status_code=403, detail="Acces interzis")
+
+    add_audit_entry(
+        db,
+        action="RENEWAL_REQUEST",
+        actor_id=current_user.id,
+        actor_name=current_user.full_name,
+        actor_role=current_user.role,
+        target_document_id=doc.id,
+        metadata={"note": data.note, "requested_by": current_user.email, "doc_type": doc.doc_type},
+    )
+    db.commit()
+    return RenewalRequestResponse(success=True, message="Cerere înregistrată")
+
+
 @router.get("/", response_model=List[DocumentResponse])
 def list_documents(
     current_user: User = Depends(get_current_user_dep),
     db: Session = Depends(get_db),
 ):
+    if current_user.role == "funcționar":
+        raise HTTPException(status_code=403, detail="Funcționarul nu poate accesa documentele cetățenilor")
     docs = db.query(Document).filter(Document.owner_id == current_user.id).all()
     return [_serialize_doc(d) for d in docs]
 
@@ -59,11 +97,13 @@ def list_delegated_documents(
     db: Session = Depends(get_db),
 ):
     """Documents delegated to the current user by family members."""
+    now = datetime.utcnow()
     grants = (
         db.query(DelegationGrant)
         .filter(
             DelegationGrant.delegate_id == current_user.id,
             DelegationGrant.is_active == True,
+            (DelegationGrant.valid_until == None) | (DelegationGrant.valid_until > now),
         )
         .all()
     )
@@ -107,6 +147,9 @@ def get_document(
     current_user: User = Depends(get_current_user_dep),
     db: Session = Depends(get_db),
 ):
+    if current_user.role == "funcționar":
+        raise HTTPException(status_code=403, detail="Funcționarul nu poate accesa documentele cetățenilor")
+
     doc = db.query(Document).filter(Document.id == doc_id).first()
     if not doc:
         raise HTTPException(status_code=404, detail="Document negăsit")
@@ -145,6 +188,9 @@ def create_document(
     current_user: User = Depends(get_current_user_dep),
     db: Session = Depends(get_db),
 ):
+    if current_user.role == "funcționar":
+        raise HTTPException(status_code=403, detail="Funcționarul nu poate crea documente")
+
     doc = Document(
         owner_id=current_user.id,
         doc_type=data.doc_type,
