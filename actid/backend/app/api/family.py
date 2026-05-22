@@ -43,7 +43,7 @@ def list_delegations(
         db.query(DelegationGrant)
         .filter(
             DelegationGrant.delegator_id == current_user.id,
-            DelegationGrant.is_active == True,
+            DelegationGrant.is_active.is_(True),
         )
         .all()
     )
@@ -61,7 +61,7 @@ def list_delegated_to_me(
         db.query(DelegationGrant)
         .filter(
             DelegationGrant.delegate_id == current_user.id,
-            DelegationGrant.is_active == True,
+            DelegationGrant.is_active.is_(True),
             (DelegationGrant.valid_until == None) | (DelegationGrant.valid_until > now),
         )
         .all()
@@ -87,7 +87,7 @@ def create_delegation(
         .filter(
             DelegationGrant.delegator_id == current_user.id,
             DelegationGrant.delegate_id == delegate.id,
-            DelegationGrant.is_active == True,
+            DelegationGrant.is_active.is_(True),
         )
         .first()
     )

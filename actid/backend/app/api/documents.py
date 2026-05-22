@@ -1,5 +1,5 @@
 import json
-from datetime import date, datetime
+from datetime import date, datetime, timezone
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -17,7 +17,7 @@ router = APIRouter(prefix="/documents", tags=["documents"])
 def _doc_status(expires_date: Optional[date]) -> tuple[str, Optional[int]]:
     if expires_date is None:
         return "valid", None
-    today = date.today()
+    today = datetime.now(timezone.utc).date()
     delta = (expires_date - today).days
     if delta < 0:
         return "expirat", delta
@@ -60,12 +60,15 @@ def request_renewal(
             .filter(
                 DelegationGrant.delegator_id == doc.owner_id,
                 DelegationGrant.delegate_id == current_user.id,
-                DelegationGrant.is_active == True,
+                DelegationGrant.is_active.is_(True),
             )
             .first()
         )
         if not grant:
             raise HTTPException(status_code=403, detail="Acces interzis")
+        permissions = json.loads(grant.permissions)
+        if "request_renewal" not in permissions:
+            raise HTTPException(status_code=403, detail="Nu ai permisiunea de a solicita reînnoirea")
 
     add_audit_entry(
         db,
@@ -74,6 +77,7 @@ def request_renewal(
         actor_name=current_user.full_name,
         actor_role=current_user.role,
         target_document_id=doc.id,
+        target_user_id=doc.owner_id,
         metadata={"note": data.note, "requested_by": current_user.email, "doc_type": doc.doc_type},
     )
     db.commit()
@@ -102,7 +106,7 @@ def list_delegated_documents(
         db.query(DelegationGrant)
         .filter(
             DelegationGrant.delegate_id == current_user.id,
-            DelegationGrant.is_active == True,
+            DelegationGrant.is_active.is_(True),
             (DelegationGrant.valid_until == None) | (DelegationGrant.valid_until > now),
         )
         .all()
@@ -161,7 +165,7 @@ def get_document(
             .filter(
                 DelegationGrant.delegator_id == doc.owner_id,
                 DelegationGrant.delegate_id == current_user.id,
-                DelegationGrant.is_active == True,
+                DelegationGrant.is_active.is_(True),
             )
             .first()
         )

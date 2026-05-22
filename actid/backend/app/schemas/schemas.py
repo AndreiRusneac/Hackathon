@@ -152,7 +152,7 @@ class ChainVerifyResponse(BaseModel):
 
 class RenewalRequestCreate(BaseModel):
     document_id: str
-    note: str
+    note: Optional[str] = None
 
 
 class RenewalRequestResponse(BaseModel):
