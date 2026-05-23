@@ -1,5 +1,5 @@
 import { useState, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { authApi, getErrMsg } from "@/lib/api";
 import { useAuthStore } from "@/store/authStore";
 import { Button, Input, Alert } from "@/components/ui";
@@ -8,6 +8,8 @@ type Step = "credentials" | "2fa";
 
 export default function LoginPage() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const next = new URLSearchParams(location.search).get("next") || "/dashboard";
   const { setUser, setSessionToken, sessionToken, demoOtp } = useAuthStore();
 
   const [step, setStep] = useState<Step>("credentials");
@@ -73,7 +75,7 @@ export default function LoginPage() {
       const res = await authApi.verify2fa(sessionToken!, otpCode);
       const data = res.data;
       setUser(data.user, data.access_token);
-      navigate("/dashboard", { replace: true });
+      navigate(next, { replace: true });
     } catch (err) {
       setError(getErrMsg(err, "Cod OTP incorect"));
       setOtp(["", "", "", "", "", ""]);
@@ -84,7 +86,7 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-actid-blue via-[#0041BF] to-[#1a56db] flex items-center justify-center p-4">
+    <div className="min-h-[100dvh] bg-gradient-to-br from-actid-blue via-[#0041BF] to-[#1a56db] flex items-center justify-center p-4 safe-top safe-bottom">
       <div className="w-full max-w-sm">
         {/* Logo */}
         <div className="text-center mb-8">
@@ -205,7 +207,7 @@ export default function LoginPage() {
               {/* OTP input */}
               <div>
                 <p className="text-sm font-medium text-center mb-3">Introdu codul de 6 cifre</p>
-                <div className="flex gap-2 justify-center" role="group" aria-label="Cod OTP">
+                <div className="flex gap-1.5 sm:gap-2 justify-center" role="group" aria-label="Cod OTP">
                   {otp.map((digit, i) => (
                     <input
                       key={i}

@@ -31,14 +31,19 @@
   * {
     @apply border-border;
   }
+  html, body {
+    overflow-x: hidden;
+  }
   body {
     @apply bg-background text-foreground;
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
-  .safe-top { padding-top: env(safe-area-inset-top); }
+  .safe-top    { padding-top:    env(safe-area-inset-top); }
   .safe-bottom { padding-bottom: env(safe-area-inset-bottom); }
+  .safe-left   { padding-left:   env(safe-area-inset-left); }
+  .safe-right  { padding-right:  env(safe-area-inset-right); }
 }
 
 @keyframes shimmer {
@@ -64,9 +69,10 @@
 }
 
 .otp-input {
-  @apply w-12 h-14 text-center text-2xl font-bold border-2 border-gray-300 rounded-xl
+  @apply min-w-0 flex-1 max-w-[3rem] text-center text-xl sm:text-2xl font-bold border-2 border-gray-300 rounded-xl
     focus:border-actid-blue focus:outline-none focus:ring-2 focus:ring-actid-blue/20
     transition-all duration-150;
+  aspect-ratio: 3 / 4;
 }
 
 .chain-connector {
@@ -86,6 +92,14 @@
   to   { opacity: 1; transform: translateY(0); }
 }
 .animate-fade-in { animation: fade-in 0.2s ease-out; }
+
+/* ACCESSIBILITY: lift the smallest text to a legible floor (WCAG 1.4.4).
+   Font size only, so layout density stays intact. "Mod vârstnici" scales
+   everything further for users who need larger text. */
+.text-\[9px\],
+.text-\[10px\],
+.text-\[11px\] { font-size: 0.75rem; line-height: 1rem; }     /* 9–11px → 12px */
+.text-xs { font-size: 0.8125rem; line-height: 1.15rem; }       /* 12px → 13px */
 
 /* ─── Elderly Mode ───────────────────────────────────────────────────────── */
 

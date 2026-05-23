@@ -1,13 +1,13 @@
 import { useEffect, useState } from "react";
-import { Globe, User, Users, UserCheck, ArrowDownToLine, ArrowUpFromLine, Plus, X } from "lucide-react";
+import { Globe, Users, UserCheck, ArrowDownToLine, ArrowUpFromLine, Plus, X, Check, ChevronDown } from "lucide-react";
 import { familyApi, documentsApi } from "@/lib/api";
 import { useNotificationStore } from "@/store/notificationStore";
 import { useDocumentStore } from "@/store/documentStore";
 import { useAuthStore } from "@/store/authStore";
-import { Card, CardContent, Badge, Button, Input, Alert } from "@/components/ui";
-import { DocumentCard } from "@/components/documents/DocumentCard";
-import { formatDate, formatDateTime } from "@/lib/utils";
-import type { DelegationGrant } from "@/types";
+import { Card, CardContent, Badge, Button, Input, Alert, StatusBadge } from "@/components/ui";
+import { DocTypeIcon } from "@/components/documents/DocumentCard";
+import { formatDate, formatDateTime, DOC_LABELS, cn } from "@/lib/utils";
+import type { DelegationGrant, DelegatedDocument, DocStatus } from "@/types";
 
 const DOCUMENT_CATEGORIES = [
   { key: "CI", label: "Carte de Identitate" },
@@ -29,6 +29,7 @@ export default function FamilyPage() {
   const [showForm, setShowForm] = useState(false);
   const [revokePendingId, setRevokePendingId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<"received" | "given">("received");
+  const [expandedDelegationId, setExpandedDelegationId] = useState<string | null>(null);
   const [form, setForm] = useState({
     delegate_email: "",
     document_categories: [] as string[],
@@ -185,14 +186,15 @@ export default function FamilyPage() {
                         key={cat.key}
                         type="button"
                         onClick={() => toggleCategory(cat.key)}
-                        className={`text-left p-2.5 rounded-xl border-2 text-xs font-medium transition-all ${
+                        className={`flex items-center gap-1.5 text-left p-2.5 rounded-xl border-2 text-xs font-medium transition-all ${
                           selected
                             ? "border-actid-blue bg-blue-50 text-actid-blue"
                             : "border-border hover:border-gray-300"
                         }`}
                         aria-pressed={selected}
                       >
-                        {selected ? "✓ " : ""}{cat.label}
+                        {selected && <Check size={11} className="flex-shrink-0" aria-hidden="true" />}
+                        <span className="truncate">{cat.label}</span>
                       </button>
                     );
                   })}
@@ -289,14 +291,17 @@ export default function FamilyPage() {
         </button>
       </div>
 
-      {/* Received delegations → documents from family */}
+      {/* Received delegations → accordion by family member */}
       {activeTab === "received" && (
-        <div className="space-y-4">
+        <div className="space-y-3">
           {loading ? (
-            <div className="space-y-3">
-              <div className="bg-white rounded-2xl border border-border p-4">
-                <div className="skeleton h-4 w-48 rounded mb-2" />
-                <div className="skeleton h-3 w-64 rounded" />
+            <div className="bg-white rounded-2xl border border-border p-4">
+              <div className="flex items-center gap-3">
+                <div className="skeleton w-10 h-10 rounded-full" />
+                <div className="flex-1 space-y-2">
+                  <div className="skeleton h-4 w-36 rounded" />
+                  <div className="skeleton h-3 w-52 rounded" />
+                </div>
               </div>
             </div>
           ) : delegationsToMe.length === 0 ? (
@@ -312,55 +317,150 @@ export default function FamilyPage() {
               </CardContent>
             </Card>
           ) : (
-            <>
-              {delegationsToMe.map((grant) => (
-                <Card key={grant.id} className="border-teal-100">
-                  <CardContent className="py-4">
-                    <div className="flex items-start gap-3 mb-3">
-                      <div className="w-10 h-10 bg-teal-50 rounded-xl flex items-center justify-center flex-shrink-0">
-                        <User size={18} className="text-teal-600" aria-hidden="true" />
+            delegationsToMe.map((grant) => {
+              const grantDocs = (delegatedDocuments as DelegatedDocument[]).filter(
+                (d) => d.delegation_id === grant.id
+              );
+              const isOpen = expandedDelegationId === grant.id;
+              const initials = (grant.delegator_name || "?")
+                .split(" ")
+                .map((n) => n[0])
+                .join("")
+                .slice(0, 2)
+                .toUpperCase();
+
+              return (
+                <div
+                  key={grant.id}
+                  className={cn(
+                    "rounded-2xl border overflow-hidden transition-shadow",
+                    isOpen ? "border-actid-blue/30 shadow-sm" : "border-border"
+                  )}
+                >
+                  {/* Member row — accordion trigger */}
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setExpandedDelegationId(isOpen ? null : grant.id)
+                    }
+                    aria-expanded={isOpen}
+                    aria-label={`${grant.delegator_name}, ${grantDocs.length} documente delegate, ${isOpen ? "restrânge" : "extinde"}`}
+                    className={cn(
+                      "w-full flex items-center gap-3 p-4 text-left bg-white transition-colors",
+                      "hover:bg-gray-50/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-actid-blue focus-visible:ring-inset"
+                    )}
+                  >
+                    {/* Initials avatar */}
+                    <div className="w-10 h-10 bg-actid-blue rounded-full flex items-center justify-center flex-shrink-0">
+                      <span className="text-white text-sm font-bold">{initials}</span>
+                    </div>
+
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <p className="font-semibold text-sm text-foreground">{grant.delegator_name}</p>
+                        <Badge variant="success">Activ</Badge>
                       </div>
-                      <div className="flex-1">
-                        <p className="font-semibold text-sm">{grant.delegator_name}</p>
-                        <p className="text-xs text-muted-foreground">
-                          Valabil până: {grant.valid_until ? formatDate(grant.valid_until) : "Nelimitat"}
-                        </p>
-                        {grant.notes && (
-                          <p className="text-xs text-muted-foreground italic mt-0.5">"{grant.notes}"</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        {grantDocs.length > 0
+                          ? `${grantDocs.length} ${grantDocs.length === 1 ? "document" : "documente"} delegate`
+                          : grant.document_categories.length + " categorii"}
+                        {grant.valid_until && ` · până ${formatDate(grant.valid_until)}`}
+                      </p>
+                      <div className="flex flex-wrap gap-1 mt-1.5">
+                        {grant.document_categories.slice(0, 3).map((cat) => (
+                          <span
+                            key={cat}
+                            className="text-[10px] bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded-full font-medium"
+                          >
+                            {cat}
+                          </span>
+                        ))}
+                        {grant.document_categories.length > 3 && (
+                          <span className="text-[10px] bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded-full">
+                            +{grant.document_categories.length - 3}
+                          </span>
                         )}
                       </div>
-                      <Badge variant="success">Activ</Badge>
                     </div>
-                    <div className="flex flex-wrap gap-1 mb-3">
-                      {grant.document_categories.map((cat) => (
-                        <Badge key={cat} variant="info">{cat}</Badge>
-                      ))}
-                      {grant.permissions.includes("request_renewal") && (
-                        <Badge variant="warning">Poate reînnoi</Badge>
+
+                    {grantDocs.length > 0 && (
+                      <span className="text-[10px] font-bold text-white bg-actid-blue rounded-full px-1.5 py-0.5 leading-none flex-shrink-0">
+                        {grantDocs.length}
+                      </span>
+                    )}
+                    <ChevronDown
+                      size={16}
+                      className={cn(
+                        "text-muted-foreground transition-transform flex-shrink-0",
+                        isOpen && "rotate-180"
+                      )}
+                      aria-hidden="true"
+                    />
+                  </button>
+
+                  {/* Expanded: notes + document rows */}
+                  {isOpen && (
+                    <div className="border-t border-border/60">
+                      {grant.notes && (
+                        <div className="px-4 py-2.5 bg-gray-50 border-b border-border/40">
+                          <p className="text-xs text-muted-foreground italic">
+                            &ldquo;{grant.notes}&rdquo;
+                          </p>
+                        </div>
+                      )}
+                      {grantDocs.length === 0 ? (
+                        <div className="px-4 py-6 text-center bg-gray-50/40">
+                          <p className="text-sm text-muted-foreground">
+                            Niciun document disponibil momentan
+                          </p>
+                        </div>
+                      ) : (
+                        <div className="divide-y divide-border/60 bg-gray-50/30">
+                          {grantDocs.map((doc) => {
+                            const status = (doc.status || "valid") as DocStatus;
+                            return (
+                              <div
+                                key={doc.id}
+                                className="flex items-center gap-3 px-4 py-3"
+                              >
+                                <div
+                                  className={cn(
+                                    "w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0",
+                                    status === "expirat"
+                                      ? "bg-red-50 text-red-500"
+                                      : status === "expiră_curând"
+                                      ? "bg-amber-50 text-amber-600"
+                                      : "bg-blue-50 text-blue-600"
+                                  )}
+                                >
+                                  <DocTypeIcon type={doc.doc_type} size={18} />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-sm font-medium text-foreground truncate">
+                                    {DOC_LABELS[doc.doc_type] || doc.doc_type}
+                                  </p>
+                                  {doc.doc_number && (
+                                    <p className="text-[10px] text-muted-foreground font-mono">
+                                      {doc.doc_number}
+                                    </p>
+                                  )}
+                                  {doc.expires_date && (
+                                    <p className="text-[10px] text-muted-foreground">
+                                      Expiră: {formatDate(doc.expires_date)}
+                                    </p>
+                                  )}
+                                </div>
+                                <StatusBadge status={status} className="flex-shrink-0" />
+                              </div>
+                            );
+                          })}
+                        </div>
                       )}
                     </div>
-                  </CardContent>
-                </Card>
-              ))}
-
-              {/* Delegated documents */}
-              {delegatedDocuments.length > 0 && (
-                <div>
-                  <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">
-                    Documente delegate
-                  </p>
-                  <div className="space-y-3">
-                    {delegatedDocuments.map((doc) => (
-                      <DocumentCard
-                        key={doc.id}
-                        doc={doc}
-                        delegatedFrom={doc.delegated_from?.full_name}
-                      />
-                    ))}
-                  </div>
+                  )}
                 </div>
-              )}
-            </>
+              );
+            })
           )}
         </div>
       )}

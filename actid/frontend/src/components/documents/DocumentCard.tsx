@@ -2,28 +2,73 @@ import { useState } from "react";
 import {
   CreditCard, BookOpen, Car, Scale, Scroll, ClipboardList,
   Receipt, Building2, Route, FileText, Eye, Share2, Trash2, User,
+  Flag, HeartHandshake, Cross, BookUser, Home, FileSignature, Banknote,
+  Briefcase, GraduationCap, Award, BadgeCheck, HeartPulse, Accessibility,
+  ParkingSquare, ScrollText, CalendarClock, Wrench, ShieldCheck,
+  Fingerprint, Users, FolderOpen,
   type LucideIcon,
 } from "lucide-react";
 import { cn, DOC_LABELS, STATUS_CONFIG, formatDate } from "@/lib/utils";
-import { Badge, Button } from "@/components/ui";
+import { Button, StatusBadge } from "@/components/ui";
 import type { Document, DocStatus } from "@/types";
 
 const DOC_ICON_MAP: Record<string, LucideIcon> = {
-  CI:           CreditCard,
-  PASAPORT:     BookOpen,
-  PERMIS:       Car,
-  CAZIER:       Scale,
-  CERT_NASTERE: Scroll,
-  ADEVERINTA:   ClipboardList,
-  ANAF:         Receipt,
-  ONRC:         Building2,
-  ROVINIETA:    Route,
+  // Identitate
+  CI:                   CreditCard,
+  PASAPORT:             BookOpen,
+  CERT_CETATENIE:       Flag,
+  CAZIER:               Scale,
+  // Familie & Stare Civilă
+  CERT_NASTERE:         Scroll,
+  CERT_CASATORIE:       HeartHandshake,
+  CERT_DECES:           Cross,
+  LIVRET_FAMILIE:       BookUser,
+  // Domiciliu & Acte Juridice
+  ADEVERINTA_DOMICILIU: Home,
+  PROCURA:              FileSignature,
+  // Muncă & Venituri
+  ADEVERINTA_VENIT:     Banknote,
+  CONTRACT_MUNCA:       Briefcase,
+  // Educație
+  DIPLOMA_BAC:          GraduationCap,
+  DIPLOMA_LICENTA:      Award,
+  CERT_COMPETENTE:      BadgeCheck,
+  // Sănătate
+  CARD_SANATATE:        HeartPulse,
+  CERT_HANDICAP:        Accessibility,
+  ECUSON_PARCARE:       ParkingSquare,
+  // Vehicul & Transport
+  PERMIS:               Car,
+  TALON:                ScrollText,
+  INMATRICULARE_TEMP:   CalendarClock,
+  ITP:                  Wrench,
+  ASIGURARE:            ShieldCheck,
+  ROVINIETA:            Route,
+  // Legacy
+  ADEVERINTA:           ClipboardList,
+  ANAF:                 Receipt,
+  ONRC:                 Building2,
 };
 
 export function DocTypeIcon({ type, size = 20, className }: { type: string; size?: number; className?: string }) {
   const Icon = DOC_ICON_MAP[type] || FileText;
   return <Icon size={size} className={className} aria-hidden="true" />;
 }
+
+// Per-folder identity: a signature icon + a tinted tile, keyed by category key
+// (see DOC_CATEGORIES in utils). The tint lives only in the small icon square so
+// the eye learns each folder by color. Shared by the documents page and the QR
+// document picker.
+export const CATEGORY_META: Record<string, { Icon: LucideIcon; tile: string }> = {
+  identitate: { Icon: Fingerprint,   tile: "bg-blue-50 text-blue-600" },
+  familie:    { Icon: Users,         tile: "bg-rose-50 text-rose-600" },
+  domiciliu:  { Icon: Home,          tile: "bg-amber-50 text-amber-600" },
+  munca:      { Icon: Briefcase,     tile: "bg-teal-50 text-teal-600" },
+  educatie:   { Icon: GraduationCap, tile: "bg-violet-50 text-violet-600" },
+  sanatate:   { Icon: HeartPulse,    tile: "bg-emerald-50 text-emerald-600" },
+  vehicul:    { Icon: Car,           tile: "bg-sky-50 text-sky-600" },
+  altele:     { Icon: FolderOpen,    tile: "bg-gray-100 text-gray-500" },
+};
 
 interface DocumentCardProps {
   doc: Document;
@@ -59,12 +104,12 @@ export function DocumentCard({
     ? "Expirat"
     : "Expiră curând";
 
-  const badgeVariant = status === "valid" ? "success" : status === "expirat" ? "danger" : "warning";
-
   return (
     <div
       className={cn(
         "bg-white rounded-2xl border card-hover cursor-pointer",
+        // ACCESSIBILITY: visible keyboard focus indicator (WCAG 2.4.7)
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-actid-blue focus-visible:ring-offset-1",
         status === "expirat"       ? "border-red-200"   : "",
         status === "expiră_curând" ? "border-amber-200" : "border-border"
       )}
@@ -72,6 +117,8 @@ export function DocumentCard({
       role="button"
       tabIndex={0}
       aria-expanded={!compact ? expanded : undefined}
+      // ACCESSIBILITY: concise SR announcement, e.g. "Carte de Identitate — Expirat"
+      aria-label={`${label} — ${badgeText}`}
       onKeyDown={(e) => {
         if (e.key === "Enter" || e.key === " ") {
           e.preventDefault();
@@ -79,8 +126,8 @@ export function DocumentCard({
         }
       }}
     >
-      <div className="p-4">
-        <div className="flex items-start gap-3">
+      <div className="p-5">
+        <div className="flex items-start gap-4">
           <div className={cn("w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0", iconBg)}>
             <DocTypeIcon type={doc.doc_type} size={22} />
           </div>
@@ -98,7 +145,7 @@ export function DocumentCard({
                   </p>
                 )}
               </div>
-              <Badge variant={badgeVariant} className="flex-shrink-0">{badgeText}</Badge>
+              <StatusBadge status={status} className="flex-shrink-0" />
             </div>
 
             {doc.expires_date && (
@@ -126,7 +173,7 @@ export function DocumentCard({
         </div>
 
         {expanded && !compact && (
-          <div className="mt-4 pt-4 border-t border-border space-y-2 animate-fade-in">
+          <div className="mt-5 pt-5 border-t border-border space-y-2.5 animate-fade-in">
             {doc.issued_by && (
               <div className="flex justify-between text-xs">
                 <span className="text-muted-foreground">Emis de:</span>
@@ -158,8 +205,9 @@ export function DocumentCard({
                 </Button>
               )}
               {onDelete && (
-                <Button size="sm" variant="ghost" onClick={() => onDelete(doc)} aria-label="Șterge document">
-                  <Trash2 size={14} aria-hidden="true" />
+                /* ACCESSIBILITY: 44x44 minimum touch target for icon-only control (WCAG 2.5.5) */
+                <Button size="sm" variant="ghost" onClick={() => onDelete(doc)} aria-label="Șterge document" className="min-h-11 min-w-11">
+                  <Trash2 size={16} aria-hidden="true" />
                 </Button>
               )}
             </div>

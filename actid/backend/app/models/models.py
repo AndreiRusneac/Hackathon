@@ -45,6 +45,8 @@ class Document(Base):
     is_verified = Column(Boolean, default=True)
     metadata_json = Column(Text)
     description = Column(String)
+    photo_base64 = Column(Text, nullable=True)
+    cnp = Column(String(13), nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow)
 

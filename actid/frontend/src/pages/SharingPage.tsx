@@ -7,7 +7,7 @@ import { documentsApi, sharingApi } from "@/lib/api";
 import { useDocumentStore } from "@/store/documentStore";
 import { useNotificationStore } from "@/store/notificationStore";
 import { QRGenerator } from "@/components/sharing/QRGenerator";
-import { Card, CardContent, Badge, Button } from "@/components/ui";
+import { Card, CardContent, Badge, Button, StatusBadge } from "@/components/ui";
 import { formatDateTime, truncateHash } from "@/lib/utils";
 import type { ShareToken } from "@/types";
 
@@ -235,9 +235,7 @@ export default function SharingPage() {
                         <p className="text-xs text-muted-foreground font-mono">{doc.doc_number}</p>
                       )}
                     </div>
-                    <Badge variant={doc.status === "valid" ? "success" : doc.status === "expirat" ? "danger" : "warning"}>
-                      {doc.status === "valid" ? "Valabil" : doc.status === "expirat" ? "Expirat" : "Expiră curând"}
-                    </Badge>
+                    <StatusBadge status={doc.status} />
                   </div>
                 ))}
               </CardContent>
@@ -260,6 +258,7 @@ function TokenCard({
 }) {
   const [showQR, setShowQR] = useState(false);
   const isExpired = new Date(token.expires_at) < new Date();
+  const isScanned = !token.is_active && (token.use_count ?? 0) > 0;
   const qrValue = `${window.location.origin}/scan/${token.token}`;
 
   return (
@@ -276,8 +275,8 @@ function TokenCard({
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
               <p className="font-medium text-sm">{token.context || "Partajare generală"}</p>
-              <Badge variant={isExpired ? "danger" : !token.is_active ? "warning" : "success"}>
-                {isExpired ? "Expirat" : !token.is_active ? "Revocat" : "Activ"}
+              <Badge variant={isExpired ? "danger" : isScanned ? "info" : !token.is_active ? "warning" : "success"}>
+                {isExpired ? "Expirat" : isScanned ? "Scanat" : !token.is_active ? "Revocat" : "Activ"}
               </Badge>
             </div>
             <p className="text-xs text-muted-foreground mt-0.5">

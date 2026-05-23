@@ -136,7 +136,7 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-actid-blue via-[#0041BF] to-[#1a56db] flex items-center justify-center p-4">
+    <div className="min-h-[100dvh] bg-gradient-to-br from-actid-blue via-[#0041BF] to-[#1a56db] flex items-center justify-center p-4 safe-top safe-bottom overflow-y-auto">
       <div className="w-full max-w-sm">
         {/* Logo */}
         <div className="text-center mb-6">

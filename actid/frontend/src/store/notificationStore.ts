@@ -1,14 +1,20 @@
 import { create } from "zustand";
 import type { Document, Notification } from "@/types";
 
+interface ToastAction {
+  label: string;
+  onClick: () => void;
+}
+
 interface NotificationState {
   notifications: Notification[];
-  toasts: Array<{ id: string; message: string; type: "success" | "error" | "info" }>;
+  toasts: Array<{ id: string; message: string; type: "success" | "error" | "info"; action?: ToastAction }>;
   unreadCount: number;
   generateFromDocuments: (docs: Document[]) => void;
   dismiss: (id: string) => void;
   dismissAll: () => void;
-  addToast: (message: string, type?: "success" | "error" | "info") => void;
+  // ACCESSIBILITY: optional action enables reversible toasts (e.g. "Anulează" after delete)
+  addToast: (message: string, type?: "success" | "error" | "info", action?: ToastAction) => void;
   removeToast: (id: string) => void;
 }
 
@@ -95,10 +101,11 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
       unreadCount: 0,
     })),
 
-  addToast: (message, type = "info") => {
+  addToast: (message, type = "info", action) => {
     const id = Math.random().toString(36).slice(2);
-    set((s) => ({ toasts: [...s.toasts, { id, message, type }] }));
-    setTimeout(() => get().removeToast(id), 4000);
+    set((s) => ({ toasts: [...s.toasts, { id, message, type, action }] }));
+    // ACCESSIBILITY: give more time to act when an undo/action button is present
+    setTimeout(() => get().removeToast(id), action ? 7000 : 4000);
   },
 
   removeToast: (id) =>

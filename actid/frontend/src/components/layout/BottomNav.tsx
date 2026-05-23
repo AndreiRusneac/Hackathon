@@ -41,7 +41,7 @@ export function BottomNav() {
       role="navigation"
       aria-label="Navigare mobilă"
     >
-      <div className="relative flex items-center justify-around h-16">
+      <div className="relative flex items-center justify-around h-16 pr-10">
         {items.map((item) => {
           const Icon = item.icon;
           return (

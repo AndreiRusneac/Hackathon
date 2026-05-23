@@ -69,6 +69,8 @@ class DocumentCreate(BaseModel):
     issued_date: Optional[date] = None
     expires_date: Optional[date] = None
     description: Optional[str] = None
+    photo_base64: Optional[str] = None
+    cnp: Optional[str] = None
 
 
 class DocumentResponse(BaseModel):
@@ -81,6 +83,8 @@ class DocumentResponse(BaseModel):
     expires_date: Optional[date] = None
     is_verified: bool
     description: Optional[str] = None
+    photo_base64: Optional[str] = None
+    cnp: Optional[str] = None
     created_at: datetime
     days_remaining: Optional[int] = None
     status: Optional[str] = None

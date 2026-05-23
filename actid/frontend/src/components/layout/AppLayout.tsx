@@ -26,14 +26,14 @@ export default function AppLayout() {
   }
 
   return (
-    <div className="min-h-screen bg-background flex">
+    <div className="min-h-[100dvh] bg-background flex overflow-x-hidden">
       {/* Desktop sidebar */}
       <aside className="hidden lg:flex lg:flex-col lg:w-64 lg:fixed lg:inset-y-0 lg:z-40">
         <SideNav user={user!} />
       </aside>
 
       {/* Main content */}
-      <main className="flex-1 lg:ml-64 pb-20 lg:pb-0">
+      <main className="flex-1 min-w-0 lg:ml-64 pb-[calc(5rem+env(safe-area-inset-bottom))] lg:pb-0">
         <Outlet />
       </main>
 

@@ -3,7 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { CheckCircle2, XCircle, Loader2 } from "lucide-react";
 import { sharingApi } from "@/lib/api";
 import { useAuthStore } from "@/store/authStore";
-import { Card, CardContent, Badge } from "@/components/ui";
+import { Card, CardContent, Badge, StatusBadge } from "@/components/ui";
 import { DOC_LABELS } from "@/lib/utils";
 
 interface ScanResult {
@@ -42,7 +42,7 @@ export default function ScanPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-[100dvh] flex items-center justify-center">
         <Loader2 size={36} className="animate-spin text-actid-blue" />
       </div>
     );
@@ -50,7 +50,7 @@ export default function ScanPage() {
 
   if (error) {
     return (
-      <div className="min-h-screen flex items-center justify-center px-4">
+      <div className="min-h-[100dvh] flex items-center justify-center px-4">
         <Card className="w-full max-w-sm border-red-200">
           <CardContent className="py-8 flex flex-col items-center gap-3 text-center">
             <XCircle size={48} className="text-red-500" />
@@ -67,7 +67,7 @@ export default function ScanPage() {
   const cnpMasked = result.owner.cnp?.replace(/\d(?=\d{4})/g, "*");
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4 py-8">
+    <div className="min-h-[100dvh] bg-gray-50 flex items-center justify-center px-4 py-8">
       <Card className="w-full max-w-sm border-green-200">
         <div className="bg-green-50 px-5 py-4 rounded-t-2xl border-b border-green-200 flex items-center gap-3">
           <CheckCircle2 size={28} className="text-green-700 flex-shrink-0" />
@@ -93,9 +93,7 @@ export default function ScanPage() {
                   <p className="text-xs text-muted-foreground font-mono">{doc.doc_number}</p>
                 )}
               </div>
-              <Badge variant={doc.status === "valid" ? "success" : doc.status === "expirat" ? "danger" : "warning"}>
-                {doc.status === "valid" ? "Valabil" : doc.status === "expirat" ? "Expirat" : "Expiră curând"}
-              </Badge>
+              <StatusBadge status={doc.status} />
             </div>
           ))}
           <p className="text-xs text-muted-foreground text-center pt-1">
