@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from .config import settings
 from .database import Base, engine, SessionLocal
-from .api import auth, documents, sharing, family, audit, functionar, notifications, identity
+from .api import auth, documents, sharing, family, audit, functionar, notifications, identity, credentials
 from .models import models  # noqa: F401 — registers models with Base
 
 app = FastAPI(
@@ -33,11 +33,14 @@ app.include_router(audit.router, prefix="/api")
 app.include_router(functionar.router, prefix="/api")
 app.include_router(notifications.router, prefix="/api")
 app.include_router(identity.router, prefix="/api")
+app.include_router(credentials.router, prefix="/api")
 
 
 # ── Startup ──────────────────────────────────────────────────────────────────
 @app.on_event("startup")
 def on_startup():
+    from .crypto.keys import ensure_issuer_keys
+    ensure_issuer_keys()  # idempotent — generates P-256 keypair on first run
     Base.metadata.create_all(bind=engine)
     # Add new columns to existing DBs (SQLite doesn't auto-migrate)
     from sqlalchemy import text
