@@ -98,9 +98,26 @@ export default function DocumentsPage() {
     try {
       await documentsApi.delete(doc.id);
       removeDocument(doc.id);
-      addToast("Document șters", "success");
+      addToast("Document șters", "info", { label: "Anulează", onClick: () => restoreDocument(doc) });
     } catch {
-      addToast("Eroare la ștergere", "error");
+      addToast("Ștergerea a eșuat. Documentul nu a fost șters, încearcă din nou.", "error");
+    }
+  };
+
+  const restoreDocument = async (doc: Document) => {
+    try {
+      await documentsApi.create({
+        doc_type: doc.doc_type,
+        doc_number: doc.doc_number ?? "",
+        issued_by: doc.issued_by ?? "",
+        issued_date: doc.issued_date ?? null,
+        expires_date: doc.expires_date ?? null,
+        description: doc.description ?? "",
+      });
+      await load();
+      addToast("Document restaurat", "success");
+    } catch {
+      addToast("Restaurarea a eșuat. Documentul nu a putut fi recuperat.", "error");
     }
   };
 
@@ -651,7 +668,7 @@ export default function DocumentsPage() {
 
         /* ── Search: flat results ──────────────────────────────────────── */
         ) : search ? (
-          <div className="space-y-3" role="list" aria-label="Rezultate căutare">
+          <div className="space-y-4" role="list" aria-label="Rezultate căutare">
             <div className="flex items-center gap-2">
               <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">
                 {searchResults.length} {searchResults.length === 1 ? "rezultat" : "rezultate"}
@@ -701,7 +718,7 @@ export default function DocumentsPage() {
                     </p>
                   </div>
                 </div>
-                <div className="space-y-3" role="list" aria-label={activeFolder.label}>
+                <div className="space-y-4" role="list" aria-label={activeFolder.label}>
                   {activeFolder.docs.map((doc) => (
                     <div key={doc.id} role="listitem">
                       <DocumentCard doc={doc} onDelete={handleDelete} onShare={() => {}} onView={setViewDoc} />
@@ -747,7 +764,7 @@ export default function DocumentsPage() {
                   <button
                     key={f.key}
                     onClick={() => setOpenFolder(f.key)}
-                    aria-label={`${f.label}, ${f.docs.length} documente`}
+                    aria-label={`${f.label}, ${f.docs.length} ${f.docs.length === 1 ? "document" : "documente"}${expired > 0 ? `, ${expired} ${expired === 1 ? "expirat" : "expirate"}` : soon > 0 ? `, ${soon} expiră curând` : ", toate valabile"}`}
                     className="group text-left bg-white rounded-2xl border border-border p-4 hover:shadow-md hover:-translate-y-0.5 transition-all active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-actid-blue"
                   >
                     <div className="flex items-start justify-between">

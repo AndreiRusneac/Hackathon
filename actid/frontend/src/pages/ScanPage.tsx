@@ -3,7 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { CheckCircle2, XCircle, Loader2 } from "lucide-react";
 import { sharingApi } from "@/lib/api";
 import { useAuthStore } from "@/store/authStore";
-import { Card, CardContent, Badge } from "@/components/ui";
+import { Card, CardContent, Badge, StatusBadge } from "@/components/ui";
 import { DOC_LABELS } from "@/lib/utils";
 
 interface ScanResult {
@@ -93,9 +93,7 @@ export default function ScanPage() {
                   <p className="text-xs text-muted-foreground font-mono">{doc.doc_number}</p>
                 )}
               </div>
-              <Badge variant={doc.status === "valid" ? "success" : doc.status === "expirat" ? "danger" : "warning"}>
-                {doc.status === "valid" ? "Valabil" : doc.status === "expirat" ? "Expirat" : "Expiră curând"}
-              </Badge>
+              <StatusBadge status={doc.status} />
             </div>
           ))}
           <p className="text-xs text-muted-foreground text-center pt-1">
