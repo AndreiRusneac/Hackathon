@@ -10,6 +10,7 @@ import { useAuthStore } from "@/store/authStore";
 import { useDocumentStore } from "@/store/documentStore";
 import { useNotificationStore } from "@/store/notificationStore";
 import { Card, CardContent, Badge, Skeleton, Button } from "@/components/ui";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { NotificationBanner } from "@/components/notifications/NotificationBanner";
 import { DocumentCard, DocumentCardSkeleton } from "@/components/documents/DocumentCard";
 import { formatDateTime, cn } from "@/lib/utils";
@@ -65,8 +66,8 @@ export default function DashboardPage() {
         generateFromDocuments(docsRes.data);
         setRecentActivity(activityRes.data);
         setAuditStats(statsRes.data);
-      } catch (e) {
-        console.error(e);
+      } catch {
+        // silently fail — document store stays empty, UI shows empty states
       } finally {
         setLoading(false);
       }
@@ -101,15 +102,22 @@ export default function DashboardPage() {
         </div>
         <div className="relative">
           <button
-            className="w-12 h-12 bg-actid-blue rounded-2xl flex items-center justify-center text-white font-bold text-sm shadow-sm"
-            aria-label={`${activeNotifs.length} notificări active`}
+            className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-actid-blue focus-visible:ring-offset-2 rounded-full"
+            aria-label={`${activeNotifs.length > 0 ? `${activeNotifs.length} notificări necitite. ` : ""}Deschide notificările`}
             onClick={() => navigate("/notifications")}
           >
-            {user?.full_name.split(" ").map((n) => n[0]).join("").slice(0, 2)}
+            <Avatar className="w-12 h-12 shadow-sm">
+              <AvatarFallback className="bg-actid-blue text-white font-bold text-sm">
+                {user?.full_name.split(" ").map((n) => n[0]).join("").slice(0, 2)}
+              </AvatarFallback>
+            </Avatar>
           </button>
           {activeNotifs.length > 0 && (
-            <span className="absolute -top-1 -right-1 bg-actid-red text-white text-xs font-bold w-5 h-5 rounded-full flex items-center justify-center">
-              {activeNotifs.length}
+            <span
+              className="absolute -top-1 -right-1 bg-actid-red text-white text-xs font-bold w-5 h-5 rounded-full flex items-center justify-center pointer-events-none"
+              aria-hidden="true"
+            >
+              {activeNotifs.length > 9 ? "9+" : activeNotifs.length}
             </span>
           )}
         </div>
@@ -222,9 +230,8 @@ export default function DashboardPage() {
                 <DocumentCard
                   key={doc.id}
                   doc={doc}
-                  compact
-                  onView={() => navigate("/documents")}
-                  onShare={() => navigate("/sharing")}
+                  onView={() => {}}
+                  onShare={(doc) => navigate("/sharing", { state: { preselect: doc.id } })}
                 />
               ))}
               {documents.length > 3 && (
