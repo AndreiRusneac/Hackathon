@@ -68,12 +68,21 @@ export default function IdScanner({ onSuccess, onCancel }: IdScannerProps) {
     if (!video) return;
     const canvas = canvasRef.current ?? document.createElement("canvas");
     canvasRef.current = canvas;
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
+
+    // Crop to the ID overlay region (85% width, 1.585:1 aspect, centered)
+    // so passporteye gets only the card — no background noise.
+    const cropW = Math.round(video.videoWidth * 0.85);
+    const cropH = Math.round(cropW / 1.585);
+    const cropX = Math.round((video.videoWidth - cropW) / 2);
+    const cropY = Math.round((video.videoHeight - cropH) / 2);
+    canvas.width = cropW;
+    canvas.height = cropH;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
-    ctx.drawImage(video, 0, 0);
-    const dataUrl = canvas.toDataURL("image/jpeg", 0.92);
+    ctx.drawImage(video, cropX, cropY, cropW, cropH, 0, 0, cropW, cropH);
+
+    // PNG = lossless; JPEG artifacts corrupt the OCR-B MRZ glyphs.
+    const dataUrl = canvas.toDataURL("image/png");
     setCapturedImage(dataUrl);
     if (streamRef.current) {
       streamRef.current.getTracks().forEach((t) => t.stop());
