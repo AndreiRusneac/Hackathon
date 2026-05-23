@@ -259,14 +259,14 @@ export default function DashboardPage() {
             label="Familie"
             desc="Gestionează accesul"
             onClick={() => navigate("/family")}
-            color="bg-blue-50 text-blue-700"
+            color="bg-rose-50 text-rose-700"
           />
           <QuickAction
             Icon={Link2}
             label="Jurnal Audit"
             desc="Verifică activitatea"
             onClick={() => navigate("/audit")}
-            color="bg-blue-50 text-blue-700"
+            color="bg-teal-50 text-teal-700"
           />
         </div>
       </div>

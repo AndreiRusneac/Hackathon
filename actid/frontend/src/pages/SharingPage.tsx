@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useLocation } from "react-router-dom";
 import { QRCodeSVG } from "qrcode.react";
-import { QrCode, Link2, Camera, CheckCircle2, Inbox } from "lucide-react";
+import { QrCode, Link2, Camera, CheckCircle2, Inbox, ChevronUp, ChevronDown } from "lucide-react";
 import { DocTypeIcon } from "@/components/documents/DocumentCard";
 import { documentsApi, sharingApi } from "@/lib/api";
 import { useDocumentStore } from "@/store/documentStore";
@@ -292,9 +292,9 @@ function TokenCard({
             </p>
           </div>
           {!inactive && (
-            <span className="text-xs text-muted-foreground flex-shrink-0 pt-0.5">
-              {showQR ? "▲" : "▼"}
-            </span>
+            showQR
+              ? <ChevronUp size={14} className="text-muted-foreground flex-shrink-0" aria-hidden="true" />
+              : <ChevronDown size={14} className="text-muted-foreground flex-shrink-0" aria-hidden="true" />
           )}
         </button>
 

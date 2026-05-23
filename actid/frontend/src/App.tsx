@@ -13,6 +13,7 @@ import AuditLogPage from "@/pages/AuditLogPage";
 import NotificationsPage from "@/pages/NotificationsPage";
 import FunctionarPage from "@/pages/FunctionarPage";
 import ScanPage from "@/pages/ScanPage";
+import PresentationsPage from "@/pages/PresentationsPage";
 
 export default function App() {
   const { hydrate } = useAuthStore();
@@ -36,6 +37,7 @@ export default function App() {
         <Route path="/audit" element={<AuditLogPage />} />
         <Route path="/notifications" element={<NotificationsPage />} />
         <Route path="/functionar" element={<FunctionarPage />} />
+        <Route path="/presentations" element={<PresentationsPage />} />
       </Route>
 
       <Route path="*" element={<Navigate to="/" replace />} />
