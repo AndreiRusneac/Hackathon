@@ -28,3 +28,8 @@ dist/
 # OS
 .DS_Store
 Thumbs.db
+
+# EUDI issuer keys — generated at first startup, never commit
+backend/app/keys/*.pem
+backend/app/keys/*.jwk
+backend/app/keys/*.json

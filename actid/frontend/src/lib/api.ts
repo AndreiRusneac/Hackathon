@@ -163,6 +163,56 @@ export const auditApi = {
   stats: () => api.get("/audit/stats"),
 };
 
+// ─── Credentials (Andrei) ────────────────────────────────────────────────────
+
+export interface CredentialResult {
+  credential_sd_jwt: string;
+  vct: string;
+  issuer_id: string;
+  attributes_available: string[];
+}
+
+export const credentialsApi = {
+  get: (docId: string) => api.get<CredentialResult>(`/credentials/${docId}`),
+};
+
+// ─── Presentations (Radu) ────────────────────────────────────────────────────
+
+export interface PresentationCreatePayload {
+  document_id: string;
+  disclosed_attributes: string[];
+  purpose?: string;
+  verifier_role?: "funcționar" | "any";
+}
+
+export interface PresentationCreateResult {
+  presentation_id: string;
+  qr_url: string;
+  expires_at: string;
+  disclosed_attributes: string[];
+}
+
+export interface PresentationVerifyResult {
+  valid: boolean;
+  issuer: {
+    id: string;
+    name: string;
+    trusted: boolean;
+    country: string;
+  };
+  credential_type: string;
+  disclosed_attributes: Record<string, string | number | boolean>;
+  purpose: string | null;
+  verified_at: string;
+}
+
+export const presentationsApi = {
+  create: (payload: PresentationCreatePayload) =>
+    api.post<PresentationCreateResult>("/presentations", payload),
+  scan: (presentationId: string) =>
+    api.get<PresentationVerifyResult>(`/presentations/${presentationId}/scan`),
+};
+
 // ─── Wallet Security (Teo) ───────────────────────────────────────────────────
 
 export interface WalletSecurity {

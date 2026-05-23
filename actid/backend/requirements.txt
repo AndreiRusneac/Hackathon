@@ -8,6 +8,10 @@ pydantic
 pydantic-settings
 aiofiles
 
+# EUDI Wallet — SD-JWT VC + crypto
+sd-jwt
+cryptography
+
 # ID scanning + face verification
 passporteye
 opencv-python-headless

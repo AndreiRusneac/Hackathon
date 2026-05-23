@@ -59,7 +59,6 @@ export default function RegisterPage() {
       return;
     }
 
-    // TODO Task #3: open ID scan camera here
     setStep("scan_id");
   };
 

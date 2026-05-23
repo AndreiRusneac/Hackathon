@@ -1,7 +1,7 @@
 import { NavLink, useNavigate } from "react-router-dom";
 import {
   Home, FileText, QrCode, Users, Bell, Link2,
-  LogOut, ZoomIn, Search, BookLock, ShieldCheck,
+  LogOut, ZoomIn, Search, BookLock, ShieldCheck, Shield,
   type LucideIcon,
 } from "lucide-react";
 import { useAuthStore } from "@/store/authStore";
@@ -21,6 +21,7 @@ const CITIZEN_NAV: NavItem[] = [
   { to: "/dashboard",     icon: Home,        label: "Acasă" },
   { to: "/documents",     icon: FileText,    label: "Acte" },
   { to: "/sharing",       icon: QrCode,      label: "Distribuire QR" },
+  { to: "/presentations", icon: Shield,      label: "Prezentare EUDI" },
   { to: "/family",        icon: Users,       label: "Familie" },
   { to: "/notifications", icon: Bell,        label: "Notificări" },
   { to: "/securitate",    icon: ShieldCheck, label: "Securitate" },

@@ -13,12 +13,24 @@ interface AuthState {
   hydrate: () => void;
 }
 
+const _loadFromStorage = (): Pick<AuthState, "user" | "token" | "isAuthenticated"> => {
+  try {
+    const token = localStorage.getItem("actid_token");
+    const userStr = localStorage.getItem("actid_user");
+    if (token && userStr) {
+      return { token, user: JSON.parse(userStr) as User, isAuthenticated: true };
+    }
+  } catch {
+    localStorage.removeItem("actid_token");
+    localStorage.removeItem("actid_user");
+  }
+  return { token: null, user: null, isAuthenticated: false };
+};
+
 export const useAuthStore = create<AuthState>((set) => ({
-  user: null,
-  token: null,
+  ..._loadFromStorage(),
   sessionToken: null,
   demoOtp: null,
-  isAuthenticated: false,
 
   setUser: (user, token) => {
     localStorage.setItem("actid_token", token);

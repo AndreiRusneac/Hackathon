@@ -1,16 +1,16 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { CheckCircle2 } from "lucide-react";
+import { CheckCircle2, ArrowLeft, ArrowRight, Bell, BellDot, AlertTriangle, type LucideIcon } from "lucide-react";
 import { useNotificationStore } from "@/store/notificationStore";
 import { Card, CardContent, Alert, Button } from "@/components/ui";
 import type { Notification } from "@/types";
 
 type Filter = "toate" | "necitite" | "urgente";
 
-const FILTERS: { key: Filter; label: string }[] = [
-  { key: "toate", label: "Toate" },
-  { key: "necitite", label: "Necitite" },
-  { key: "urgente", label: "Urgente" },
+const FILTERS: { key: Filter; label: string; Icon: LucideIcon }[] = [
+  { key: "toate",    label: "Toate",    Icon: Bell },
+  { key: "necitite", label: "Necitite", Icon: BellDot },
+  { key: "urgente",  label: "Urgente",  Icon: AlertTriangle },
 ];
 
 export default function NotificationsPage() {
@@ -62,6 +62,7 @@ export default function NotificationsPage() {
                   : "text-muted-foreground hover:text-foreground"
               }`}
             >
+              <f.Icon size={14} aria-hidden="true" />
               {f.label}
               {count > 0 && (
                 <span
@@ -99,9 +100,9 @@ export default function NotificationsPage() {
               {filter !== "toate" && (
                 <button
                   onClick={() => setFilter("toate")}
-                  className="mt-4 text-sm text-actid-blue font-medium hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-actid-blue rounded"
+                  className="mt-4 text-sm text-actid-blue font-medium hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-actid-blue rounded inline-flex items-center gap-1"
                 >
-                  ← Arată toate
+                  <ArrowLeft size={14} aria-hidden="true" /> Arată toate
                 </button>
               )}
             </CardContent>
@@ -130,7 +131,7 @@ export default function NotificationsPage() {
             onClick={() => navigate("/documents")}
             className="text-sm text-actid-blue font-medium hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-actid-blue rounded"
           >
-            → Verifică documentele tale
+            <ArrowRight size={14} aria-hidden="true" className="inline mr-1" /> Verifică documentele tale
           </button>
         </div>
       )}
