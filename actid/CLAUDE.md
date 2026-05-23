@@ -17,7 +17,7 @@ python3 -m uvicorn app.main:app --reload --port 8000
 # Manual (frontend) — separate terminal
 cd frontend
 npm install
-VITE_API_URL=http://localhost:8000 npm run dev
+npm run dev   # do NOT set VITE_API_URL — it hardcodes localhost in the browser bundle, breaking tunnel/mobile access
 
 # Production (Docker) — frontend on :80, backend on :8000
 cd actid
