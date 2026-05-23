@@ -92,14 +92,36 @@ export const ACTION_LABELS: Record<string, { label: string; icon: string; color:
   LOGIN_SUCCESS: { label: "Autentificare reușită", icon: "🔐", color: "text-green-600" },
   LOGIN_ATTEMPT: { label: "Tentativă autentificare", icon: "🔑", color: "text-blue-600" },
   LOGOUT: { label: "Deconectare", icon: "👋", color: "text-gray-600" },
-  DOCUMENT_VIEW: { label: "Vizualizare document", icon: "👁️", color: "text-blue-600" },
-  DOCUMENT_UPLOAD: { label: "Încărcare document", icon: "📤", color: "text-green-600" },
+  DOCUMENT_VIEW: { label: "Vizualizare document", icon: "👁️", color: "text-green-600" },
+  DOCUMENT_UPLOAD: { label: "Adăugare document", icon: "📤", color: "text-blue-600" },
   DOCUMENT_DELETE: { label: "Ștergere document", icon: "🗑️", color: "text-red-600" },
-  QR_TOKEN_CREATE: { label: "Creare token QR", icon: "📱", color: "text-purple-600" },
-  QR_TOKEN_SCAN: { label: "Scanare token QR", icon: "📷", color: "text-orange-600" },
-  QR_TOKEN_REVOKE: { label: "Revocare token QR", icon: "🚫", color: "text-red-600" },
-  DELEGATION_CREATE: { label: "Acordare delegare", icon: "🤝", color: "text-teal-600" },
+  QR_TOKEN_CREATE: { label: "Creare partajare QR", icon: "📱", color: "text-amber-600" },
+  QR_TOKEN_SCAN: { label: "Scanare QR (funcționar)", icon: "📷", color: "text-orange-600" },
+  QR_TOKEN_REVOKE: { label: "Revocare partajare QR", icon: "🚫", color: "text-red-600" },
+  DELEGATION_CREATE: { label: "Acordare delegare familie", icon: "🤝", color: "text-teal-600" },
   DELEGATION_REVOKE: { label: "Revocare delegare", icon: "❌", color: "text-red-600" },
   SYSTEM_INIT: { label: "Inițializare sistem", icon: "🚀", color: "text-gray-600" },
   RENEWAL_REQUEST: { label: "Cerere reînnoire", icon: "🔄", color: "text-blue-600" },
+};
+
+export const ACTION_STYLE: Record<string, { block: string; ring: string; line: string }> = {
+  LOGIN_SUCCESS: { block: "bg-slate-500", ring: "ring-slate-200", line: "from-slate-200 to-slate-400" },
+  LOGIN_ATTEMPT: { block: "bg-slate-400", ring: "ring-slate-200", line: "from-slate-200 to-slate-300" },
+  LOGOUT: { block: "bg-slate-400", ring: "ring-slate-200", line: "from-slate-200 to-slate-300" },
+  DOCUMENT_VIEW: { block: "bg-green-600", ring: "ring-green-200", line: "from-green-200 to-green-400" },
+  DOCUMENT_UPLOAD: { block: "bg-blue-600", ring: "ring-blue-200", line: "from-blue-200 to-blue-400" },
+  DOCUMENT_DELETE: { block: "bg-red-600", ring: "ring-red-200", line: "from-red-200 to-red-400" },
+  QR_TOKEN_CREATE: { block: "bg-amber-500", ring: "ring-amber-200", line: "from-amber-200 to-amber-400" },
+  QR_TOKEN_SCAN: { block: "bg-orange-600", ring: "ring-orange-200", line: "from-orange-200 to-orange-400" },
+  QR_TOKEN_REVOKE: { block: "bg-red-500", ring: "ring-red-200", line: "from-red-200 to-red-400" },
+  DELEGATION_CREATE: { block: "bg-teal-600", ring: "ring-teal-200", line: "from-teal-200 to-teal-400" },
+  DELEGATION_REVOKE: { block: "bg-red-500", ring: "ring-red-200", line: "from-red-200 to-red-400" },
+  SYSTEM_INIT: { block: "bg-violet-600", ring: "ring-violet-200", line: "from-violet-200 to-violet-400" },
+  RENEWAL_REQUEST: { block: "bg-blue-500", ring: "ring-blue-200", line: "from-blue-200 to-blue-400" },
+};
+
+export const DEFAULT_ACTION_STYLE = {
+  block: "bg-gray-500",
+  ring: "ring-gray-200",
+  line: "from-gray-200 to-gray-400",
 };

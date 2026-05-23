@@ -2,6 +2,7 @@ import json
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, Query
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from ..api.auth import get_current_user_dep
@@ -72,21 +73,26 @@ def audit_stats(
     current_user: User = Depends(get_current_user_dep),
     db: Session = Depends(get_db),
 ):
+    """Aggregate counts for the audit dashboard, scoped to the citizen's own
+    entries (funcționar/sistem see global counts)."""
     total = db.query(AuditEntry).count()
+
+    counts_query = db.query(AuditEntry.action, func.count(AuditEntry.id))
     if current_user.role == "cetățean":
-        user_entries = (
-            db.query(AuditEntry)
-            .filter(
-                (AuditEntry.actor_id == current_user.id)
-                | (AuditEntry.target_user_id == current_user.id)
-            )
-            .count()
+        counts_query = counts_query.filter(
+            (AuditEntry.actor_id == current_user.id)
+            | (AuditEntry.target_user_id == current_user.id)
         )
-    else:
-        user_entries = total
+    by_action = dict(counts_query.group_by(AuditEntry.action).all())
+
+    chain = verify_chain(db)
 
     return {
         "total_entries": total,
-        "user_entries": user_entries,
-        "chain_valid": True,
+        "user_entries": sum(by_action.values()),
+        "by_action": by_action,
+        "documents_created": by_action.get("DOCUMENT_UPLOAD", 0),
+        "qr_shares": by_action.get("QR_TOKEN_CREATE", 0),
+        "delegations": by_action.get("DELEGATION_CREATE", 0),
+        "chain_valid": chain["valid"],
     }

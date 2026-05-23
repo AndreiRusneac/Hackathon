@@ -18,7 +18,14 @@ python3 -m uvicorn app.main:app --reload --port 8000
 cd frontend
 npm install
 VITE_API_URL=http://localhost:8000 npm run dev
+
+# Production (Docker) — frontend on :80, backend on :8000
+cd actid
+docker-compose up --build
 ```
+
+> **Windows:** first backend start may crash on seed emoji (`UnicodeEncodeError`).
+> DB is still seeded — just restart, or prefix with `PYTHONIOENCODING=utf-8`.
 
 API docs (Swagger): http://localhost:8000/docs
 
@@ -135,6 +142,14 @@ db.commit()  # always after add_audit_entry
 - **Maria**: all docs valid; active delegation to Alex for CI/PASAPORT/ROVINIETA/PERMIS
 - **Alex**: location=Londra; sees Maria's rovinieta expiring in 10d via delegation
 - **Funcționar**: 3 seeded scan logs (Ion/Maria/Alex); stats show 2 today, 3 this week
+
+## Pitch Materials
+
+| File | Purpose |
+|---|---|
+| `DEMO_SCRIPT.md` | 3-minute judge demo script with hook, diaspora scenario, blockchain flow, Plan B |
+| `SCORING.md` | Every hackathon criterion mapped to implementation + files |
+| `README.md` (repo root) | Full Romanian README for judges |
 
 ## Scoring
 
