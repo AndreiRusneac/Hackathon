@@ -1,5 +1,5 @@
 import { useState, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { authApi, getErrMsg } from "@/lib/api";
 import { useAuthStore } from "@/store/authStore";
 import { Button, Input, Alert } from "@/components/ui";
@@ -8,6 +8,8 @@ type Step = "credentials" | "2fa";
 
 export default function LoginPage() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const next = new URLSearchParams(location.search).get("next") || "/dashboard";
   const { setUser, setSessionToken, sessionToken, demoOtp } = useAuthStore();
 
   const [step, setStep] = useState<Step>("credentials");
@@ -73,7 +75,7 @@ export default function LoginPage() {
       const res = await authApi.verify2fa(sessionToken!, otpCode);
       const data = res.data;
       setUser(data.user, data.access_token);
-      navigate("/dashboard", { replace: true });
+      navigate(next, { replace: true });
     } catch (err) {
       setError(getErrMsg(err, "Cod OTP incorect"));
       setOtp(["", "", "", "", "", ""]);
