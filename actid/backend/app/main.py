@@ -39,6 +39,15 @@ app.include_router(identity.router, prefix="/api")
 @app.on_event("startup")
 def on_startup():
     Base.metadata.create_all(bind=engine)
+    # Add new columns to existing DBs (SQLite doesn't auto-migrate)
+    from sqlalchemy import text
+    with engine.connect() as conn:
+        for col, definition in [("photo_base64", "TEXT"), ("cnp", "VARCHAR(13)")]:
+            try:
+                conn.execute(text(f"ALTER TABLE documents ADD COLUMN {col} {definition}"))
+                conn.commit()
+            except Exception:
+                pass  # column already exists
     db = SessionLocal()
     try:
         from .seed import seed_database

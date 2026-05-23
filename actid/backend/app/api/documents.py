@@ -38,6 +38,8 @@ def _serialize_doc(doc: Document) -> DocumentResponse:
         expires_date=doc.expires_date,
         is_verified=doc.is_verified,
         description=doc.description,
+        photo_base64=doc.photo_base64,
+        cnp=doc.cnp,
         created_at=doc.created_at,
         days_remaining=days,
         status=status,
@@ -203,6 +205,8 @@ def create_document(
         issued_date=data.issued_date,
         expires_date=data.expires_date,
         description=data.description,
+        photo_base64=data.photo_base64,
+        cnp=data.cnp,
         is_verified=False,
     )
     db.add(doc)

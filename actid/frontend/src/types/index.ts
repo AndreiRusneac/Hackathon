@@ -74,6 +74,8 @@ export interface Document {
   expires_date?: string;
   is_verified: boolean;
   description?: string;
+  photo_base64?: string;
+  cnp?: string;
   created_at: string;
   days_remaining?: number;
   status?: DocStatus;
