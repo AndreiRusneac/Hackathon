@@ -7,3 +7,10 @@ python-multipart
 pydantic
 pydantic-settings
 aiofiles
+
+# ID scanning + face verification
+passporteye
+opencv-python-headless
+Pillow
+numpy
+face_recognition

@@ -28,6 +28,24 @@ class TokenResponse(BaseModel):
     user: dict
 
 
+class RegisterRequest(BaseModel):
+    full_name: str
+    phone: str
+    password: str
+    # Optional — provided after ID scan + face verification
+    cnp: Optional[str] = None
+    email: Optional[str] = None
+    id_verified: bool = False
+    face_verified: bool = False
+    face_match_score: Optional[float] = None
+
+
+class RegisterResponse(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+    user: dict
+
+
 # ─── Users ───────────────────────────────────────────────────────────────────
 
 class UserResponse(BaseModel):

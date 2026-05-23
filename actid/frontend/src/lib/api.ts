@@ -54,6 +54,17 @@ export default api;
 
 // ─── Auth ─────────────────────────────────────────────────────────────────────
 
+export interface RegisterPayload {
+  full_name: string;
+  phone: string;
+  password: string;
+  cnp?: string;
+  email?: string;
+  id_verified?: boolean;
+  face_verified?: boolean;
+  face_match_score?: number;
+}
+
 export const authApi = {
   login: (identifier: string, password: string) =>
     api.post("/auth/login", { identifier, password }),
@@ -61,9 +72,46 @@ export const authApi = {
   verify2fa: (session_token: string, otp_code: string) =>
     api.post("/auth/verify-2fa", { session_token, otp_code }),
 
+  register: (payload: RegisterPayload) => api.post("/auth/register", payload),
+
   me: () => api.get("/auth/me"),
 
   logout: () => api.post("/auth/logout"),
+};
+
+// ─── Identity verification (registration flow) ───────────────────────────────
+
+export interface ScanIdResult {
+  success: boolean;
+  full_name?: string;
+  surname?: string;
+  given_names?: string;
+  document_number?: string;
+  nationality?: string;
+  date_of_birth?: string;
+  expiration_date?: string;
+  sex?: string;
+  cnp?: string;
+  id_face_base64?: string;
+  message: string;
+}
+
+export interface VerifyFaceResult {
+  match: boolean;
+  score: number;
+  distance: number;
+  message: string;
+}
+
+export const identityApi = {
+  scanId: (image_base64: string) =>
+    api.post<ScanIdResult>("/identity/scan-id", { image_base64 }),
+
+  verifyFace: (id_face_base64: string, selfie_base64: string) =>
+    api.post<VerifyFaceResult>("/identity/verify-face", {
+      id_face_base64,
+      selfie_base64,
+    }),
 };
 
 // ─── Documents ────────────────────────────────────────────────────────────────

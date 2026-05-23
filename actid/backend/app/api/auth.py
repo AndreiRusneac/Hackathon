@@ -11,7 +11,14 @@ from ..config import settings
 from ..database import get_db
 from ..ledger import add_audit_entry
 from ..models.models import PendingAuth, User
-from ..schemas.schemas import LoginRequest, LoginResponse, TokenResponse, TwoFARequest
+from ..schemas.schemas import (
+    LoginRequest,
+    LoginResponse,
+    RegisterRequest,
+    RegisterResponse,
+    TokenResponse,
+    TwoFARequest,
+)
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -73,6 +80,81 @@ def require_role(*roles: str):
 
 
 # ─── Endpoints ───────────────────────────────────────────────────────────────
+
+@router.post("/register", response_model=RegisterResponse, status_code=201)
+def register(req: RegisterRequest, db: Session = Depends(get_db)):
+    """
+    Create a new cetățean account.
+    Email + CNP are filled either from the ID scan (preferred) or auto-generated
+    placeholders so demo accounts work without a real document.
+    """
+    if len(req.password) < 6:
+        raise HTTPException(status_code=400, detail="Parola trebuie să aibă minim 6 caractere")
+    if not req.full_name.strip():
+        raise HTTPException(status_code=400, detail="Numele complet este obligatoriu")
+    if not req.phone.strip():
+        raise HTTPException(status_code=400, detail="Numărul de telefon este obligatoriu")
+
+    # Derive an email if the ID scan didn't yield one (registration without ID is allowed
+    # for the demo path, but the real flow always provides scanned data).
+    email = (req.email or "").strip().lower()
+    if not email:
+        slug = "".join(c for c in req.full_name.lower() if c.isalnum() or c == " ").strip().replace(" ", ".")
+        email = f"{slug or 'user'}.{secrets.token_hex(3)}@actid.local"
+
+    # CNP must be unique; generate a synthetic placeholder if missing.
+    cnp = (req.cnp or "").strip()
+    if not cnp:
+        cnp = "9" + secrets.token_hex(6)  # 13 chars, starts with 9 to mark synthetic
+
+    # Conflict checks
+    if db.query(User).filter(User.email == email).first():
+        raise HTTPException(status_code=409, detail="Există deja un cont cu acest email")
+    if db.query(User).filter(User.cnp == cnp).first():
+        raise HTTPException(status_code=409, detail="Există deja un cont cu acest CNP")
+
+    user = User(
+        cnp=cnp,
+        email=email,
+        full_name=req.full_name.strip(),
+        phone=req.phone.strip(),
+        hashed_password=hash_password(req.password),
+        role="cetățean",
+    )
+    db.add(user)
+    db.flush()
+
+    add_audit_entry(
+        db,
+        action="USER_REGISTERED",
+        actor_id=user.id,
+        actor_name=user.full_name,
+        actor_role=user.role,
+        target_user_id=user.id,
+        metadata={
+            "id_verified": req.id_verified,
+            "face_verified": req.face_verified,
+            "face_match_score": req.face_match_score,
+        },
+    )
+    db.commit()
+
+    access_token = create_access_token({"sub": user.id, "role": user.role})
+
+    return RegisterResponse(
+        access_token=access_token,
+        token_type="bearer",
+        user={
+            "id": user.id,
+            "email": user.email,
+            "full_name": user.full_name,
+            "role": user.role,
+            "city": user.city,
+            "country": user.country,
+            "cnp": user.cnp,
+        },
+    )
+
 
 @router.post("/login", response_model=LoginResponse)
 def login(req: LoginRequest, db: Session = Depends(get_db)):

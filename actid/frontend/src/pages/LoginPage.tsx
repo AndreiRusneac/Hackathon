@@ -139,6 +139,14 @@ export default function LoginPage() {
                 Autentifică-te cu ROeID
               </Button>
 
+              <button
+                type="button"
+                onClick={() => navigate("/")}
+                className="w-full text-sm text-muted-foreground hover:text-foreground transition-colors"
+              >
+                ← Înapoi
+              </button>
+
               {/* Demo hint */}
               <div className="bg-blue-50 rounded-xl p-3 border border-blue-100">
                 <p className="text-xs text-blue-700 font-semibold mb-1">Conturi demo:</p>
