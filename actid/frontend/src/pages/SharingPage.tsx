@@ -260,6 +260,7 @@ function TokenCard({
 }) {
   const [showQR, setShowQR] = useState(false);
   const isExpired = new Date(token.expires_at) < new Date();
+  const isScanned = !token.is_active && (token.use_count ?? 0) > 0;
   const qrValue = `${window.location.origin}/scan/${token.token}`;
 
   return (
@@ -276,8 +277,8 @@ function TokenCard({
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
               <p className="font-medium text-sm">{token.context || "Partajare generală"}</p>
-              <Badge variant={isExpired ? "danger" : !token.is_active ? "warning" : "success"}>
-                {isExpired ? "Expirat" : !token.is_active ? "Revocat" : "Activ"}
+              <Badge variant={isExpired ? "danger" : isScanned ? "info" : !token.is_active ? "warning" : "success"}>
+                {isExpired ? "Expirat" : isScanned ? "Scanat" : !token.is_active ? "Revocat" : "Activ"}
               </Badge>
             </div>
             <p className="text-xs text-muted-foreground mt-0.5">
