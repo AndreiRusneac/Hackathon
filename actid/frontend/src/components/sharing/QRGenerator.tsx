@@ -1,11 +1,11 @@
 import { useState } from "react";
 import { QRCodeSVG } from "qrcode.react";
-import { QrCode, Search, X } from "lucide-react";
+import { QrCode, Search, X, ChevronDown, Check, Clock, FolderOpen, Minus } from "lucide-react";
 import { sharingApi } from "@/lib/api";
 import { useNotificationStore } from "@/store/notificationStore";
 import { Button, Card, CardContent, Badge } from "@/components/ui";
-import { DocTypeIcon } from "@/components/documents/DocumentCard";
-import { formatDateTime, DOC_LABELS } from "@/lib/utils";
+import { DocTypeIcon, CATEGORY_META } from "@/components/documents/DocumentCard";
+import { formatDateTime, DOC_LABELS, groupDocsIntoFolders, cn } from "@/lib/utils";
 import type { Document, ShareToken } from "@/types";
 
 interface QRGeneratorProps {
@@ -26,7 +26,7 @@ const CONTEXTS = [
 
 export function QRGenerator({ documents, onTokenCreated, initialSelectedIds }: QRGeneratorProps) {
   const [selectedDocs, setSelectedDocs] = useState<string[]>(initialSelectedIds ?? []);
-  const [showAll, setShowAll] = useState(false);
+  const [expandedFolder, setExpandedFolder] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [context, setContext] = useState(CONTEXTS[0]);
   const [expires, setExpires] = useState(24);
@@ -37,6 +37,15 @@ export function QRGenerator({ documents, onTokenCreated, initialSelectedIds }: Q
   const toggleDoc = (id: string) => {
     setSelectedDocs((prev) =>
       prev.includes(id) ? prev.filter((d) => d !== id) : [...prev, id]
+    );
+  };
+
+  const setFolderSelected = (docs: Document[], select: boolean) => {
+    const ids = docs.map((d) => d.id);
+    setSelectedDocs((prev) =>
+      select
+        ? Array.from(new Set([...prev, ...ids]))
+        : prev.filter((id) => !ids.includes(id))
     );
   };
 
@@ -68,6 +77,20 @@ export function QRGenerator({ documents, onTokenCreated, initialSelectedIds }: Q
     setToken(null);
     setSelectedDocs([]);
   };
+
+  const folders = groupDocsIntoFolders(documents);
+  const recent = [...documents]
+    .sort((a, b) => (b.created_at || "").localeCompare(a.created_at || ""))
+    .slice(0, 3);
+  const q = search.trim().toLowerCase();
+  const searchResults = q
+    ? documents.filter(
+        (d) =>
+          (DOC_LABELS[d.doc_type] || d.doc_type).toLowerCase().includes(q) ||
+          d.doc_number?.toLowerCase().includes(q) ||
+          d.issued_by?.toLowerCase().includes(q)
+      )
+    : [];
 
   if (token) {
     const qrValue = `${window.location.origin}/scan/${token.token}`;
@@ -130,31 +153,40 @@ export function QRGenerator({ documents, onTokenCreated, initialSelectedIds }: Q
     <Card>
       <CardContent className="space-y-5 py-5">
         <div>
-          {/* Section header */}
-          <div className="flex items-center justify-between mb-3">
-            <p className="text-sm font-semibold">1. Selectează documentele</p>
-            <button
-              type="button"
-              onClick={() => { setShowAll((v) => !v); setSearch(""); }}
-              className="text-xs text-actid-blue font-medium hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-actid-blue rounded"
-            >
-              {showAll ? "Restrânge" : "Vizualizează toate"}
-            </button>
-          </div>
+          <p className="text-sm font-semibold mb-3">1. Selectează documentele</p>
 
-          {/* Expanded panel — search + full scrollable list */}
-          {showAll && (
-            <div className="mb-3 rounded-2xl border border-actid-blue/20 bg-blue-50/30 p-3 space-y-2 animate-fade-in">
+          {documents.length === 0 ? (
+            <p className="text-sm text-muted-foreground text-center py-4">
+              Nu ai documente disponibile
+            </p>
+          ) : (
+            <div className="space-y-3">
+              {/* Selection summary — persists across search, recent and folders */}
+              {selectedDocs.length > 0 && (
+                <div className="flex items-center justify-between rounded-xl bg-blue-50 border border-actid-blue/20 px-3 py-2">
+                  <span className="text-xs font-semibold text-actid-blue">
+                    {selectedDocs.length} {selectedDocs.length === 1 ? "document selectat" : "documente selectate"}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedDocs([])}
+                    className="text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    Golește
+                  </button>
+                </div>
+              )}
+
+              {/* Search — fastest path when you know the document */}
               <div className="relative">
-                <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" aria-hidden="true" />
+                <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" aria-hidden="true" />
                 <input
                   type="text"
                   placeholder="Caută document..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  className="w-full h-9 pl-8 pr-8 rounded-xl border border-input bg-white text-sm focus:outline-none focus:ring-2 focus:ring-actid-blue/30 focus:border-actid-blue transition-all placeholder:text-muted-foreground"
+                  className="w-full h-10 pl-9 pr-9 rounded-xl border border-input bg-white text-sm focus:outline-none focus:ring-2 focus:ring-actid-blue/30 focus:border-actid-blue transition-all placeholder:text-muted-foreground"
                   aria-label="Caută document"
-                  autoFocus
                 />
                 {search && (
                   <button
@@ -163,129 +195,124 @@ export function QRGenerator({ documents, onTokenCreated, initialSelectedIds }: Q
                     className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
                     aria-label="Șterge căutare"
                   >
-                    <X size={13} aria-hidden="true" />
+                    <X size={14} aria-hidden="true" />
                   </button>
                 )}
               </div>
 
-              <div className="space-y-1.5 max-h-64 overflow-y-auto scrollbar-thin pr-0.5">
-                {documents
-                  .filter((doc) => {
-                    if (!search) return true;
-                    const q = search.toLowerCase();
-                    return (
-                      (DOC_LABELS[doc.doc_type as keyof typeof DOC_LABELS] || doc.doc_type).toLowerCase().includes(q) ||
-                      doc.doc_number?.toLowerCase().includes(q) ||
-                      doc.issued_by?.toLowerCase().includes(q)
-                    );
-                  })
-                  .map((doc) => {
-                    const selected = selectedDocs.includes(doc.id);
-                    return (
-                      <button
-                        key={doc.id}
-                        type="button"
-                        onClick={() => toggleDoc(doc.id)}
-                        className={`w-full flex items-center gap-3 p-2.5 rounded-xl border-2 text-left transition-all ${
-                          selected ? "border-actid-blue bg-white" : "border-transparent bg-white hover:border-gray-200"
-                        }`}
-                        aria-pressed={selected}
-                      >
-                        <div className="w-7 h-7 bg-gray-50 rounded-lg flex items-center justify-center flex-shrink-0 border border-border">
-                          <DocTypeIcon type={doc.doc_type} size={14} className="text-actid-blue" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium truncate">
-                            {DOC_LABELS[doc.doc_type as keyof typeof DOC_LABELS] || doc.doc_type}
-                          </p>
-                          {doc.doc_number && (
-                            <p className="text-[10px] text-muted-foreground font-mono">{doc.doc_number}</p>
-                          )}
-                        </div>
-                        <div
-                          className={`w-5 h-5 rounded-md flex items-center justify-center border-2 flex-shrink-0 transition-all ${
-                            selected ? "bg-actid-blue border-actid-blue" : "border-gray-300"
-                          }`}
-                          aria-hidden="true"
-                        >
-                          {selected && <span className="text-white text-[10px] font-bold leading-none">✓</span>}
-                        </div>
-                      </button>
-                    );
-                  })}
-                {search && documents.filter((doc) => {
-                  const q = search.toLowerCase();
-                  return (
-                    (DOC_LABELS[doc.doc_type as keyof typeof DOC_LABELS] || doc.doc_type).toLowerCase().includes(q) ||
-                    doc.doc_number?.toLowerCase().includes(q) ||
-                    doc.issued_by?.toLowerCase().includes(q)
-                  );
-                }).length === 0 && (
-                  <p className="text-xs text-muted-foreground text-center py-3">
-                    Niciun rezultat pentru &ldquo;{search}&rdquo;
-                  </p>
-                )}
-              </div>
+              {search ? (
+                <div className="space-y-1.5">
+                  {searchResults.length === 0 ? (
+                    <p className="text-xs text-muted-foreground text-center py-3">
+                      Niciun rezultat pentru &ldquo;{search}&rdquo;
+                    </p>
+                  ) : (
+                    searchResults.map((doc) => (
+                      <DocPickItem key={doc.id} doc={doc} selected={selectedDocs.includes(doc.id)} onToggle={() => toggleDoc(doc.id)} />
+                    ))
+                  )}
+                </div>
+              ) : (
+                <>
+                  {/* Recent — quick access to your latest documents */}
+                  {recent.length > 0 && documents.length > 3 && (
+                    <div>
+                      <div className="flex items-center gap-1.5 mb-2">
+                        <Clock size={12} className="text-muted-foreground" aria-hidden="true" />
+                        <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">Recente</p>
+                      </div>
+                      <div className="space-y-1.5">
+                        {recent.map((doc) => (
+                          <DocPickItem key={doc.id} doc={doc} selected={selectedDocs.includes(doc.id)} onToggle={() => toggleDoc(doc.id)} />
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Folders — browse by category */}
+                  <div>
+                    <div className="flex items-center gap-1.5 mb-2">
+                      <FolderOpen size={12} className="text-muted-foreground" aria-hidden="true" />
+                      <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">Foldere</p>
+                    </div>
+                    <div className="space-y-1.5">
+                      {folders.map((f) => {
+                        const meta = CATEGORY_META[f.key] ?? CATEGORY_META.altele;
+                        const Icon = meta.Icon;
+                        const open = expandedFolder === f.key;
+                        const selectedCount = f.docs.filter((d) => selectedDocs.includes(d.id)).length;
+                        const allSelected = selectedCount === f.docs.length;
+                        const someSelected = selectedCount > 0 && !allSelected;
+                        return (
+                          <div key={f.key} className="rounded-xl border border-border overflow-hidden">
+                            <div className="flex items-center gap-2 p-2.5 bg-white">
+                              {/* Select the whole folder (tri-state: all / some / none) */}
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const next = !allSelected;
+                                  setFolderSelected(f.docs, next);
+                                  if (next) setExpandedFolder(f.key);
+                                }}
+                                aria-pressed={allSelected}
+                                aria-label={allSelected ? `Deselectează tot din ${f.label}` : `Selectează tot din ${f.label}`}
+                                className="flex-shrink-0 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-actid-blue"
+                              >
+                                <span
+                                  className={cn(
+                                    "w-5 h-5 rounded-md flex items-center justify-center border-2 transition-all",
+                                    allSelected || someSelected ? "bg-actid-blue border-actid-blue" : "border-gray-300"
+                                  )}
+                                  aria-hidden="true"
+                                >
+                                  {allSelected ? (
+                                    <Check size={13} className="text-white" strokeWidth={3} />
+                                  ) : someSelected ? (
+                                    <Minus size={13} className="text-white" strokeWidth={3} />
+                                  ) : null}
+                                </span>
+                              </button>
+
+                              {/* Tap to expand / collapse and pick individual documents */}
+                              <button
+                                type="button"
+                                onClick={() => setExpandedFolder(open ? null : f.key)}
+                                aria-expanded={open}
+                                className="flex items-center gap-3 flex-1 min-w-0 text-left"
+                              >
+                                <div className={cn("w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0", meta.tile)}>
+                                  <Icon size={16} aria-hidden="true" />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-sm font-medium truncate">{f.label}</p>
+                                  <p className="text-[10px] text-muted-foreground">
+                                    {f.docs.length} {f.docs.length === 1 ? "document" : "documente"}
+                                  </p>
+                                </div>
+                                {selectedCount > 0 && (
+                                  <span className="text-[10px] font-bold text-white bg-actid-blue rounded-full px-1.5 py-0.5 leading-none flex-shrink-0">
+                                    {selectedCount}
+                                  </span>
+                                )}
+                                <ChevronDown size={16} className={cn("text-muted-foreground transition-transform flex-shrink-0", open && "rotate-180")} aria-hidden="true" />
+                              </button>
+                            </div>
+                            {open && (
+                              <div className="p-1.5 pt-0 space-y-1.5 bg-gray-50/40">
+                                {f.docs.map((doc) => (
+                                  <DocPickItem key={doc.id} doc={doc} selected={selectedDocs.includes(doc.id)} onToggle={() => toggleDoc(doc.id)} />
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
           )}
-
-          {/* Default compact list */}
-          <div className="space-y-2">
-            {documents.length === 0 && (
-              <p className="text-sm text-muted-foreground text-center py-4">
-                Nu ai documente disponibile
-              </p>
-            )}
-            {documents.slice(0, 3).map((doc) => {
-              const selected = selectedDocs.includes(doc.id);
-              return (
-                <button
-                  key={doc.id}
-                  type="button"
-                  onClick={() => toggleDoc(doc.id)}
-                  className={`w-full flex items-center gap-3 p-3 rounded-xl border-2 text-left transition-all ${
-                    selected ? "border-actid-blue bg-blue-50" : "border-border hover:border-gray-300"
-                  }`}
-                  aria-pressed={selected}
-                >
-                  <div className="w-8 h-8 bg-gray-50 rounded-lg flex items-center justify-center flex-shrink-0 border border-border">
-                    <DocTypeIcon type={doc.doc_type} size={16} className="text-actid-blue" />
-                  </div>
-                  <div
-                    className={`w-5 h-5 rounded flex items-center justify-center border-2 flex-shrink-0 transition-all ${
-                      selected ? "bg-actid-blue border-actid-blue" : "border-gray-300"
-                    }`}
-                    aria-hidden="true"
-                  >
-                    {selected && <span className="text-white text-xs font-bold">✓</span>}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate">
-                      {DOC_LABELS[doc.doc_type as keyof typeof DOC_LABELS] || doc.doc_type}
-                    </p>
-                    {doc.doc_number && (
-                      <p className="text-xs text-muted-foreground font-mono">{doc.doc_number}</p>
-                    )}
-                  </div>
-                  <Badge
-                    variant={doc.status === "valid" ? "success" : doc.status === "expirat" ? "danger" : "warning"}
-                    className="flex-shrink-0"
-                  >
-                    {doc.status === "valid" ? "Valabil" : doc.status === "expirat" ? "Expirat" : "Expiră curând"}
-                  </Badge>
-                </button>
-              );
-            })}
-            {documents.length > 3 && !showAll && (
-              <button
-                type="button"
-                onClick={() => setShowAll(true)}
-                className="w-full mt-1 py-2 text-xs text-actid-blue font-medium hover:bg-blue-50 rounded-xl transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-actid-blue"
-              >
-                + {documents.length - 3} alte documente — Vizualizează toate
-              </button>
-            )}
-          </div>
         </div>
 
         <div>
@@ -332,5 +359,46 @@ export function QRGenerator({ documents, onTokenCreated, initialSelectedIds }: Q
         </Button>
       </CardContent>
     </Card>
+  );
+}
+
+function DocPickItem({
+  doc,
+  selected,
+  onToggle,
+}: {
+  doc: Document;
+  selected: boolean;
+  onToggle: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      aria-pressed={selected}
+      className={cn(
+        "w-full flex items-center gap-3 p-2.5 rounded-xl border-2 text-left transition-all",
+        selected ? "border-actid-blue bg-blue-50" : "border-border bg-white hover:border-gray-300"
+      )}
+    >
+      <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center flex-shrink-0 border border-border">
+        <DocTypeIcon type={doc.doc_type} size={16} className="text-actid-blue" />
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-medium truncate">{DOC_LABELS[doc.doc_type] || doc.doc_type}</p>
+        {doc.doc_number && (
+          <p className="text-[10px] text-muted-foreground font-mono">{doc.doc_number}</p>
+        )}
+      </div>
+      <span
+        className={cn(
+          "w-5 h-5 rounded-md flex items-center justify-center border-2 flex-shrink-0 transition-all",
+          selected ? "bg-actid-blue border-actid-blue" : "border-gray-300"
+        )}
+        aria-hidden="true"
+      >
+        {selected && <Check size={13} className="text-white" strokeWidth={3} />}
+      </span>
+    </button>
   );
 }

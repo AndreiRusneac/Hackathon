@@ -2,7 +2,7 @@ import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
 import { format, formatDistanceToNow, parseISO } from "date-fns";
 import { ro } from "date-fns/locale";
-import type { DocStatus, DocType } from "@/types";
+import type { DocStatus, DocType, Document } from "@/types";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -41,16 +41,77 @@ export function truncateHash(hash: string, chars = 8): string {
 }
 
 export const DOC_LABELS: Record<DocType, string> = {
+  // Identitate
   CI: "Carte de Identitate",
   PASAPORT: "Pașaport",
-  PERMIS: "Permis de Conducere",
+  CERT_CETATENIE: "Certificat de Cetățenie",
   CAZIER: "Cazier Judiciar",
+  // Familie & Stare Civilă
   CERT_NASTERE: "Certificat de Naștere",
+  CERT_CASATORIE: "Certificat de Căsătorie / Divorț",
+  CERT_DECES: "Certificat de Deces",
+  LIVRET_FAMILIE: "Livret de Familie",
+  // Domiciliu & Acte Juridice
+  ADEVERINTA_DOMICILIU: "Adeverință de Domiciliu / Reședință",
+  PROCURA: "Procură / Împuternicire Notarială",
+  // Muncă & Venituri
+  ADEVERINTA_VENIT: "Adeverință de Venit / Salariat",
+  CONTRACT_MUNCA: "Contract de Muncă",
+  // Educație
+  DIPLOMA_BAC: "Diplomă de Bacalaureat",
+  DIPLOMA_LICENTA: "Diplomă de Licență / Master",
+  CERT_COMPETENTE: "Certificate de Competențe",
+  // Sănătate
+  CARD_SANATATE: "Card de Sănătate CNAS",
+  CERT_HANDICAP: "Certificat de Handicap / Dizabilitate",
+  ECUSON_PARCARE: "Ecuson Parcare Dizabilități",
+  // Vehicul & Transport
+  PERMIS: "Permis de Conducere",
+  TALON: "Talon / Certificat de Înmatriculare",
+  INMATRICULARE_TEMP: "Înmatriculare Temporară",
+  ITP: "ITP",
+  ASIGURARE: "Asigurare (RCA / CASCO)",
+  ROVINIETA: "Rovinietă",
+  // Legacy
   ADEVERINTA: "Adeverință",
   ANAF: "Certificat ANAF",
   ONRC: "Document ONRC",
-  ROVINIETA: "Rovinietă",
 };
+
+// Ordered document categories. Drives both the add-form grouped dropdown and the
+// folder grouping on the documents page. A doc auto-files into its category; a
+// category with no documents is simply not rendered. Types not listed here fall
+// into the "Alte documente" fallback group.
+export const DOC_CATEGORIES: { key: string; label: string; types: DocType[] }[] = [
+  { key: "identitate", label: "Identitate", types: ["CI", "PASAPORT", "CERT_CETATENIE", "CAZIER"] },
+  { key: "familie", label: "Familie & Stare Civilă", types: ["CERT_NASTERE", "CERT_CASATORIE", "CERT_DECES", "LIVRET_FAMILIE"] },
+  { key: "domiciliu", label: "Domiciliu & Acte Juridice", types: ["ADEVERINTA_DOMICILIU", "PROCURA"] },
+  { key: "munca", label: "Muncă & Venituri", types: ["ADEVERINTA_VENIT", "CONTRACT_MUNCA"] },
+  { key: "educatie", label: "Educație", types: ["DIPLOMA_BAC", "DIPLOMA_LICENTA", "CERT_COMPETENTE"] },
+  { key: "sanatate", label: "Sănătate", types: ["CARD_SANATATE", "CERT_HANDICAP", "ECUSON_PARCARE"] },
+  { key: "vehicul", label: "Vehicul & Transport", types: ["PERMIS", "TALON", "INMATRICULARE_TEMP", "ITP", "ASIGURARE", "ROVINIETA"] },
+];
+
+export interface DocFolder {
+  key: string;
+  label: string;
+  docs: Document[];
+}
+
+// Group documents into their category folders, dropping empty folders. Any
+// document whose type is outside the known categories collects into "altele".
+export function groupDocsIntoFolders(docs: Document[]): DocFolder[] {
+  const categorized = new Set(DOC_CATEGORIES.flatMap((c) => c.types));
+  const other = docs.filter((d) => !categorized.has(d.doc_type));
+  return [
+    ...DOC_CATEGORIES.map((cat) => ({
+      key: cat.key,
+      label: cat.label,
+      docs: docs.filter((d) => cat.types.includes(d.doc_type)),
+    })),
+    ...(other.length > 0 ? [{ key: "altele", label: "Alte documente", docs: other }] : []),
+  ].filter((f) => f.docs.length > 0);
+}
 
 export const STATUS_CONFIG: Record<
   DocStatus,

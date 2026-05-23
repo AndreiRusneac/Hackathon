@@ -28,15 +28,41 @@ export interface TokenResponse {
 export type DocStatus = "valid" | "expiră_curând" | "expirat";
 
 export type DocType =
+  // Identitate
   | "CI"
   | "PASAPORT"
-  | "PERMIS"
+  | "CERT_CETATENIE"
   | "CAZIER"
+  // Familie & Stare Civilă
   | "CERT_NASTERE"
+  | "CERT_CASATORIE"
+  | "CERT_DECES"
+  | "LIVRET_FAMILIE"
+  // Domiciliu & Acte Juridice
+  | "ADEVERINTA_DOMICILIU"
+  | "PROCURA"
+  // Muncă & Venituri
+  | "ADEVERINTA_VENIT"
+  | "CONTRACT_MUNCA"
+  // Educație
+  | "DIPLOMA_BAC"
+  | "DIPLOMA_LICENTA"
+  | "CERT_COMPETENTE"
+  // Sănătate
+  | "CARD_SANATATE"
+  | "CERT_HANDICAP"
+  | "ECUSON_PARCARE"
+  // Vehicul & Transport
+  | "PERMIS"
+  | "TALON"
+  | "INMATRICULARE_TEMP"
+  | "ITP"
+  | "ASIGURARE"
+  | "ROVINIETA"
+  // Legacy (kept for backward compatibility, not in add form)
   | "ADEVERINTA"
   | "ANAF"
-  | "ONRC"
-  | "ROVINIETA";
+  | "ONRC";
 
 export interface Document {
   id: string;
