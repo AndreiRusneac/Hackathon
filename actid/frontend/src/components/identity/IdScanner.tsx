@@ -1,7 +1,23 @@
 import { useEffect, useRef, useState } from "react";
 import { Camera, RotateCcw, Check, AlertTriangle, X } from "lucide-react";
 import { identityApi, getErrMsg, type ScanIdResult } from "@/lib/api";
-import { Alert, Button } from "@/components/ui";
+import { Alert, Button, Input } from "@/components/ui";
+
+// Romanian CNP checksum — duplicate of the backend rule so we can revalidate
+// after the user edits the field on the review screen.
+const CNP_COEFFS = [2, 7, 9, 1, 4, 6, 3, 5, 8, 2, 7, 9];
+function isValidCnp(cnp?: string | null): boolean {
+  if (!cnp || cnp.length !== 13 || !/^\d{13}$/.test(cnp)) return false;
+  if (!"12345678".includes(cnp[0])) return false;
+  const mm = parseInt(cnp.slice(3, 5), 10);
+  const dd = parseInt(cnp.slice(5, 7), 10);
+  if (mm < 1 || mm > 12 || dd < 1 || dd > 31) return false;
+  let sum = 0;
+  for (let i = 0; i < 12; i++) sum += parseInt(cnp[i], 10) * CNP_COEFFS[i];
+  let check = sum % 11;
+  if (check === 10) check = 1;
+  return check === parseInt(cnp[12], 10);
+}
 
 interface IdScannerProps {
   onSuccess: (result: ScanIdResult) => void;
@@ -18,6 +34,7 @@ export default function IdScanner({ onSuccess, onCancel }: IdScannerProps) {
   const [phase, setPhase] = useState<Phase>("camera");
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
   const [result, setResult] = useState<ScanIdResult | null>(null);
+  const [edited, setEdited] = useState<ScanIdResult | null>(null);
   const [error, setError] = useState<string>("");
 
   // ── Camera lifecycle ────────────────────────────────────────────────────
@@ -75,14 +92,25 @@ export default function IdScanner({ onSuccess, onCancel }: IdScannerProps) {
     const cropH = Math.round(cropW / 1.585);
     const cropX = Math.round((video.videoWidth - cropW) / 2);
     const cropY = Math.round((video.videoHeight - cropH) / 2);
-    canvas.width = cropW;
-    canvas.height = cropH;
+
+    // Modern phone cameras shoot at 4K+, which produces 10+ MB PNG dataURLs
+    // and breaks both nginx body limits and OCR speed. Cap the longer edge
+    // to 1600 px — still well above what passporteye needs for the MRZ band.
+    const MAX_EDGE = 1600;
+    const scale = Math.min(1, MAX_EDGE / cropW);
+    const outW = Math.round(cropW * scale);
+    const outH = Math.round(cropH * scale);
+
+    canvas.width = outW;
+    canvas.height = outH;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
-    ctx.drawImage(video, cropX, cropY, cropW, cropH, 0, 0, cropW, cropH);
+    ctx.drawImage(video, cropX, cropY, cropW, cropH, 0, 0, outW, outH);
 
-    // PNG = lossless; JPEG artifacts corrupt the OCR-B MRZ glyphs.
-    const dataUrl = canvas.toDataURL("image/png");
+    // JPEG at q=0.92 is small enough to upload over a phone connection while
+    // still keeping the OCR-B MRZ glyphs readable. PNG of a 1600 px crop is
+    // ~4 MB and noticeably slower over Cloudflare's quick tunnel.
+    const dataUrl = canvas.toDataURL("image/jpeg", 0.92);
     setCapturedImage(dataUrl);
     if (streamRef.current) {
       streamRef.current.getTracks().forEach((t) => t.stop());
@@ -94,6 +122,7 @@ export default function IdScanner({ onSuccess, onCancel }: IdScannerProps) {
   const handleRetake = () => {
     setCapturedImage(null);
     setResult(null);
+    setEdited(null);
     setError("");
     setPhase("camera");
   };
@@ -110,6 +139,7 @@ export default function IdScanner({ onSuccess, onCancel }: IdScannerProps) {
         return;
       }
       setResult(res.data);
+      setEdited(res.data);
       setPhase("review");
     } catch (err) {
       setError(getErrMsg(err, "Scanare eșuată. Încearcă din nou."));
@@ -118,7 +148,25 @@ export default function IdScanner({ onSuccess, onCancel }: IdScannerProps) {
   };
 
   const handleConfirm = () => {
-    if (result) onSuccess(result);
+    if (!edited) return;
+    // Recompute full_name + cnp_valid from the (possibly edited) fields so
+    // downstream code sees the user-corrected values.
+    const surname = edited.surname?.trim() || undefined;
+    const given_names = edited.given_names?.trim() || undefined;
+    const full_name = [surname, given_names].filter(Boolean).join(" ") || edited.full_name?.trim() || undefined;
+    const cnp = edited.cnp?.trim() || undefined;
+    onSuccess({
+      ...edited,
+      surname,
+      given_names,
+      full_name,
+      cnp,
+      cnp_valid: isValidCnp(cnp),
+    });
+  };
+
+  const updateField = (key: keyof ScanIdResult, value: string) => {
+    setEdited((prev) => (prev ? { ...prev, [key]: value } : prev));
   };
 
   // ── Render ──────────────────────────────────────────────────────────────
@@ -202,36 +250,57 @@ export default function IdScanner({ onSuccess, onCancel }: IdScannerProps) {
         </div>
       )}
 
-      {/* Review extracted data */}
-      {phase === "review" && result && (
+      {/* Review extracted data — only the 4 fields the user cares about. */}
+      {phase === "review" && edited && (
         <div className="space-y-3">
-          <Alert variant="success" title="Document scanat">
-            {result.message}
+          <Alert variant={isValidCnp(edited.cnp) ? "success" : "warning"} title="Verifică datele">
+            {isValidCnp(edited.cnp)
+              ? "CNP valid. Verifică Seria, Numărul și data de expirare."
+              : "Verifică fiecare câmp și corectează dacă e cazul."}
           </Alert>
 
-          <div className="bg-gray-50 rounded-xl p-4 space-y-2 text-sm">
-            {result.id_face_base64 && (
-              <div className="flex items-center gap-3 pb-3 border-b border-gray-200">
-                <img
-                  src={result.id_face_base64}
-                  alt="Foto din document"
-                  className="w-16 h-20 object-cover rounded-lg ring-2 ring-white shadow"
-                />
-                <div className="flex-1 min-w-0">
-                  <p className="font-semibold truncate">{result.full_name ?? "—"}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {result.nationality ?? ""} · {result.sex ?? ""}
-                  </p>
-                </div>
-              </div>
-            )}
-            <Row label="CNP" value={result.cnp} />
-            <Row label="Nr. document" value={result.document_number} />
-            <Row label="Data nașterii" value={result.date_of_birth} />
-            <Row label="Expiră" value={result.expiration_date} />
+          <div className="grid grid-cols-2 gap-3">
+            <div className="col-span-2">
+              <Input
+                label="CNP"
+                inputMode="numeric"
+                maxLength={13}
+                value={edited.cnp ?? ""}
+                onChange={(e) => updateField("cnp", e.target.value.replace(/\D/g, ""))}
+                error={
+                  edited.cnp && !isValidCnp(edited.cnp)
+                    ? "CNP invalid — verifică cifrele"
+                    : undefined
+                }
+              />
+            </div>
+            <Input
+              label="Seria"
+              maxLength={2}
+              value={edited.series ?? ""}
+              onChange={(e) =>
+                updateField("series", e.target.value.toUpperCase().replace(/[^A-Z]/g, ""))
+              }
+            />
+            <Input
+              label="Nr."
+              inputMode="numeric"
+              value={edited.document_number ?? ""}
+              onChange={(e) =>
+                updateField("document_number", e.target.value.replace(/\D/g, ""))
+              }
+            />
+            <div className="col-span-2">
+              <Input
+                label="Data de expirare"
+                type="date"
+                value={edited.expiration_date ?? ""}
+                onChange={(e) => updateField("expiration_date", e.target.value)}
+              />
+            </div>
           </div>
 
-          <div className="flex gap-3">
+          <div className="flex gap-3 pt-2">
             <Button variant="secondary" onClick={handleRetake} className="flex-1">
               <RotateCcw size={16} aria-hidden="true" />
               Refă
@@ -258,15 +327,6 @@ export default function IdScanner({ onSuccess, onCancel }: IdScannerProps) {
           </Button>
         </div>
       )}
-    </div>
-  );
-}
-
-function Row({ label, value }: { label: string; value?: string | null }) {
-  return (
-    <div className="flex justify-between items-baseline gap-3">
-      <span className="text-muted-foreground text-xs">{label}</span>
-      <span className="font-medium text-right truncate">{value || "—"}</span>
     </div>
   );
 }

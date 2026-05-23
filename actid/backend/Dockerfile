@@ -11,6 +11,7 @@ RUN apt-get update \
     && apt-get install -y --no-install-recommends \
         curl \
         tesseract-ocr \
+        tesseract-ocr-ron \
         libgl1 \
         libglib2.0-0 \
         libsm6 \

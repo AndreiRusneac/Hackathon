@@ -86,12 +86,19 @@ export interface ScanIdResult {
   full_name?: string;
   surname?: string;
   given_names?: string;
+  /** "Seria" — 2 uppercase letters on a Romanian CI (e.g. "SX"). */
+  series?: string;
+  /** "Numărul" — the digits portion only (e.g. "590152"). */
   document_number?: string;
   nationality?: string;
   date_of_birth?: string;
+  /** "Data eliberării" — from the printed front of the card. */
+  date_of_issue?: string;
   expiration_date?: string;
   sex?: string;
   cnp?: string;
+  /** True when the extracted CNP passes the official Romanian checksum. */
+  cnp_valid?: boolean;
   id_face_base64?: string;
   message: string;
 }
@@ -101,6 +108,8 @@ export interface VerifyFaceResult {
   score: number;
   distance: number;
   message: string;
+  /** True when the backend couldn't actually compare faces (e.g. face_recognition unavailable). */
+  fallback?: boolean;
 }
 
 export const identityApi = {

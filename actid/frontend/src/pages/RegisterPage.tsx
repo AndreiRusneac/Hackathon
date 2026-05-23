@@ -113,7 +113,7 @@ export default function RegisterPage() {
     setLoading(true);
     try {
       const res = await identityApi.verifyFace(draft.id_photo_base64, selfieBase64);
-      if (!res.data.match) {
+      if (!res.data.match && !res.data.fallback) {
         setError(
           `Fețele nu se potrivesc (similaritate ${Math.round(res.data.score * 100)}%). Reia verificarea.`
         );
@@ -122,10 +122,12 @@ export default function RegisterPage() {
         setStep("liveness");
         return;
       }
+      // Fallback path = backend couldn't actually compare (e.g. face_recognition
+      // not installed). Treat as unverified but let registration proceed.
       await submitRegistration({
         ...draft,
-        face_verified: true,
-        face_match_score: res.data.score,
+        face_verified: !res.data.fallback,
+        face_match_score: res.data.fallback ? undefined : res.data.score,
       });
     } catch (err) {
       setError(getErrMsg(err, "Verificarea facială a eșuat. Încearcă din nou."));

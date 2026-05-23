@@ -3,7 +3,9 @@ import * as faceapi from "face-api.js";
 import { Smile, ArrowLeft, ArrowRight, Check, AlertTriangle, Eye } from "lucide-react";
 import { Alert, Button } from "@/components/ui";
 
-const MODEL_URL = "https://justadudewhohacks.github.io/face-api.js/weights";
+// Served from frontend/public/models — see download script in README.
+// Hosting locally avoids CORS/rate-limit failures from the GitHub.io CDN.
+const MODEL_URL = "/models";
 
 type Step =
   | "loading"
@@ -83,10 +85,9 @@ export default function LivenessCheck({ onSuccess, onCancel }: LivenessCheckProp
           return;
         }
         streamRef.current = stream;
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream;
-          await videoRef.current.play();
-        }
+        // Don't attach to videoRef here — the <video> element only renders
+        // once step !== "loading". A second effect (below) handles attachment
+        // as soon as the element mounts.
         setStep("ready");
       } catch (err) {
         console.error("Liveness setup failed", err);
@@ -106,6 +107,22 @@ export default function LivenessCheck({ onSuccess, onCancel }: LivenessCheckProp
       }
     };
   }, []);
+
+  // ── Attach the live stream once the <video> element actually mounts ──────
+  // The setup effect above runs on initial mount, but the <video> is
+  // conditionally rendered (only when step !== "loading"). So we attach the
+  // stream here, after each step change, when both the stream and the DOM
+  // node are guaranteed to exist.
+  useEffect(() => {
+    const v = videoRef.current;
+    const s = streamRef.current;
+    if (!v || !s) return;
+    if (v.srcObject === s) return;
+    v.srcObject = s;
+    // Safari/iOS sometimes rejects the auto-play; the muted+playsInline attrs
+    // make it succeed on the second tick, so swallow the first rejection.
+    v.play().catch((err) => console.warn("video.play() rejected", err));
+  }, [step]);
 
   // ── Detection loop ──────────────────────────────────────────────────────
   useEffect(() => {
