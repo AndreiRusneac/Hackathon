@@ -84,13 +84,10 @@ export default function FunctionarPage() {
   const [scanResult, setScanResult]       = useState<OldScanResult | null>(null);
   const [history, setHistory]             = useState<OldScanResult[]>([]);
 
-  if (!user) return null;
-  if (user.role !== "funcționar") return <Navigate to="/dashboard" replace />;
-
-  // Auto-scan when arriving from a /verify/:id QR link
+  // Auto-scan when arriving from a /verify/:id QR link — must be before early returns
   useEffect(() => {
     const pid = searchParams.get("pid");
-    if (!pid || eudiResult || eudiScanning) return;
+    if (!pid || !user || user.role !== "funcționar") return;
     setEudiScanning(true);
     presentationsApi.scan(pid)
       .then((res) => { setEudiResult(res.data); addToast("Prezentare verificată!", "success"); })
@@ -104,7 +101,10 @@ export default function FunctionarPage() {
         );
       })
       .finally(() => setEudiScanning(false));
-  }, []);
+  }, [user]);
+
+  if (!user) return null;
+  if (user.role !== "funcționar") return <Navigate to="/dashboard" replace />;
 
   // ── EUDI scan ──────────────────────────────────────────────────────────────
 
