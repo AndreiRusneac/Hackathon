@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useLocation } from "react-router-dom";
+import { QRCodeSVG } from "qrcode.react";
 import { QrCode, Link2, Camera, CheckCircle2, Inbox } from "lucide-react";
 import { DocTypeIcon } from "@/components/documents/DocumentCard";
 import { documentsApi, sharingApi } from "@/lib/api";
@@ -257,11 +258,18 @@ function TokenCard({
   onRevoke: (id: string) => void;
   inactive?: boolean;
 }) {
+  const [showQR, setShowQR] = useState(false);
   const isExpired = new Date(token.expires_at) < new Date();
+  const qrValue = `${window.location.origin}/scan/${token.token}`;
+
   return (
     <Card className={`mb-3 ${inactive ? "opacity-60" : ""}`}>
       <CardContent className="py-4">
-        <div className="flex items-start gap-3">
+        <button
+          className="w-full flex items-start gap-3 text-left"
+          onClick={() => !inactive && setShowQR((v) => !v)}
+          aria-expanded={showQR}
+        >
           <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${inactive ? "bg-gray-100" : "bg-purple-50"}`}>
             <QrCode size={18} className={inactive ? "text-gray-400" : "text-purple-600"} aria-hidden="true" />
           </div>
@@ -280,16 +288,27 @@ function TokenCard({
             </p>
           </div>
           {!inactive && (
+            <span className="text-xs text-muted-foreground flex-shrink-0 pt-0.5">
+              {showQR ? "▲" : "▼"}
+            </span>
+          )}
+        </button>
+
+        {showQR && !inactive && (
+          <div className="mt-4 flex flex-col items-center gap-3">
+            <div className="p-4 bg-white rounded-2xl shadow-inner border border-gray-100">
+              <QRCodeSVG value={qrValue} size={200} level="H" includeMargin={false} />
+            </div>
             <Button
               size="sm"
               variant="ghost"
               onClick={() => onRevoke(token.id)}
-              className="text-red-500 hover:text-red-700 flex-shrink-0"
+              className="text-red-500 hover:text-red-700 w-full"
             >
-              Revocă
+              Revocă token
             </Button>
-          )}
-        </div>
+          </div>
+        )}
       </CardContent>
     </Card>
   );

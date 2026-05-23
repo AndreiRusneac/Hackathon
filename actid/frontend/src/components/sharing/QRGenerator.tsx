@@ -87,14 +87,6 @@ export function QRGenerator({ documents, onTokenCreated, initialSelectedIds }: Q
               size={200}
               level="H"
               includeMargin={false}
-              imageSettings={{
-                src: "",
-                x: undefined,
-                y: undefined,
-                height: 0,
-                width: 0,
-                excavate: false,
-              }}
             />
           </div>
 
