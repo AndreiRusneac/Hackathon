@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { Navigate, Route, Routes } from "react-router-dom";
+import { Navigate, Route, Routes, useParams } from "react-router-dom";
 import { useAuthStore } from "@/store/authStore";
 import AppLayout from "@/components/layout/AppLayout";
 import LandingPage from "@/pages/LandingPage";
@@ -15,6 +15,11 @@ import FunctionarPage from "@/pages/FunctionarPage";
 import ScanPage from "@/pages/ScanPage";
 import PresentationsPage from "@/pages/PresentationsPage";
 
+function VerifyRedirect() {
+  const { presentationId } = useParams<{ presentationId: string }>();
+  return <Navigate to={`/functionar?pid=${presentationId}`} replace />;
+}
+
 export default function App() {
   const { hydrate } = useAuthStore();
 
@@ -28,6 +33,7 @@ export default function App() {
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
       <Route path="/scan/:token" element={<ScanPage />} />
+      <Route path="/verify/:presentationId" element={<VerifyRedirect />} />
 
       <Route element={<AppLayout />}>
         <Route path="/dashboard" element={<DashboardPage />} />

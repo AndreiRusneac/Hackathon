@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Navigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { Navigate, useSearchParams } from "react-router-dom";
 import {
   Camera, ClipboardCheck, CheckCircle2, ScanLine, ArrowLeft,
   Shield, ShieldCheck, ShieldX, QrCode, Building2,
@@ -69,6 +69,7 @@ interface OldScanResult {
 export default function FunctionarPage() {
   const { user } = useAuthStore();
   const { addToast } = useNotificationStore();
+  const [searchParams] = useSearchParams();
 
   const [activeTab, setActiveTab] = useState<"eudi" | "token">("eudi");
 
@@ -85,6 +86,25 @@ export default function FunctionarPage() {
 
   if (!user) return null;
   if (user.role !== "funcționar") return <Navigate to="/dashboard" replace />;
+
+  // Auto-scan when arriving from a /verify/:id QR link
+  useEffect(() => {
+    const pid = searchParams.get("pid");
+    if (!pid || eudiResult || eudiScanning) return;
+    setEudiScanning(true);
+    presentationsApi.scan(pid)
+      .then((res) => { setEudiResult(res.data); addToast("Prezentare verificată!", "success"); })
+      .catch((err: { response?: { status?: number; data?: { detail?: string } } }) => {
+        const status = err.response?.status;
+        addToast(
+          status === 410 ? "Prezentare expirată sau deja utilizată."
+            : status === 422 ? "Semnătură SD-JWT invalidă."
+            : err.response?.data?.detail || "Prezentare invalidă.",
+          "error"
+        );
+      })
+      .finally(() => setEudiScanning(false));
+  }, []);
 
   // ── EUDI scan ──────────────────────────────────────────────────────────────
 

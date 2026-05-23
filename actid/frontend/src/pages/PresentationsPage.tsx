@@ -5,14 +5,14 @@ import {
   Shield, ShieldCheck, Check, Clock, RotateCcw, AlertTriangle,
   type LucideIcon,
 } from "lucide-react";
-import { presentationsApi, documentsApi, credentialsApi } from "@/lib/api";
+import { presentationsApi, documentsApi, credentialsApi, type PresentationCreateResult } from "@/lib/api";
 import { useDocumentStore } from "@/store/documentStore";
 import { useNotificationStore } from "@/store/notificationStore";
 import { useAuthStore } from "@/store/authStore";
 import { Card, CardContent, Badge, Button, StatusBadge } from "@/components/ui";
 import { DocTypeIcon } from "@/components/documents/DocumentCard";
 import { DOC_LABELS, formatDateTime, cn } from "@/lib/utils";
-import type { Document, Presentation } from "@/types";
+import type { Document } from "@/types";
 
 // ─── Attribute catalog per doc type ──────────────────────────────────────────
 
@@ -84,7 +84,7 @@ export default function PresentationsPage() {
   const [purpose, setPurpose]             = useState("");
   const [verifierRole, setVerifierRole]   = useState<"funcționar" | "any">("funcționar");
   const [submitting, setSubmitting]       = useState(false);
-  const [result, setResult]               = useState<Presentation | null>(null);
+  const [result, setResult]               = useState<PresentationCreateResult | null>(null);
 
   if (!user) return null;
   if (user.role === "funcționar") return <Navigate to="/dashboard" replace />;
@@ -391,7 +391,7 @@ function PresentationResult({
   result,
   onReset,
 }: {
-  result: Presentation;
+  result: PresentationCreateResult;
   onReset: () => void;
 }) {
   return (

@@ -157,22 +157,6 @@ export interface AuditStats {
   chain_valid: boolean;
 }
 
-// ─── EUDI Presentations ───────────────────────────────────────────────────────
-
-export interface PresentationCreate {
-  document_id: string;
-  disclosed_attributes: string[];
-  purpose: string;
-  verifier_role: string;
-}
-
-export interface Presentation {
-  presentation_id: string;
-  qr_url: string;
-  expires_at: string;
-  disclosed_attributes: string[];
-}
-
 // ─── UI helpers ───────────────────────────────────────────────────────────────
 
 export interface Notification {
