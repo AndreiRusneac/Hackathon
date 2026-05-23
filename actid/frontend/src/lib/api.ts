@@ -162,3 +162,37 @@ export const auditApi = {
   verifyChain: () => api.get("/audit/verify"),
   stats: () => api.get("/audit/stats"),
 };
+
+// ─── Wallet Security (Teo) ───────────────────────────────────────────────────
+
+export interface WalletSecurity {
+  wallet_instance_id: string;
+  encryption: {
+    algorithm: string;
+    at_rest_enabled: boolean;
+    encrypted_fields: string[];
+  };
+  trusted_issuers: Array<{
+    id: string;
+    name: string;
+    country: string;
+    valid_from: string;
+  }>;
+  issuer_public_key_fingerprint: string;
+}
+
+export interface PresentationHistoryEntry {
+  id: string;
+  document_id: string;
+  document_type: string;
+  disclosed_attributes: string[];
+  purpose: string;
+  created_at: string;
+  scanned_at: string | null;
+  scanned_by_name: string | null;
+}
+
+export const walletApi = {
+  security: () => api.get<WalletSecurity>("/wallet/security"),
+  history: () => api.get<{ presentations: PresentationHistoryEntry[] }>("/wallet/presentations-history"),
+};

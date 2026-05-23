@@ -1,5 +1,5 @@
 import { NavLink, useNavigate } from "react-router-dom";
-import { Home, FileText, QrCode, Users, Bell, Link2, Search, ZoomIn, LogOut, type LucideIcon } from "lucide-react";
+import { Home, FileText, QrCode, Users, Bell, Link2, Search, ZoomIn, LogOut, ShieldCheck, type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useNotificationStore } from "@/store/notificationStore";
 import { useElderlyStore } from "@/store/elderlyStore";
@@ -13,10 +13,10 @@ type NavItem = {
 };
 
 const CITIZEN_ITEMS: NavItem[] = [
-  { to: "/dashboard",     icon: Home,     label: "Acasă" },
-  { to: "/documents",     icon: FileText, label: "Acte" },
-  { to: "/sharing",       icon: QrCode,   label: "QR" },
-  { to: "/family",        icon: Users,    label: "Familie" },
+  { to: "/dashboard",  icon: Home,        label: "Acasă" },
+  { to: "/documents",  icon: FileText,    label: "Acte" },
+  { to: "/securitate", icon: ShieldCheck, label: "Securitate" },
+  { to: "/family",     icon: Users,       label: "Familie" },
   { to: "/notifications", icon: Bell,     label: "Notificări" },
 ];
 
