@@ -141,24 +141,34 @@ export default function LoginPage() {
 
               {/* Demo hint */}
               <div className="bg-blue-50 rounded-xl p-3 border border-blue-100">
-                <p className="text-xs text-blue-700 font-semibold mb-1">Conturi demo:</p>
-                <div className="space-y-1">
+                <p className="text-xs text-blue-700 font-semibold mb-2">Conturi demo:</p>
+                <div className="space-y-0.5">
                   {[
-                    { email: "ion.popescu@gmail.com", label: "Ion (buletin expiră curând)" },
-                    { email: "alex.ionescu@gmail.com", label: "Alex (diaspora Londra)" },
-                    { email: "functionar@spclep.ro", label: "Funcționar SPCLEP" },
+                    { email: "ion.popescu@gmail.com", initials: "IP", label: "Ion Popescu", sublabel: "Buletin expiră curând", bg: "bg-amber-500" },
+                    { email: "alex.ionescu@gmail.com", initials: "AI", label: "Alex Ionescu", sublabel: "Diaspora Londra", bg: "bg-teal-600" },
+                    { email: "functionar@spclep.ro", initials: "FS", label: "Funcționar SPCLEP", sublabel: "Verificare documente", bg: "bg-purple-600" },
                   ].map((u) => (
                     <button
                       key={u.email}
                       type="button"
                       onClick={() => { setIdentifier(u.email); setPassword("Parola@123"); }}
-                      className="w-full text-left text-xs text-blue-600 hover:text-blue-800 py-0.5 transition-colors"
+                      className="w-full flex items-center gap-2.5 py-1.5 px-2 rounded-lg hover:bg-blue-100/70 transition-colors text-left group"
+                      aria-label={`Autentifică-te ca ${u.label}`}
                     >
-                      → {u.label}
+                      <div className={`w-7 h-7 ${u.bg} rounded-full flex items-center justify-center flex-shrink-0 text-white text-[10px] font-bold select-none`} aria-hidden="true">
+                        {u.initials}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-semibold text-blue-800 truncate leading-tight">{u.label}</p>
+                        <p className="text-[10px] text-blue-500 truncate leading-tight">{u.sublabel}</p>
+                      </div>
+                      <span className="text-blue-400 text-xs opacity-0 group-hover:opacity-100 transition-opacity" aria-hidden="true">→</span>
                     </button>
                   ))}
                 </div>
-                <p className="text-[10px] text-blue-500 mt-1">Parolă: Parola@123</p>
+                <p className="text-[10px] text-blue-400 mt-2 pt-1.5 border-t border-blue-100">
+                  Parolă: Parola@123 · 2FA: 123456
+                </p>
               </div>
             </form>
           ) : (

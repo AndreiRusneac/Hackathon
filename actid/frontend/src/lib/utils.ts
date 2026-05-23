@@ -52,18 +52,6 @@ export const DOC_LABELS: Record<DocType, string> = {
   ROVINIETA: "Rovinietă",
 };
 
-export const DOC_ICONS: Record<DocType, string> = {
-  CI: "🪪",
-  PASAPORT: "📔",
-  PERMIS: "🚗",
-  CAZIER: "⚖️",
-  CERT_NASTERE: "📜",
-  ADEVERINTA: "📋",
-  ANAF: "💰",
-  ONRC: "🏢",
-  ROVINIETA: "🛣️",
-};
-
 export const STATUS_CONFIG: Record<
   DocStatus,
   { label: string; color: string; bg: string; ring: string }
@@ -88,20 +76,20 @@ export const STATUS_CONFIG: Record<
   },
 };
 
-export const ACTION_LABELS: Record<string, { label: string; icon: string; color: string }> = {
-  LOGIN_SUCCESS: { label: "Autentificare reușită", icon: "🔐", color: "text-green-600" },
-  LOGIN_ATTEMPT: { label: "Tentativă autentificare", icon: "🔑", color: "text-blue-600" },
-  LOGOUT: { label: "Deconectare", icon: "👋", color: "text-gray-600" },
-  DOCUMENT_VIEW: { label: "Vizualizare document", icon: "👁️", color: "text-green-600" },
-  DOCUMENT_UPLOAD: { label: "Adăugare document", icon: "📤", color: "text-blue-600" },
-  DOCUMENT_DELETE: { label: "Ștergere document", icon: "🗑️", color: "text-red-600" },
-  QR_TOKEN_CREATE: { label: "Creare partajare QR", icon: "📱", color: "text-amber-600" },
-  QR_TOKEN_SCAN: { label: "Scanare QR (funcționar)", icon: "📷", color: "text-orange-600" },
-  QR_TOKEN_REVOKE: { label: "Revocare partajare QR", icon: "🚫", color: "text-red-600" },
-  DELEGATION_CREATE: { label: "Acordare delegare familie", icon: "🤝", color: "text-teal-600" },
-  DELEGATION_REVOKE: { label: "Revocare delegare", icon: "❌", color: "text-red-600" },
-  SYSTEM_INIT: { label: "Inițializare sistem", icon: "🚀", color: "text-gray-600" },
-  RENEWAL_REQUEST: { label: "Cerere reînnoire", icon: "🔄", color: "text-blue-600" },
+export const ACTION_LABELS: Record<string, { label: string; color: string }> = {
+  LOGIN_SUCCESS: { label: "Autentificare reușită", color: "text-green-600" },
+  LOGIN_ATTEMPT: { label: "Tentativă autentificare", color: "text-blue-600" },
+  LOGOUT: { label: "Deconectare", color: "text-gray-600" },
+  DOCUMENT_VIEW: { label: "Vizualizare document", color: "text-green-600" },
+  DOCUMENT_UPLOAD: { label: "Adăugare document", color: "text-blue-600" },
+  DOCUMENT_DELETE: { label: "Ștergere document", color: "text-red-600" },
+  QR_TOKEN_CREATE: { label: "Creare partajare QR", color: "text-amber-600" },
+  QR_TOKEN_SCAN: { label: "Scanare QR (funcționar)", color: "text-orange-600" },
+  QR_TOKEN_REVOKE: { label: "Revocare partajare QR", color: "text-red-600" },
+  DELEGATION_CREATE: { label: "Acordare delegare familie", color: "text-teal-600" },
+  DELEGATION_REVOKE: { label: "Revocare delegare", color: "text-red-600" },
+  SYSTEM_INIT: { label: "Inițializare sistem", color: "text-gray-600" },
+  RENEWAL_REQUEST: { label: "Cerere reînnoire", color: "text-blue-600" },
 };
 
 export const ACTION_STYLE: Record<string, { block: string; ring: string; line: string }> = {
