@@ -57,7 +57,7 @@ export function DocumentCard({
     ? "Valabil"
     : status === "expirat"
     ? "Expirat"
-    : `${doc.days_remaining}z`;
+    : "Expiră curând";
 
   const badgeVariant = status === "valid" ? "success" : status === "expirat" ? "danger" : "warning";
 

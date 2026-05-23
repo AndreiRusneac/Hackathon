@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
+import { useLocation } from "react-router-dom";
 import { QRCodeSVG } from "qrcode.react";
 import { QrCode, Link2, Camera, CheckCircle2, Inbox } from "lucide-react";
+import { DocTypeIcon } from "@/components/documents/DocumentCard";
 import { documentsApi, sharingApi } from "@/lib/api";
 import { useDocumentStore } from "@/store/documentStore";
 import { useNotificationStore } from "@/store/notificationStore";
@@ -12,12 +14,18 @@ import type { ShareToken } from "@/types";
 export default function SharingPage() {
   const { documents, setDocuments } = useDocumentStore();
   const { addToast } = useNotificationStore();
+  const location = useLocation();
+  const preselectId = (location.state as { preselect?: string } | null)?.preselect ?? null;
   const [tokens, setTokens] = useState<ShareToken[]>([]);
   const [loading, setLoading] = useState(true);
   const [scanToken, setScanToken] = useState("");
   const [scanResult, setScanResult] = useState<any>(null);
   const [scanning, setScanning] = useState(false);
   const [activeTab, setActiveTab] = useState<"create" | "active" | "scan">("create");
+
+  useEffect(() => {
+    if (preselectId) setActiveTab("create");
+  }, [preselectId]);
 
   useEffect(() => {
     const load = async () => {
@@ -104,7 +112,9 @@ export default function SharingPage() {
       {/* Create QR */}
       {activeTab === "create" && (
         <QRGenerator
+          key={preselectId ?? "default"}
           documents={documents}
+          initialSelectedIds={preselectId ? [preselectId] : undefined}
           onTokenCreated={(token) => {
             setTokens((prev) => [token, ...prev]);
             setActiveTab("active");
@@ -210,8 +220,8 @@ export default function SharingPage() {
                 </div>
                 {scanResult.documents?.map((doc: any) => (
                   <div key={doc.id} className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl">
-                    <div className="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                      {doc.doc_type === "CI" ? "CI" : doc.doc_type === "PASAPORT" ? "P" : doc.doc_type.slice(0, 2)}
+                    <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center flex-shrink-0 border border-border">
+                      <DocTypeIcon type={doc.doc_type} size={16} className="text-actid-blue" />
                     </div>
                     <div className="flex-1">
                       <p className="text-sm font-medium">
