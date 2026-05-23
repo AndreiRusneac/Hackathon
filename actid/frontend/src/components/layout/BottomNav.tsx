@@ -1,9 +1,10 @@
-import { NavLink } from "react-router-dom";
-import { Home, FileText, QrCode, Users, Bell, Link2, Search, ZoomIn, type LucideIcon } from "lucide-react";
+import { NavLink, useNavigate } from "react-router-dom";
+import { Home, FileText, QrCode, Users, Bell, Link2, Search, ZoomIn, LogOut, type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useNotificationStore } from "@/store/notificationStore";
 import { useElderlyStore } from "@/store/elderlyStore";
 import { useAuthStore } from "@/store/authStore";
+import { authApi } from "@/lib/api";
 
 type NavItem = {
   to: string;
@@ -30,7 +31,14 @@ const FUNCTIONAR_ITEMS: NavItem[] = [
 export function BottomNav() {
   const { notifications } = useNotificationStore();
   const { enabled: elderlyEnabled, toggle: elderlyToggle } = useElderlyStore();
-  const { user } = useAuthStore();
+  const { user, logout } = useAuthStore();
+  const navigate = useNavigate();
+
+  const handleLogout = async () => {
+    try { await authApi.logout(); } catch { /* ignore */ }
+    logout();
+    navigate("/", { replace: true });
+  };
 
   const unreadCount = notifications.filter((n) => !n.dismissed).length;
   const items = user?.role === "funcționar" ? FUNCTIONAR_ITEMS : CITIZEN_ITEMS;
@@ -41,7 +49,7 @@ export function BottomNav() {
       role="navigation"
       aria-label="Navigare mobilă"
     >
-      <div className="relative flex items-center justify-around h-16 pr-10">
+      <div className="relative flex items-center justify-around h-16 pr-14">
         {items.map((item) => {
           const Icon = item.icon;
           return (
@@ -79,19 +87,28 @@ export function BottomNav() {
           );
         })}
 
-        <button
-          onClick={elderlyToggle}
-          aria-pressed={elderlyEnabled}
-          aria-label={elderlyEnabled ? "Dezactivare mod vârstnici" : "Activare mod vârstnici"}
-          className={cn(
-            "absolute right-1.5 top-1.5 w-7 h-7 rounded-lg flex items-center justify-center transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-actid-blue",
-            elderlyEnabled
-              ? "bg-actid-blue text-white shadow-sm"
-              : "bg-gray-100 text-gray-500 hover:bg-gray-200"
-          )}
-        >
-          <ZoomIn size={14} aria-hidden="true" />
-        </button>
+        <div className="absolute right-1.5 top-1/2 -translate-y-1/2 flex flex-col gap-1">
+          <button
+            onClick={elderlyToggle}
+            aria-pressed={elderlyEnabled}
+            aria-label={elderlyEnabled ? "Dezactivare mod vârstnici" : "Activare mod vârstnici"}
+            className={cn(
+              "w-6 h-6 rounded-md flex items-center justify-center transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-actid-blue",
+              elderlyEnabled
+                ? "bg-actid-blue text-white shadow-sm"
+                : "bg-gray-100 text-gray-500 hover:bg-gray-200"
+            )}
+          >
+            <ZoomIn size={12} aria-hidden="true" />
+          </button>
+          <button
+            onClick={handleLogout}
+            aria-label="Deconectare"
+            className="w-6 h-6 rounded-md flex items-center justify-center bg-gray-100 text-gray-500 hover:bg-red-50 hover:text-actid-red transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-actid-blue"
+          >
+            <LogOut size={12} aria-hidden="true" />
+          </button>
+        </div>
       </div>
     </nav>
   );

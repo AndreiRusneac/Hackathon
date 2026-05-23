@@ -10,7 +10,9 @@ from sqlalchemy.orm import Session
 from ..config import settings
 from ..database import get_db
 from ..ledger import add_audit_entry
-from ..models.models import PendingAuth, User
+from ..models.models import (
+    PendingAuth, User, Document, ShareToken, ShareScanLog, DelegationGrant,
+)
 from ..schemas.schemas import (
     LoginRequest,
     LoginResponse,
@@ -263,3 +265,37 @@ def logout(current_user: User = Depends(get_current_user_dep), db: Session = Dep
     )
     db.commit()
     return {"message": "Deconectat cu succes"}
+
+
+@router.delete("/me", status_code=200)
+def delete_account(current_user: User = Depends(get_current_user_dep), db: Session = Depends(get_db)):
+    user_id = current_user.id
+    user_name = current_user.full_name
+    user_role = current_user.role
+
+    # Delete scan logs for tokens belonging to this user
+    token_ids = [t.id for t in db.query(ShareToken).filter(ShareToken.creator_id == user_id).all()]
+    if token_ids:
+        db.query(ShareScanLog).filter(ShareScanLog.token_id.in_(token_ids)).delete(synchronize_session=False)
+
+    db.query(ShareToken).filter(ShareToken.creator_id == user_id).delete(synchronize_session=False)
+    db.query(DelegationGrant).filter(
+        (DelegationGrant.delegator_id == user_id) | (DelegationGrant.delegate_id == user_id)
+    ).delete(synchronize_session=False)
+    db.query(Document).filter(Document.owner_id == user_id).delete(synchronize_session=False)
+    db.query(PendingAuth).filter(PendingAuth.user_id == user_id).delete(synchronize_session=False)
+
+    add_audit_entry(
+        db,
+        action="ACCOUNT_DELETED",
+        actor_id=user_id,
+        actor_name=user_name,
+        actor_role=user_role,
+        metadata={"reason": "user_request"},
+    )
+    db.commit()
+
+    db.query(User).filter(User.id == user_id).delete(synchronize_session=False)
+    db.commit()
+
+    return {"message": "Contul a fost șters"}

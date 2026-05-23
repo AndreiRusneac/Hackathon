@@ -6,6 +6,7 @@ import { DocTypeIcon } from "@/components/documents/DocumentCard";
 import { documentsApi, sharingApi } from "@/lib/api";
 import { useDocumentStore } from "@/store/documentStore";
 import { useNotificationStore } from "@/store/notificationStore";
+import { useAuthStore } from "@/store/authStore";
 import { QRGenerator } from "@/components/sharing/QRGenerator";
 import { Card, CardContent, Badge, Button, StatusBadge } from "@/components/ui";
 import { formatDateTime, truncateHash } from "@/lib/utils";
@@ -14,6 +15,8 @@ import type { ShareToken } from "@/types";
 export default function SharingPage() {
   const { documents, setDocuments } = useDocumentStore();
   const { addToast } = useNotificationStore();
+  const { user } = useAuthStore();
+  const isFunctionar = user?.role === "funcționar";
   const location = useLocation();
   const preselectId = (location.state as { preselect?: string } | null)?.preselect ?? null;
   const [tokens, setTokens] = useState<ShareToken[]>([]);
@@ -21,7 +24,9 @@ export default function SharingPage() {
   const [scanToken, setScanToken] = useState("");
   const [scanResult, setScanResult] = useState<any>(null);
   const [scanning, setScanning] = useState(false);
-  const [activeTab, setActiveTab] = useState<"create" | "active" | "scan">("create");
+  const [activeTab, setActiveTab] = useState<"create" | "active" | "scan">(
+    isFunctionar ? "scan" : "create"
+  );
 
   useEffect(() => {
     if (preselectId) setActiveTab("create");
@@ -30,12 +35,12 @@ export default function SharingPage() {
   useEffect(() => {
     const load = async () => {
       try {
-        const [docsRes, tokensRes] = await Promise.all([
-          documentsApi.list(),
-          sharingApi.listTokens(),
-        ]);
-        setDocuments(docsRes.data);
-        setTokens(tokensRes.data);
+        const requests: Promise<any>[] = [sharingApi.listTokens()];
+        if (!isFunctionar) requests.unshift(documentsApi.list());
+
+        const results = await Promise.all(requests);
+        if (!isFunctionar) setDocuments(results[0].data);
+        setTokens(results[isFunctionar ? 0 : 1].data);
       } catch {
         addToast("Eroare la încărcare", "error");
       } finally {

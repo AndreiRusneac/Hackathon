@@ -1,67 +1,93 @@
 import { useNavigate } from "react-router-dom";
-import { LogIn, UserPlus, ShieldCheck } from "lucide-react";
+import { LogIn, UserPlus, ShieldCheck, Lock } from "lucide-react";
 import { Button } from "@/components/ui";
 
 export default function LandingPage() {
   const navigate = useNavigate();
 
   return (
-    <div className="min-h-[100dvh] bg-gradient-to-br from-actid-blue via-[#0041BF] to-[#1a56db] flex items-center justify-center p-6 safe-top safe-bottom overflow-y-auto">
+    // CONSISTENCY: gradient anchored to sidebar navy (#002B7F) — darker top for depth
+    <div className="min-h-[100dvh] bg-gradient-to-b from-[#001850] via-actid-blue to-[#0033A0] flex items-center justify-center p-6 safe-top safe-bottom overflow-y-auto">
       <div className="w-full max-w-sm">
-        {/* Logo */}
-        <div className="text-center mb-10">
-          <div className="inline-flex items-center justify-center w-24 h-24 bg-white rounded-3xl shadow-2xl mb-5">
-            <div className="text-center">
-              <span className="block text-actid-blue font-black text-3xl leading-none">AC</span>
-              <span className="block text-actid-red font-black text-3xl leading-none">TID</span>
+
+        {/* CONSISTENCY: shadow + radius match dashboard document cards */}
+        <div className="bg-white rounded-3xl shadow-2xl overflow-hidden">
+
+          {/* Top accent strip in brand blue */}
+          <div className="h-1 bg-actid-blue" aria-hidden="true" />
+
+          {/* CONSISTENCY: p-8 matches dashboard card spacing (~32px) */}
+          <div className="p-8 space-y-6">
+
+            {/* Wordmark — matches SideNav brand block exactly */}
+            {/* CONSISTENCY: same logo pattern as sidebar header */}
+            <div className="flex items-center gap-3 justify-center">
+              <div
+                className="w-10 h-10 bg-actid-blue rounded-xl flex items-center justify-center flex-shrink-0"
+                aria-hidden="true"
+              >
+                <span className="text-white font-black text-sm select-none">ID</span>
+              </div>
+              <div>
+                <p className="font-bold text-xl leading-tight tracking-tight text-foreground">ActID</p>
+                <p className="text-xs text-muted-foreground leading-tight">Portofelul Digital Român</p>
+              </div>
             </div>
+
+            {/* Heading + subtitle */}
+            <div className="text-center">
+              {/* CONSISTENCY: tracking-tight + font-bold matches dashboard page headings */}
+              <h1 className="text-2xl font-bold text-foreground tracking-tight">Bine ai venit!</h1>
+              {/* CONSISTENCY: text-sm text-muted-foreground matches dashboard secondary text */}
+              <p className="text-sm text-muted-foreground mt-1.5">
+                Continuă cu contul tău sau creează unul nou.
+              </p>
+            </div>
+
+            {/* Buttons */}
+            {/* CONSISTENCY: space-y-2 — 8px gap between buttons */}
+            <div className="space-y-2">
+              {/* A11Y: explicit aria-label in Romanian; size="lg" = h-13 (52px) > 48px min */}
+              <Button
+                onClick={() => navigate("/login")}
+                className="w-full"
+                size="lg"
+                aria-label="Loghează-te în contul tău"
+              >
+                <LogIn size={18} aria-hidden="true" />
+                {/* FIX: diacritice — "Logheaza-te" → "Loghează-te" */}
+                Loghează-te
+              </Button>
+
+              {/* A11Y: explicit aria-label in Romanian */}
+              <Button
+                onClick={() => navigate("/register")}
+                variant="outline"
+                className="w-full"
+                size="lg"
+                aria-label="Creează un cont nou"
+              >
+                <UserPlus size={18} aria-hidden="true" />
+                Înregistrare
+              </Button>
+            </div>
+
+            {/* Trust indicators — inside card */}
+            <div className="space-y-2.5 pt-1 border-t border-border">
+              {/* CONSISTENCY: text-xs text-muted-foreground matches dashboard footer items */}
+              <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground pt-2">
+                <ShieldCheck size={13} aria-hidden="true" />
+                <span>Verificare biometrică · ROeID · GDPR</span>
+              </div>
+              {/* A11Y: lock icon decorative; text moved inside card for better contrast */}
+              <div className="flex items-center justify-center gap-1.5 text-xs text-muted-foreground/60">
+                <Lock size={11} aria-hidden="true" />
+                <span>Conexiune securizată TLS 1.3</span>
+              </div>
+            </div>
+
           </div>
-          <h1 className="text-white font-bold text-3xl">ActID</h1>
-          <p className="text-white/80 text-sm mt-2">
-            Portofelul Digital al Cetățeanului Român
-          </p>
         </div>
-
-        {/* Welcome card */}
-        <div className="bg-white rounded-3xl shadow-2xl overflow-hidden p-6 space-y-5">
-          <div className="text-center">
-            <h2 className="text-xl font-bold text-foreground">Bine ai venit!</h2>
-            <p className="text-sm text-muted-foreground mt-1">
-              Continuă cu contul tău sau creează unul nou.
-            </p>
-          </div>
-
-          <div className="space-y-3">
-            <Button
-              onClick={() => navigate("/login")}
-              className="w-full"
-              size="lg"
-            >
-              <LogIn size={18} aria-hidden="true" />
-              Logheaza-te
-            </Button>
-
-            <Button
-              onClick={() => navigate("/register")}
-              variant="outline"
-              className="w-full"
-              size="lg"
-            >
-              <UserPlus size={18} aria-hidden="true" />
-              Înregistrare
-            </Button>
-          </div>
-
-          <div className="flex items-center justify-center gap-2 pt-2 text-xs text-muted-foreground">
-            <ShieldCheck size={14} aria-hidden="true" />
-            <span>Verificare biometrică · ROeID · GDPR</span>
-          </div>
-        </div>
-
-        {/* Footer */}
-        <p className="text-center text-white/50 text-xs mt-6">
-          Conexiune securizată TLS 1.3 · GDPR compliant
-        </p>
       </div>
     </div>
   );
