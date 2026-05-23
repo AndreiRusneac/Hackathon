@@ -1,6 +1,7 @@
 [
   {
     "id": "actid-issuer-001",
+    "iss_url": "https://actid.gov.ro",
     "name": "Statul Român — Ministerul Afacerilor Interne",
     "country": "RO",
     "public_key_jwk": {

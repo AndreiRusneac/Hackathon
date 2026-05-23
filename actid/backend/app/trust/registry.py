@@ -14,8 +14,9 @@ def load_issuers() -> list[dict]:
 
 
 def get_issuer(issuer_id: str) -> Optional[dict]:
+    """Lookup by kid ('actid-issuer-001') or iss URL ('https://actid.gov.ro')."""
     for iss in load_issuers():
-        if iss["id"] == issuer_id:
+        if iss["id"] == issuer_id or iss.get("iss_url") == issuer_id:
             return iss
     return None
 

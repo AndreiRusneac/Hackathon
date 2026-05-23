@@ -22,8 +22,8 @@ from ..schemas.schemas import (
     PresentationVerifyResult,
     VerifiedIssuer,
 )
-from ..trust.registry import get_issuer, trusted_jwks
-from ..vc.sd_jwt import filter_disclosures, sign_sd_jwt, verify_sd_jwt
+from ..trust.registry import get_issuer
+from ..vc.sd_jwt import ISSUER_URL, create_presentation, sign_credential, verify_presentation
 
 router = APIRouter(prefix="/presentations", tags=["presentations"])
 
@@ -99,10 +99,10 @@ def create_presentation(
     vct = _vct_for_doc(doc.doc_type)
 
     # 1) Issuer signs full SD-JWT with all available attributes
-    sd_jwt_full = sign_sd_jwt(vct=vct, subject_id=current_user.id, attributes=full_attrs)
+    sd_jwt_full = sign_credential(vct=vct, subject_id=current_user.id, attributes=full_attrs)
 
     # 2) Filter disclosures down to what the user agreed to share
-    sd_jwt_presented = filter_disclosures(sd_jwt_full, keep_claims=payload.disclosed_attributes)
+    sd_jwt_presented = create_presentation(sd_jwt_full, payload.disclosed_attributes)
 
     presentation = PresentationLog(
         creator_id=current_user.id,
@@ -158,7 +158,7 @@ def scan_presentation(
     if pres.used_at is not None:
         raise HTTPException(status_code=410, detail="Prezentare deja folosită")
 
-    verification = verify_sd_jwt(pres.sd_jwt, trusted_jwks())
+    verification = verify_presentation(pres.sd_jwt)
 
     if not verification["valid"]:
         raise HTTPException(
@@ -166,6 +166,7 @@ def scan_presentation(
             detail={"valid": False, "errors": verification["errors"]},
         )
 
+    # issuer_id from Andrei's verify_presentation is the `iss` URL claim
     issuer_meta = get_issuer(verification["issuer_id"])
     if not issuer_meta:
         raise HTTPException(
