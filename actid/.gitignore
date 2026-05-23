@@ -28,6 +28,3 @@ dist/
 # OS
 .DS_Store
 Thumbs.db
-
-# Local-only docs
-CLAUDE_Teo.md

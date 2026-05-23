@@ -1,6 +1,5 @@
 #!/bin/bash
-# A
-# ctID — Local dev starter (no Docker needed)
+# ActID — Local dev starter (no Docker needed)
 set -e
 
 ROOT="$(cd "$(dirname "$0")" && pwd)"
