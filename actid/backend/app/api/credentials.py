@@ -20,15 +20,14 @@ from ..crypto.keys import (
     get_issuer_public_jwk,
     get_issuer_kid,
 )
+from ..trust.registry import load_issuers
 from ..vc.sd_jwt import ISSUER_URL
 from ..database import get_db
-from ..models.models import AuditEntry, Document, User
+from ..models.models import Document, PresentationLog, User
 from ..vc.issuer import get_available_attributes, get_vct, issue_credential
 
 router = APIRouter(tags=["wallet"])
 
-# Actions considered "presentation events" for history
-_PRESENTATION_ACTIONS = {"DOCUMENT_VIEW", "SHARE_TOKEN_SCANNED", "CREDENTIAL_ISSUED"}
 
 
 # ── GET /api/credentials/{doc_id} ────────────────────────────────────────────
@@ -70,10 +69,9 @@ def wallet_security(
 ) -> dict[str, Any]:
     """
     Return issuer trust metadata for the Security page.
-    Shows JWK fingerprint, algorithm, and encryption-at-rest info.
+    Response shape matches the WalletSecurity TypeScript type in api.ts.
     """
     try:
-        jwk = get_issuer_public_jwk()
         fingerprint = get_issuer_fingerprint()
     except FileNotFoundError:
         raise HTTPException(
@@ -81,16 +79,25 @@ def wallet_security(
             detail="Cheile issuer-ului nu sunt generate. Repornește serverul.",
         )
 
+    issuers = [
+        {
+            "id": iss["id"],
+            "name": iss["name"],
+            "country": iss["country"],
+            "valid_from": iss["valid_from"],
+        }
+        for iss in load_issuers()
+    ]
+
     return {
-        "issuer_url": ISSUER_URL,
-        "issuer_kid": get_issuer_kid(),
-        "issuer_alg": ISSUER_ALG,
-        "issuer_fingerprint": fingerprint,
-        "issuer_jwk": jwk,
-        "vault_encryption": "AES-256-GCM",
-        "vault_kdf": "HKDF-SHA256",
-        "sd_jwt_spec": "SD-JWT VC (IETF draft-ietf-oauth-sd-jwt-vc)",
-        "eidas_compliance": "eIDAS 2.0 ARF 1.4",
+        "wallet_instance_id": f"wia_{current_user.id[:16]}",
+        "encryption": {
+            "algorithm": "AES-256-GCM / HKDF-SHA256",
+            "at_rest_enabled": True,
+            "encrypted_fields": ["documents.cnp", "documents.photo_base64"],
+        },
+        "trusted_issuers": issuers,
+        "issuer_public_key_fingerprint": fingerprint,
     }
 
 
@@ -101,31 +108,43 @@ def presentations_history(
     current_user: User = Depends(get_current_user_dep),
     db: Session = Depends(get_db),
     limit: int = 50,
-) -> list[dict[str, Any]]:
+) -> dict[str, Any]:
     """
-    Return the presentation/view history for the current user's documents,
-    sourced from the tamper-evident audit log.
+    Return the SD-JWT presentation history for the current user.
+    Response shape matches { presentations: PresentationHistoryEntry[] } in api.ts.
     """
-    entries = (
-        db.query(AuditEntry)
-        .filter(
-            AuditEntry.actor_id == current_user.id,
-            AuditEntry.action.in_(_PRESENTATION_ACTIONS),
-        )
-        .order_by(AuditEntry.timestamp.desc())
+    import json as _json
+
+    logs = (
+        db.query(PresentationLog)
+        .filter(PresentationLog.creator_id == current_user.id)
+        .order_by(PresentationLog.created_at.desc())
         .limit(limit)
         .all()
     )
 
-    return [
-        {
-            "id": e.id,
-            "action": e.action,
-            "timestamp": e.timestamp.isoformat(),
-            "target_document_id": e.target_document_id,
-            "actor_role": e.actor_role,
-            "block_number": e.block_number,
-            "hash": e.hash,
-        }
-        for e in entries
-    ]
+    result = []
+    for log in logs:
+        doc = db.query(Document).filter(Document.id == log.document_id).first()
+        scanned_by_name: str | None = None
+        if log.scanned_by:
+            scanner = db.query(User).filter(User.id == log.scanned_by).first()
+            scanned_by_name = scanner.full_name if scanner else None
+
+        try:
+            disclosed = _json.loads(log.disclosed_attrs)
+        except Exception:
+            disclosed = []
+
+        result.append({
+            "id": log.id,
+            "document_id": log.document_id,
+            "document_type": doc.doc_type if doc else "UNKNOWN",
+            "disclosed_attributes": disclosed,
+            "purpose": log.purpose,
+            "created_at": log.created_at.isoformat(),
+            "scanned_at": log.used_at.isoformat() if log.used_at else None,
+            "scanned_by_name": scanned_by_name,
+        })
+
+    return {"presentations": result}

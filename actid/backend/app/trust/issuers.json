@@ -7,8 +7,10 @@
     "public_key_jwk": {
       "kty": "EC",
       "crv": "P-256",
-      "x": "PLACEHOLDER_X_COORD_AWAITING_ANDREI_KEY_GENERATION",
-      "y": "PLACEHOLDER_Y_COORD_AWAITING_ANDREI_KEY_GENERATION"
+      "x": "VJvqrtYgZn8EiTxk-A6uD3ZOw-W2ec8wtEG8ypHIDpo",
+      "y": "K4JPAvsDhwlf_3POjP-svogTaLYgOqOJcmhnjCto0bM",
+      "alg": "ES256",
+      "use": "sig"
     },
     "trust_framework": "EUDI ARF 1.4 (simulated)",
     "valid_from": "2026-01-01"
