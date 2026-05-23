@@ -1,0 +1,29 @@
+[
+  {
+    "id": "actid-issuer-001",
+    "iss_url": "https://actid.gov.ro",
+    "name": "Statul Român — Ministerul Afacerilor Interne",
+    "country": "RO",
+    "public_key_jwk": {
+      "kty": "EC",
+      "crv": "P-256",
+      "x": "PLACEHOLDER_X_COORD_AWAITING_ANDREI_KEY_GENERATION",
+      "y": "PLACEHOLDER_Y_COORD_AWAITING_ANDREI_KEY_GENERATION"
+    },
+    "trust_framework": "EUDI ARF 1.4 (simulated)",
+    "valid_from": "2026-01-01"
+  },
+  {
+    "id": "actid-issuer-spclep",
+    "name": "SPCLEP — Serviciul Public Comunitar Local de Evidență a Persoanelor",
+    "country": "RO",
+    "public_key_jwk": {
+      "kty": "EC",
+      "crv": "P-256",
+      "x": "PLACEHOLDER_SPCLEP_X",
+      "y": "PLACEHOLDER_SPCLEP_Y"
+    },
+    "trust_framework": "EUDI ARF 1.4 (simulated)",
+    "valid_from": "2026-01-01"
+  }
+]

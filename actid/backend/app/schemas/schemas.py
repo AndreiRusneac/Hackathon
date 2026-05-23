@@ -201,6 +201,38 @@ class NotificationItem(BaseModel):
     delegated_from_name: Optional[str] = None
 
 
+# ─── Presentations (EUDI SD-JWT) ─────────────────────────────────────────────
+
+class PresentationCreatePayload(BaseModel):
+    document_id: str
+    disclosed_attributes: List[str]
+    purpose: Optional[str] = None
+    verifier_role: Optional[str] = "funcționar"
+
+
+class PresentationCreateResult(BaseModel):
+    presentation_id: str
+    qr_url: str
+    expires_at: datetime
+    disclosed_attributes: List[str]
+
+
+class VerifiedIssuer(BaseModel):
+    id: str
+    name: str
+    trusted: bool
+    country: str
+
+
+class PresentationVerifyResult(BaseModel):
+    valid: bool
+    issuer: VerifiedIssuer
+    credential_type: str
+    disclosed_attributes: dict
+    purpose: Optional[str] = None
+    verified_at: datetime
+
+
 # ─── Funcționar ──────────────────────────────────────────────────────────────
 
 class RecentScanResponse(BaseModel):

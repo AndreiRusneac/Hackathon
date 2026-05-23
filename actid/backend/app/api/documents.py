@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from ..api.auth import get_current_user_dep
+from ..crypto.vault import decrypt as vault_decrypt, encrypt as vault_encrypt
 from ..database import get_db
 from ..ledger import add_audit_entry
 from ..models.models import DelegationGrant, Document, User
@@ -38,8 +39,8 @@ def _serialize_doc(doc: Document) -> DocumentResponse:
         expires_date=doc.expires_date,
         is_verified=doc.is_verified,
         description=doc.description,
-        photo_base64=doc.photo_base64,
-        cnp=doc.cnp,
+        photo_base64=vault_decrypt(doc.photo_base64),
+        cnp=vault_decrypt(doc.cnp),
         created_at=doc.created_at,
         days_remaining=days,
         status=status,
@@ -205,8 +206,8 @@ def create_document(
         issued_date=data.issued_date,
         expires_date=data.expires_date,
         description=data.description,
-        photo_base64=data.photo_base64,
-        cnp=data.cnp,
+        photo_base64=vault_encrypt(data.photo_base64),
+        cnp=vault_encrypt(data.cnp),
         is_verified=False,
     )
     db.add(doc)
