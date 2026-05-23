@@ -150,7 +150,10 @@ export const ACTION_LABELS: Record<string, { label: string; color: string }> = {
   DELEGATION_CREATE: { label: "Acordare delegare familie", color: "text-teal-600" },
   DELEGATION_REVOKE: { label: "Revocare delegare", color: "text-red-600" },
   SYSTEM_INIT: { label: "Inițializare sistem", color: "text-gray-600" },
-  RENEWAL_REQUEST: { label: "Cerere reînnoire", color: "text-blue-600" },
+  RENEWAL_REQUEST:        { label: "Cerere reînnoire",              color: "text-blue-600"   },
+  CREDENTIAL_ISSUED:      { label: "Credențial EUDI emis",          color: "text-violet-600" },
+  PRESENTATION_CREATED:   { label: "Prezentare EUDI creată",        color: "text-blue-600"   },
+  PRESENTATION_VERIFIED:  { label: "Prezentare EUDI verificată",    color: "text-teal-600"   },
 };
 
 export const ACTION_STYLE: Record<string, { block: string; ring: string; line: string }> = {
@@ -166,7 +169,10 @@ export const ACTION_STYLE: Record<string, { block: string; ring: string; line: s
   DELEGATION_CREATE: { block: "bg-teal-600", ring: "ring-teal-200", line: "from-teal-200 to-teal-400" },
   DELEGATION_REVOKE: { block: "bg-red-500", ring: "ring-red-200", line: "from-red-200 to-red-400" },
   SYSTEM_INIT: { block: "bg-violet-600", ring: "ring-violet-200", line: "from-violet-200 to-violet-400" },
-  RENEWAL_REQUEST: { block: "bg-blue-500", ring: "ring-blue-200", line: "from-blue-200 to-blue-400" },
+  RENEWAL_REQUEST:       { block: "bg-blue-500",   ring: "ring-blue-200",   line: "from-blue-200 to-blue-400"   },
+  CREDENTIAL_ISSUED:     { block: "bg-violet-600", ring: "ring-violet-200", line: "from-violet-200 to-violet-400" },
+  PRESENTATION_CREATED:  { block: "bg-blue-600",   ring: "ring-blue-200",   line: "from-blue-200 to-blue-400"   },
+  PRESENTATION_VERIFIED: { block: "bg-teal-600",   ring: "ring-teal-200",   line: "from-teal-200 to-teal-400"   },
 };
 
 export const DEFAULT_ACTION_STYLE = {

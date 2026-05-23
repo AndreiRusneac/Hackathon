@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import {
   LogIn, LogOut, Eye, Upload, Trash2, QrCode,
   UserPlus, UserMinus, Zap, FileText, Link2, CheckCircle2, XCircle, Users,
+  ChevronUp, ChevronDown, Shield, ShieldCheck,
   type LucideIcon,
 } from "lucide-react";
 import { auditApi } from "@/lib/api";
@@ -27,9 +28,12 @@ const ACTION_ICON_MAP: Record<string, LucideIcon> = {
   QR_TOKEN_CREATE:   QrCode,
   QR_TOKEN_SCAN:     QrCode,
   QR_TOKEN_REVOKE:   QrCode,
-  DELEGATION_CREATE: UserPlus,
-  DELEGATION_REVOKE: UserMinus,
-  SYSTEM_INIT:       Zap,
+  DELEGATION_CREATE:     UserPlus,
+  DELEGATION_REVOKE:     UserMinus,
+  SYSTEM_INIT:           Zap,
+  CREDENTIAL_ISSUED:     Shield,
+  PRESENTATION_CREATED:  Shield,
+  PRESENTATION_VERIFIED: ShieldCheck,
 };
 
 interface ChainStatus {
@@ -85,8 +89,8 @@ export default function AuditLogPage() {
       setChainStatus(res.data);
       addToast(
         res.data.valid
-          ? `✓ Lanț valid — ${res.data.entries_checked} înregistrări`
-          : "✗ Integritate compromisă",
+          ? `Lanț valid — ${res.data.entries_checked} înregistrări`
+          : "Integritate compromisă",
         res.data.valid ? "success" : "error"
       );
     } catch {
@@ -201,9 +205,17 @@ export default function AuditLogPage() {
                   : "bg-red-50 text-red-700"
               }`}
             >
-              {chainStatus.valid
-                ? `✓ Lanț valid — ${chainStatus.entries_checked} înregistrări`
-                : `✗ Integritate compromisă — ${chainStatus.message}`}
+              {chainStatus.valid ? (
+                <span className="flex items-center gap-1.5">
+                  <CheckCircle2 size={15} aria-hidden="true" />
+                  Lanț valid — {chainStatus.entries_checked} înregistrări
+                </span>
+              ) : (
+                <span className="flex items-center gap-1.5">
+                  <XCircle size={15} aria-hidden="true" />
+                  Integritate compromisă — {chainStatus.message}
+                </span>
+              )}
             </div>
           )}
         </CardContent>
@@ -424,9 +436,10 @@ function AuditBlock({
                 {truncateHash(entry.hash, 10)}
               </p>
             </div>
-            <span className="text-muted-foreground text-xs flex-shrink-0">
-              {isExpanded ? "▲" : "▼"}
-            </span>
+            {isExpanded
+              ? <ChevronUp size={14} className="text-muted-foreground flex-shrink-0" aria-hidden="true" />
+              : <ChevronDown size={14} className="text-muted-foreground flex-shrink-0" aria-hidden="true" />
+            }
           </div>
 
           {isExpanded && (

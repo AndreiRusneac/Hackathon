@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { QRCodeSVG } from "qrcode.react";
-import { QrCode, Search, X, ChevronDown, Check, FolderOpen, Minus } from "lucide-react";
+import { QrCode, Search, X, ChevronDown, Check, FolderOpen, Minus, RotateCcw } from "lucide-react";
 import { sharingApi } from "@/lib/api";
 import { useNotificationStore } from "@/store/notificationStore";
 import { Button, Card, CardContent, Badge } from "@/components/ui";
@@ -138,8 +138,8 @@ export function QRGenerator({ documents, onTokenCreated, initialSelectedIds }: Q
             <p className="font-mono text-xs break-all text-actid-blue">{token.token}</p>
           </div>
 
-          <Button variant="secondary" onClick={reset} className="w-full">
-            ← Generează alt token
+          <Button variant="secondary" onClick={reset} className="w-full gap-1.5">
+            <RotateCcw size={14} aria-hidden="true" /> Generează alt token
           </Button>
         </CardContent>
       </Card>

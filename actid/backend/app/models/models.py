@@ -136,3 +136,21 @@ class PendingAuth(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
 
     user = relationship("User", back_populates="pending_auths")
+
+
+# TEMPORARY — table belongs to Andrei per API_CONTRACT.md §2.2. Kept here so
+# Radu's presentations endpoints can be tested end-to-end before Andrei merges.
+class PresentationLog(Base):
+    __tablename__ = "presentation_logs"
+
+    id = Column(String, primary_key=True, default=lambda: str(uuid4()))
+    creator_id = Column(String, ForeignKey("users.id"), nullable=False)
+    document_id = Column(String, ForeignKey("documents.id"), nullable=False)
+    sd_jwt = Column(Text, nullable=False)
+    disclosed_attrs = Column(Text, nullable=False)  # JSON array
+    purpose = Column(String)
+    verifier_role = Column(String, default="funcționar")
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    expires_at = Column(DateTime, nullable=False)
+    used_at = Column(DateTime, nullable=True)
+    scanned_by = Column(String, ForeignKey("users.id"), nullable=True)

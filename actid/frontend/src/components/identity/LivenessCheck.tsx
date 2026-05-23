@@ -39,7 +39,7 @@ const STEP_HINTS: Record<Exclude<Step, "loading" | "ready" | "captured" | "error
   straight: "Mențineți privirea spre cameră",
   left: "Întoarceți încet capul către umărul stâng",
   right: "Întoarceți încet capul către umărul drept",
-  smile: "Un zâmbet sincer este suficient 😊",
+  smile: "Un zâmbet sincer este suficient",
 };
 
 export default function LivenessCheck({ onSuccess, onCancel }: LivenessCheckProps) {
