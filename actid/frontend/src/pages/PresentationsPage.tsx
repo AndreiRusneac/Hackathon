@@ -108,7 +108,7 @@ export default function PresentationsPage() {
     setAttrsLoading(true);
     try {
       const res = await credentialsApi.get(doc.id);
-      const available = res.data.attributes_available;
+      const available = res.data.disclosed_attributes_available;
       const catalogAttrs = ATTR_CATALOG[doc.doc_type] ?? DEFAULT_ATTRS;
       const catalogMap = new Map(catalogAttrs.map((a) => [a.key, a]));
       const dynamicAttrs: Attr[] = available.map(

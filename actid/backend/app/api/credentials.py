@@ -57,7 +57,7 @@ def get_credential(
         "credential_sd_jwt": sd_jwt,
         "vct": get_vct(doc),
         "issuer_id": ISSUER_URL,
-        "attributes_available": get_available_attributes(doc, current_user),
+        "disclosed_attributes_available": get_available_attributes(doc, current_user),
     }
 
 

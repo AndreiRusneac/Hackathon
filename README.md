@@ -1,23 +1,19 @@
-# ActID 🪪
+# ActID
 
-**Portofelul Digital al Cetățeanului Român**  
+**Portofelul Digital al Cetățeanului Român — cu strat EUDI Wallet**
 Cluj Hackathon 2026 · Tema: Digital Romania · 48h
 
 ---
 
 ## Ce este ActID?
 
-ActID este o aplicație mobilă-first care permite cetățenilor români să stocheze, gestioneze și partajeze temporar documente de identitate digitale — cu notificări proactive de expirare, delegare familială și jurnal de audit imutabil pe blockchain simulat.
+ActID este o aplicație mobile-first care permite cetățenilor români să stocheze, gestioneze și partajeze selectiv documente de identitate digitale. Construit pe standardele **EUDI Wallet ARF 1.4** și **SD-JWT VC (IETF draft)**, oferă:
 
-### De ce ActID în loc de EU Digital Identity Wallet?
-
-| Funcționalitate | EUDIW | ActID |
-|---|---|---|
-| Notificări proactive de expirare | ❌ pasiv | ✅ 30/7/1 zile înainte |
-| Documente românești specifice (Rovinietă, ONRC, ANAF) | ❌ | ✅ |
-| Delegare familială (diaspora → părinți) | ❌ | ✅ |
-| Partajare QR temporară și contextuală | ❌ | ✅ |
-| Disponibil acum în România | ❌ | ✅ |
+- **Notificări proactive** de expirare (30 / 7 / 1 zile înainte)
+- **Delegare familială** — diaspora gestionează actele părinților din orice țară
+- **Selective Disclosure** — cetățeanul alege exact ce atribute dezvăluie (ex: dovedești că ai >18 ani fără să expui CNP-ul)
+- **Verificare criptografică SD-JWT** — funcționarul vede doar atributele autorizate, semnat de „Statul Român"
+- **Audit imutabil SHA-256** — fiecare acțiune este înlănțuită criptografic, vizualizată ca blockchain
 
 ---
 
@@ -28,16 +24,16 @@ cd actid
 ./start.sh
 ```
 
-Deschide **http://localhost:5173**
+Deschide `http://localhost:5173`
 
 ### Conturi demo
 
-| Utilizator | Email | Parolă | Poveste |
-|---|---|---|---|
-| Ion Popescu | ion.popescu@gmail.com | Parola@123 | CI expiră în 30 zile, cazier în 7 zile |
-| Maria Ionescu | maria.ionescu@gmail.com | Parola@123 | Toate actele la zi, a delegat accesul fiului |
-| Alexandru Ionescu | alex.ionescu@gmail.com | Parola@123 | Diaspora Londra — gestionează actele mamei |
-| Funcționar | functionar@spclep.ro | Parola@123 | Scanează QR-uri de la cetățeni |
+| Utilizator | Email | Parolă | Rol | Poveste |
+|---|---|---|---|---|
+| Ion Popescu | ion.popescu@gmail.com | Parola@123 | cetățean | CI expiră în 30 zile, cazier în 7 zile |
+| Maria Ionescu | maria.ionescu@gmail.com | Parola@123 | cetățean | Toate actele valide, a delegat accesul fiului |
+| Alexandru Ionescu | alex.ionescu@gmail.com | Parola@123 | cetățean | Diaspora Londra — gestionează actele mamei |
+| Funcționar | functionar@spclep.ro | Parola@123 | funcționar | Scanează QR-uri și verifică prezentări EUDI |
 
 **Cod 2FA (demo): `123456`**
 
@@ -46,21 +42,22 @@ Deschide **http://localhost:5173**
 ## Fluxuri demo
 
 ### 1. Ion — Buletin care expiră
-1. Login ca Ion → dashboard arată alertă: *"CI expiră în 30 zile"*
-2. Tab Documente → badge amber pe CI, badge roșu pe cazier (7 zile)
-3. Sharing → selectezi CI → generezi QR cu context "Angajator"
-4. Audit Log → verifici lanțul SHA-256 → "Lanț valid ✓"
+1. Login ca Ion → Dashboard arată alerta: *„CI expiră în 30 zile, cazier în 7 zile"*
+2. Tab **Prezentare EUDI** → selectează CI → bifează doar `Prenume` + `Data nașterii` → generează QR
+3. Funcționar scanează QR → vede **doar** cele 2 atribute + badge *„Verificat de Statul Român ✓"*
+4. **Audit Log** → verifici lanțul SHA-256 → *„Lanț valid ✓"* + `CREDENTIAL_ISSUED`, `PRESENTATION_VERIFIED`
 
 ### 2. Alex — Diaspora (Londra)
-1. Login ca Alex → banner diaspora pe dashboard
-2. Tab Familie → "Primit" → vede delegarea de la Maria
-3. Documente delegate → Rovinieta Mariei expiră în 10 zile
-4. Solicită reînnoire din Londra fără să fie fizic în România
+1. Login ca Alex → banner diaspora pe Dashboard
+2. Tab **Familie** → secțiunea *„Delegat mie"* → vede actele Mariei
+3. **Rovinieta Mariei expiră în 10 zile** → click *„Solicită reînnoire"* din Londra
+4. Tab **Securitate Wallet** → status criptare AES-256-GCM + fingerprint cheie publică issuer
 
 ### 3. Funcționar SPCLEP
-1. Login ca funcționar → portal dedicat
-2. Scanează token QR → vede documentele cetățeanului verificate
-3. Istoricul scanărilor în Jurnalul de Audit
+1. Login ca funcționar → Portal dedicat, tab *„Prezentare EUDI"*
+2. Introduce ID-ul sau URL-ul QR de la cetățean → verificare SD-JWT
+3. Vede doar atributele dezvăluite + badge *„Emitent de încredere"*
+4. Tab *„Token QR"* → scanează token-ul vechi de partajare
 
 ---
 
@@ -68,34 +65,55 @@ Deschide **http://localhost:5173**
 
 ```
 actid/
-├── backend/                  # FastAPI + SQLAlchemy + SQLite
+├── backend/                        # FastAPI + SQLAlchemy + SQLite
 │   └── app/
 │       ├── api/
-│       │   ├── auth.py       # ROeID simulat + 2FA mock + JWT
-│       │   ├── documents.py  # CRUD documente + status expirare
-│       │   ├── sharing.py    # Token QR temporar (24h)
-│       │   ├── family.py     # Delegări familie
-│       │   └── audit.py     # Jurnal blockchain
-│       ├── ledger.py         # SHA-256 chained append-only log
-│       ├── models/models.py  # SQLAlchemy: User, Document, ShareToken,
-│       │                     #             DelegationGrant, AuditEntry
-│       └── seed.py           # Date demo: Ion, Maria, Alex, Funcționar
+│       │   ├── auth.py             # ROeID simulat + 2FA mock + JWT
+│       │   ├── documents.py        # CRUD documente + status expirare
+│       │   ├── sharing.py          # Token QR temporar (24h)
+│       │   ├── family.py           # Delegări familie
+│       │   ├── audit.py            # Jurnal blockchain
+│       │   ├── functionar.py       # Portal funcționar (role-gated)
+│       │   ├── notifications.py    # Alerte expirare (proprii + delegate)
+│       │   ├── credentials.py      # Emitere SD-JWT VC + wallet security
+│       │   ├── presentations.py    # Creare + verificare prezentări EUDI
+│       │   └── identity.py         # OCR MRZ + verificare facială
+│       ├── vc/
+│       │   ├── sd_jwt.py           # Sign/verify SD-JWT (ES256, IETF draft)
+│       │   └── issuer.py           # Mapare doc_type → vct + atribute
+│       ├── crypto/
+│       │   ├── keys.py             # Keypair P-256 (generat la startup)
+│       │   └── vault.py            # AES-256-GCM encryption at rest
+│       ├── trust/
+│       │   ├── registry.py         # Trust registry EUDI
+│       │   └── issuers.json        # Emitenți de încredere
+│       ├── ledger.py               # SHA-256 chained append-only log
+│       ├── models/models.py        # User, Document, ShareToken,
+│       │                           # DelegationGrant, AuditEntry, PresentationLog
+│       └── seed.py                 # Date demo idempotente
 │
-├── frontend/                 # React 18 + Vite + TypeScript
+├── frontend/                       # React 18 + Vite + TypeScript
 │   └── src/
-│       ├── pages/            # Login, Dashboard, Documents,
-│       │                     # Sharing, Family, AuditLog
+│       ├── pages/
+│       │   ├── PresentationsPage   # Selective disclosure + QR generator
+│       │   ├── SecurityPage        # Status wallet, issuers, istoric prezentări
+│       │   ├── FunctionarPage      # Verificare EUDI + token QR (2 tab-uri)
+│       │   ├── DashboardPage       # Alerte expirare, acțiuni rapide
+│       │   ├── DocumentsPage       # CRUD documente
+│       │   ├── FamilyPage          # Delegări date/primite
+│       │   ├── SharingPage         # Token QR vechi
+│       │   ├── AuditLogPage        # Vizualizare blockchain
+│       │   └── NotificationsPage   # Centru notificări
 │       ├── components/
-│       │   ├── layout/       # AppLayout, SideNav, BottomNav
-│       │   ├── documents/    # DocumentCard cu status badges
-│       │   ├── sharing/      # QRGenerator cu qrcode.react
-│       │   ├── notifications/# NotificationBanner proactiv
-│       │   └── ui/           # Button, Badge, Card, Input, Alert
-│       ├── store/            # Zustand: auth, documents, notifications
-│       └── lib/              # API client (axios), utils, tipuri
+│       │   ├── layout/             # AppLayout, SideNav, BottomNav
+│       │   ├── documents/          # DocumentCard cu status badges
+│       │   ├── sharing/            # QRGenerator
+│       │   └── ui/                 # Button, Badge, Card, StatusBadge
+│       ├── store/                  # Zustand: auth, documents, notifications
+│       └── lib/api.ts              # Axios client + toate TypeScript types
 │
-├── start.sh                  # One-command local dev (fără Docker)
-└── docker-compose.yml        # Backend + Frontend containerizat
+├── start.sh                        # One-command local dev (fără Docker)
+└── docker-compose.yml              # Backend + Frontend containerizat
 ```
 
 ---
@@ -108,27 +126,64 @@ actid/
 | State | Zustand |
 | Routing | React Router v6 |
 | Backend | FastAPI, SQLAlchemy, SQLite |
-| Auth | JWT + ROeID simulat + 2FA mock (TOTP) |
-| Blockchain sim | SHA-256 chained audit log, append-only |
-| QR | qrcode.react (generare), scanare manuală |
+| Auth | JWT + ROeID simulat + 2FA mock |
+| SD-JWT VC | `sd-jwt` (IETF OWEF), `jwcrypto`, ES256 / P-256 |
+| Encryption at rest | AES-256-GCM + HKDF-SHA256 (câmpuri sensibile în DB) |
+| Audit chain | SHA-256 append-only ledger, verificabil |
+| QR | `qrcode.react` (generare), scanare manuală + auto via URL |
 | Containere | Docker Compose |
 
 ---
 
-## Cerințe tehnice obligatorii ✅
+## API Reference
 
-- [x] **ROeID simulat** cu 2FA (cod OTP mock `123456`)
-- [x] **JWT** cu expirare (8h pentru demo)
-- [x] **Jurnal de audit imutabil** — SHA-256 chaining, append-only, fără DELETE
-- [x] **RBAC** — cetățean / funcționar / sistem enforce-uit pe fiecare endpoint
-- [x] **Mobile-first** — breakpoint 375px primar, bottom nav pe mobil
-- [x] **WCAG AA** — contrast, aria-labels, keyboard navigation, focus rings
+Documentație interactivă: `http://localhost:8000/docs`
+
+### Auth
+| Endpoint | Metodă | Descriere |
+|---|---|---|
+| `/api/auth/login` | POST | Autentificare ROeID → `session_token` |
+| `/api/auth/verify-2fa` | POST | OTP → `access_token` JWT |
+| `/api/auth/me` | GET | Profil utilizator curent |
+
+### Documente & Partajare
+| Endpoint | Metodă | Descriere |
+|---|---|---|
+| `/api/documents/` | GET | Documente proprii cu status + zile rămase |
+| `/api/documents/delegated` | GET | Documente delegate de familie |
+| `/api/documents/renewal-request` | POST | Solicită reînnoire (owner sau delegat) |
+| `/api/sharing/tokens` | POST/GET | Creare / listare token QR (24h) |
+| `/api/sharing/scan/{token}` | GET | Scanare token de funcționar |
+
+### EUDI Wallet
+| Endpoint | Metodă | Descriere |
+|---|---|---|
+| `/api/credentials/{doc_id}` | GET | Emite SD-JWT VC semnat ES256 pentru document |
+| `/api/presentations` | POST | Crează prezentare cu atribute selectate + QR |
+| `/api/presentations/{id}/scan` | GET | Verifică SD-JWT, întoarce atributele dezvăluite (funcționar) |
+| `/api/wallet/security` | GET | Status criptare, issueri trusted, fingerprint cheie |
+| `/api/wallet/presentations-history` | GET | Istoricul prezentărilor generate |
+
+### Familie & Notificări
+| Endpoint | Metodă | Descriere |
+|---|---|---|
+| `/api/family/delegations` | GET/POST | Delegări create |
+| `/api/family/delegated-to-me` | GET | Delegări primite |
+| `/api/notifications/` | GET | Alerte expirare (proprii + delegate) |
+
+### Audit & Funcționar
+| Endpoint | Metodă | Descriere |
+|---|---|---|
+| `/api/audit/entries` | GET | Jurnal paginat (cetățean: propriu; funcționar: tot) |
+| `/api/audit/verify` | GET | Verificare integritate lanț SHA-256 |
+| `/api/functionar/recent-scans` | GET | Ultimele 20 scanări cu context |
+| `/api/functionar/stats` | GET | Statistici azi / săptămână / cetățeni unici |
 
 ---
 
 ## Instalare locală
 
-### Fără Docker (recomandat)
+### Fără Docker (recomandat pentru dev)
 
 ```bash
 git clone https://github.com/AndreiRusneac/Hackathon.git
@@ -136,12 +191,10 @@ cd Hackathon/actid
 ./start.sh
 ```
 
-Scriptul instalează automat dependențele Python și npm dacă lipsesc.
-
-> **Dependențe de sistem** (necesare pentru scanarea documentelor de identitate):
+> **Dependențe opționale** (pentru scanarea documentelor de identitate):
 > ```bash
-> brew install tesseract        # OCR pentru zona MRZ a CI / pașaportului
-> pip install face_recognition  # Recunoaștere facială (necesită cmake + dlib)
+> brew install tesseract
+> pip install face_recognition
 > ```
 > Fără acestea, restul aplicației funcționează normal — endpoint-urile de identitate returnează `503`.
 
@@ -164,46 +217,22 @@ npm run dev
 ```bash
 cd actid
 docker-compose up --build
+# Frontend: http://localhost (Nginx, port 80)
+# API:      http://localhost:8000
 ```
 
-- Aplicație: **http://localhost** (frontend static servit de Nginx pe portul 80)
-- API: **http://localhost:8000**
-
-Frontend-ul rulează ca build static în Nginx, care direcționează `/api` către containerul backend. Baza de date SQLite este persistată într-un volum Docker (`actid-db`) — nu sunt necesari pași manuali.
-
 ---
 
-## API Reference
+## Securitate & Criptografie
 
-Documentație interactivă: **http://localhost:8000/docs**
-
-| Endpoint | Metodă | Descriere |
-|---|---|---|
-| `/api/auth/login` | POST | Autentificare ROeID (returnează session_token) |
-| `/api/auth/verify-2fa` | POST | Verificare OTP → JWT access token |
-| `/api/auth/me` | GET | Profil utilizator curent |
-| `/api/documents/` | GET | Lista documentelor proprii |
-| `/api/documents/delegated` | GET | Documente delegate de familie |
-| `/api/sharing/tokens` | POST | Creare token QR (24h) |
-| `/api/sharing/scan/{token}` | GET | Scanare token de funcționar |
-| `/api/family/delegations` | GET/POST | Gestionare delegări |
-| `/api/audit/entries` | GET | Jurnal de audit |
-| `/api/audit/verify` | GET | Verificare integritate lanț SHA-256 |
-| `/api/audit/stats` | GET | Statistici audit (total, documente, QR, delegări) |
-| `/api/identity/scan-id` | POST | OCR MRZ din CI / pașaport → date parsate + față decupată |
-| `/api/identity/verify-face` | POST | Comparare selfie cu fața din document → scor similaritate |
-
----
-
-## Contribuitori
-
-| Membru | Branch | Feature |
-|---|---|---|
-| Andrei Rusneac | `main` | Scaffold + arhitectură |
-| — | `feat/ux-polish` | UI/UX & accesibilitate |
-| — | `feat/notifications` | Notificări proactive |
-| — | `feat/functionar-portal` | Portal funcționar & QR scan |
-| — | `feat/diaspora-story` | Diaspora, familie & vârstnici |
+| Mecanism | Detalii |
+|---|---|
+| **SD-JWT signing** | ES256 / P-256, cheie generată la startup în `backend/app/keys/` (`.gitignore`) |
+| **Encryption at rest** | AES-256-GCM, cheie derivată din `SECRET_KEY` cu HKDF-SHA256 |
+| **Câmpuri criptate** | `documents.cnp`, `documents.photo_base64` |
+| **Selective Disclosure** | Salt 16 bytes random per atribut, hash SHA-256, standard IETF SD-JWT VC |
+| **Audit chain** | SHA-256 înlănțuit, append-only, fără DELETE posibil |
+| **RBAC** | `cetățean` / `funcționar` enforce-uit pe fiecare endpoint |
 
 ---
 
@@ -211,22 +240,22 @@ Documentație interactivă: **http://localhost:8000/docs**
 
 | Criteriu | Punctaj | Status |
 |---|---|---|
-| UX / Usabilitate | 25 pts | ✅ mobile-first, WCAG AA, română |
-| Impact Social | 25 pts | ✅ diaspora, vârstnici, delegare familie |
-| Demo funcțional | 20 pts | ✅ toate fluxurile verificate |
-| Fezabilitate tehnică | 20 pts | ✅ arhitectură curată, Docker prod |
-| Coerență Digital Romania | 10 pts | ✅ context românesc complet |
+| UX / Usabilitate | 25 pts | Mobile-first, WCAG AA, română, skeleton states |
+| Impact Social | 25 pts | Diaspora, vârstnici, delegare familie, selective disclosure |
+| Demo funcțional | 20 pts | 5 fluxuri complete end-to-end |
+| Fezabilitate tehnică | 20 pts | Arhitectură curată, EUDI ARF 1.4, Docker prod |
+| Coerență Digital Romania | 10 pts | ROeID, acte românești, UI integral în română |
 
 ---
 
----
+## Echipa
 
-## Materiale demo & jurizare
-
-| Fișier | Conținut |
-|---|---|
-| `actid/DEMO_SCRIPT.md` | Script demo 3 minute cu cronometraj și Plan B |
-| `actid/SCORING.md` | Mapare completă criterii → implementare → fișiere |
+| Membru | Branch | Contribuție |
+|---|---|---|
+| Andrei Rusneac | `eudi/mvp-andrei` | Scaffold + backend crypto (SD-JWT, AES vault, keypair, issuance) |
+| Radu | `eudi/mvp-radu` | Backend verifier + trust registry + `POST /api/presentations` |
+| Alissia | `eudi/mvp-alissia` | Frontend Presentations UX (checkbox atribute, QR generator) |
+| Teo | `eudi/mvp-teo` | Frontend Wallet Security page (`/securitate`) |
 
 ---
 

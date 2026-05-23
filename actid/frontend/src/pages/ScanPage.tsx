@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, Navigate } from "react-router-dom";
 import { CheckCircle2, XCircle, Loader2 } from "lucide-react";
 import { sharingApi } from "@/lib/api";
 import { useAuthStore } from "@/store/authStore";
@@ -39,6 +39,8 @@ export default function ScanPage() {
       .catch((e) => setError(e.response?.data?.detail || "Token invalid sau expirat"))
       .finally(() => setLoading(false));
   }, [token, user]);
+
+  if (user && user.role !== "funcționar") return <Navigate to="/dashboard" replace />;
 
   if (loading) {
     return (
