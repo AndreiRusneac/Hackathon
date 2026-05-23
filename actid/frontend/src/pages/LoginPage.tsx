@@ -84,7 +84,7 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-actid-blue via-[#0041BF] to-[#1a56db] flex items-center justify-center p-4">
+    <div className="min-h-[100dvh] bg-gradient-to-br from-actid-blue via-[#0041BF] to-[#1a56db] flex items-center justify-center p-4 safe-top safe-bottom">
       <div className="w-full max-w-sm">
         {/* Logo */}
         <div className="text-center mb-8">
@@ -205,7 +205,7 @@ export default function LoginPage() {
               {/* OTP input */}
               <div>
                 <p className="text-sm font-medium text-center mb-3">Introdu codul de 6 cifre</p>
-                <div className="flex gap-2 justify-center" role="group" aria-label="Cod OTP">
+                <div className="flex gap-1.5 sm:gap-2 justify-center" role="group" aria-label="Cod OTP">
                   {otp.map((digit, i) => (
                     <input
                       key={i}

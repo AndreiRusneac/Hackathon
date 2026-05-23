@@ -42,7 +42,7 @@ export default function ScanPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-[100dvh] flex items-center justify-center">
         <Loader2 size={36} className="animate-spin text-actid-blue" />
       </div>
     );
@@ -50,7 +50,7 @@ export default function ScanPage() {
 
   if (error) {
     return (
-      <div className="min-h-screen flex items-center justify-center px-4">
+      <div className="min-h-[100dvh] flex items-center justify-center px-4">
         <Card className="w-full max-w-sm border-red-200">
           <CardContent className="py-8 flex flex-col items-center gap-3 text-center">
             <XCircle size={48} className="text-red-500" />
@@ -67,7 +67,7 @@ export default function ScanPage() {
   const cnpMasked = result.owner.cnp?.replace(/\d(?=\d{4})/g, "*");
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4 py-8">
+    <div className="min-h-[100dvh] bg-gray-50 flex items-center justify-center px-4 py-8">
       <Card className="w-full max-w-sm border-green-200">
         <div className="bg-green-50 px-5 py-4 rounded-t-2xl border-b border-green-200 flex items-center gap-3">
           <CheckCircle2 size={28} className="text-green-700 flex-shrink-0" />
