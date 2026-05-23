@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Navigate, useSearchParams } from "react-router-dom";
 import {
   Camera, ClipboardCheck, CheckCircle2, ScanLine, ArrowLeft,
@@ -83,11 +83,17 @@ export default function FunctionarPage() {
   const [scanning, setScanning]           = useState(false);
   const [scanResult, setScanResult]       = useState<OldScanResult | null>(null);
   const [history, setHistory]             = useState<OldScanResult[]>([]);
+  // Ensures auto-scan fires only once per pid even under StrictMode double-mount.
+  // Radu's /scan endpoint marks presentations as used on first call; a second
+  // call returns 410 and would surface as a fake "already used" toast.
+  const autoScannedRef = useRef<string | null>(null);
 
   // Auto-scan when arriving from a /verify/:id QR link — must be before early returns
   useEffect(() => {
     const pid = searchParams.get("pid");
     if (!pid || !user || user.role !== "funcționar") return;
+    if (autoScannedRef.current === pid) return;
+    autoScannedRef.current = pid;
     setEudiScanning(true);
     presentationsApi.scan(pid)
       .then((res) => { setEudiResult(res.data); addToast("Prezentare verificată!", "success"); })
@@ -101,7 +107,7 @@ export default function FunctionarPage() {
         );
       })
       .finally(() => setEudiScanning(false));
-  }, [user]);
+  }, [user, searchParams]);
 
   if (!user) return null;
   if (user.role !== "funcționar") return <Navigate to="/dashboard" replace />;

@@ -86,17 +86,19 @@ export default function PresentationsPage() {
   const [submitting, setSubmitting]       = useState(false);
   const [result, setResult]               = useState<PresentationCreateResult | null>(null);
 
-  if (!user) return null;
-  if (user.role === "funcționar") return <Navigate to="/dashboard" replace />;
-
+  // Hooks must run before any conditional return — see Rules of Hooks
   useEffect(() => {
+    if (!user || user.role === "funcționar") return;
     if (documents.length) return;
     setLoading(true);
     documentsApi.list()
       .then((res) => setDocuments(res.data))
       .catch(() => addToast("Eroare la încărcare documente", "error"))
       .finally(() => setLoading(false));
-  }, []);
+  }, [user]);
+
+  if (!user) return null;
+  if (user.role === "funcționar") return <Navigate to="/dashboard" replace />;
 
   const selectDoc = async (doc: Document) => {
     setSelectedDoc(doc);
