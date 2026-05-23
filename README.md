@@ -138,6 +138,13 @@ cd Hackathon/actid
 
 Scriptul instalează automat dependențele Python și npm dacă lipsesc.
 
+> **Dependențe de sistem** (necesare pentru scanarea documentelor de identitate):
+> ```bash
+> brew install tesseract        # OCR pentru zona MRZ a CI / pașaportului
+> pip install face_recognition  # Recunoaștere facială (necesită cmake + dlib)
+> ```
+> Fără acestea, restul aplicației funcționează normal — endpoint-urile de identitate returnează `503`.
+
 ### Manual
 
 ```bash
@@ -149,7 +156,7 @@ python3 -m uvicorn app.main:app --port 8000 --reload
 # Frontend (terminal separat)
 cd actid/frontend
 npm install
-VITE_API_URL=http://localhost:8000 npm run dev
+npm run dev
 ```
 
 ### Cu Docker
@@ -183,6 +190,8 @@ Documentație interactivă: **http://localhost:8000/docs**
 | `/api/audit/entries` | GET | Jurnal de audit |
 | `/api/audit/verify` | GET | Verificare integritate lanț SHA-256 |
 | `/api/audit/stats` | GET | Statistici audit (total, documente, QR, delegări) |
+| `/api/identity/scan-id` | POST | OCR MRZ din CI / pașaport → date parsate + față decupată |
+| `/api/identity/verify-face` | POST | Comparare selfie cu fața din document → scor similaritate |
 
 ---
 
