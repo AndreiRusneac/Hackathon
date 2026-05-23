@@ -136,7 +136,7 @@ export default function LoginPage() {
               />
 
               <Button type="submit" loading={loading} className="w-full" size="lg">
-                🔐 Autentifică-te cu ROeID
+                Autentifică-te cu ROeID
               </Button>
 
               {/* Demo hint */}
@@ -165,7 +165,7 @@ export default function LoginPage() {
             <div className="p-6 space-y-5">
               <div className="text-center">
                 <div className="w-14 h-14 bg-green-50 rounded-2xl flex items-center justify-center mx-auto mb-3">
-                  <span className="text-2xl">📱</span>
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-green-600" aria-hidden="true"><rect width="14" height="20" x="5" y="2" rx="2" ry="2"/><path d="M12 18h.01"/></svg>
                 </div>
                 <h2 className="text-lg font-bold">Verificare în 2 pași</h2>
                 <p className="text-sm text-muted-foreground mt-1">
@@ -214,7 +214,7 @@ export default function LoginPage() {
                 className="w-full"
                 size="lg"
               >
-                ✓ Verifică și intră
+                Verifică și intră
               </Button>
 
               <button
@@ -229,7 +229,7 @@ export default function LoginPage() {
 
         {/* Footer */}
         <p className="text-center text-white/50 text-xs mt-6">
-          🔒 Conexiune securizată TLS 1.3 · GDPR compliant
+          Conexiune securizată TLS 1.3 · GDPR compliant
         </p>
       </div>
     </div>

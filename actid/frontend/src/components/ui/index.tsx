@@ -1,4 +1,5 @@
 import * as React from "react";
+import { AlertTriangle, Info, CheckCircle2, XCircle, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 // ─── Button ───────────────────────────────────────────────────────────────────
@@ -153,11 +154,17 @@ interface AlertProps extends React.HTMLAttributes<HTMLDivElement> {
 export const Alert = ({ className, variant = "info", title, children, onDismiss, ...props }: AlertProps) => {
   const variants = {
     warning: "bg-amber-50 border-amber-200 text-amber-800",
-    error: "bg-red-50 border-red-200 text-red-800",
-    info: "bg-blue-50 border-blue-200 text-blue-800",
+    error:   "bg-red-50 border-red-200 text-red-800",
+    info:    "bg-blue-50 border-blue-200 text-blue-800",
     success: "bg-green-50 border-green-200 text-green-800",
   };
-  const icons = { warning: "⚠️", error: "🚨", info: "ℹ️", success: "✅" };
+  const icons = {
+    warning: AlertTriangle,
+    error:   XCircle,
+    info:    Info,
+    success: CheckCircle2,
+  };
+  const IconComp = icons[variant];
 
   return (
     <div
@@ -169,7 +176,7 @@ export const Alert = ({ className, variant = "info", title, children, onDismiss,
       )}
       {...props}
     >
-      <span className="text-lg flex-shrink-0">{icons[variant]}</span>
+      <IconComp size={18} className="flex-shrink-0 mt-0.5" aria-hidden="true" />
       <div className="flex-1 min-w-0">
         {title && <p className="font-semibold text-sm">{title}</p>}
         {children && <p className="text-sm mt-0.5 opacity-90">{children}</p>}
@@ -180,7 +187,7 @@ export const Alert = ({ className, variant = "info", title, children, onDismiss,
           aria-label="Închide"
           className="flex-shrink-0 opacity-60 hover:opacity-100 transition-opacity"
         >
-          ✕
+          <X size={16} aria-hidden="true" />
         </button>
       )}
     </div>
@@ -277,9 +284,9 @@ export const ToastContainer = ({ toasts, onRemove }: { toasts: ToastItem[]; onRe
             t.type === "info" && "bg-actid-blue"
           )}
         >
-          <span>{t.type === "success" ? "✓" : t.type === "error" ? "✕" : "ℹ"}</span>
+          <span>{t.type === "success" ? <CheckCircle2 size={16} aria-hidden="true" /> : t.type === "error" ? <XCircle size={16} aria-hidden="true" /> : <Info size={16} aria-hidden="true" />}</span>
           <span className="flex-1">{t.message}</span>
-          <button onClick={() => onRemove(t.id)} className="opacity-70 hover:opacity-100">✕</button>
+          <button onClick={() => onRemove(t.id)} className="opacity-70 hover:opacity-100" aria-label="Închide"><X size={14} aria-hidden="true" /></button>
         </div>
       ))}
     </div>

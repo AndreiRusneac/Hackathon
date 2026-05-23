@@ -1,16 +1,36 @@
 import { useState } from "react";
-import { cn, DOC_LABELS, DOC_ICONS, STATUS_CONFIG, formatDate } from "@/lib/utils";
+import {
+  CreditCard, BookOpen, Car, Scale, Scroll, ClipboardList,
+  Receipt, Building2, Route, FileText, Eye, Share2, Trash2, User,
+  type LucideIcon,
+} from "lucide-react";
+import { cn, DOC_LABELS, STATUS_CONFIG, formatDate } from "@/lib/utils";
 import { Badge, Button } from "@/components/ui";
 import type { Document, DocStatus } from "@/types";
+
+const DOC_ICON_MAP: Record<string, LucideIcon> = {
+  CI:           CreditCard,
+  PASAPORT:     BookOpen,
+  PERMIS:       Car,
+  CAZIER:       Scale,
+  CERT_NASTERE: Scroll,
+  ADEVERINTA:   ClipboardList,
+  ANAF:         Receipt,
+  ONRC:         Building2,
+  ROVINIETA:    Route,
+};
+
+export function DocTypeIcon({ type, size = 20, className }: { type: string; size?: number; className?: string }) {
+  const Icon = DOC_ICON_MAP[type] || FileText;
+  return <Icon size={size} className={className} aria-hidden="true" />;
+}
 
 interface DocumentCardProps {
   doc: Document;
   onShare?: (doc: Document) => void;
   onView?: (doc: Document) => void;
   onDelete?: (doc: Document) => void;
-  onRenewalRequest?: () => Promise<void>;
   delegatedFrom?: string;
-  canRenewal?: boolean;
   compact?: boolean;
 }
 
@@ -19,59 +39,52 @@ export function DocumentCard({
   onShare,
   onView,
   onDelete,
-  onRenewalRequest,
   delegatedFrom,
-  canRenewal = false,
   compact = false,
 }: DocumentCardProps) {
   const [expanded, setExpanded] = useState(false);
-  const [renewalSent, setRenewalSent] = useState(false);
-  const [renewalPending, setRenewalPending] = useState(false);
   const status = (doc.status || "valid") as DocStatus;
   const cfg = STATUS_CONFIG[status];
-  const icon = DOC_ICONS[doc.doc_type] || "📄";
   const label = DOC_LABELS[doc.doc_type] || doc.doc_type;
 
-  const handleRenewal = async (e: React.MouseEvent) => {
-    e.stopPropagation();
-    setRenewalPending(true);
-    try {
-      await onRenewalRequest?.();
-      setRenewalSent(true);
-    } finally {
-      setRenewalPending(false);
-    }
-  };
+  const iconBg = {
+    valid:        "bg-blue-50 text-blue-600",
+    expiră_curând: "bg-amber-50 text-amber-600",
+    expirat:       "bg-red-50 text-red-500",
+  }[status] ?? "bg-blue-50 text-blue-600";
+
+  const badgeText = status === "valid"
+    ? "Valabil"
+    : status === "expirat"
+    ? "Expirat"
+    : `${doc.days_remaining}z`;
+
+  const badgeVariant = status === "valid" ? "success" : status === "expirat" ? "danger" : "warning";
 
   return (
     <div
       className={cn(
-        "bg-white rounded-2xl border border-border card-hover cursor-pointer",
-        status === "expirat" && "border-red-200",
-        status === "expiră_curând" && "border-amber-200"
+        "bg-white rounded-2xl border card-hover cursor-pointer",
+        status === "expirat"       ? "border-red-200"   : "",
+        status === "expiră_curând" ? "border-amber-200" : "border-border"
       )}
       onClick={() => (compact ? onView?.(doc) : setExpanded(!expanded))}
       role="button"
       tabIndex={0}
-      aria-expanded={expanded}
-      onKeyDown={(e) => e.key === "Enter" && setExpanded(!expanded)}
+      aria-expanded={!compact ? expanded : undefined}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          compact ? onView?.(doc) : setExpanded(!expanded);
+        }
+      }}
     >
       <div className="p-4">
         <div className="flex items-start gap-3">
-          {/* Icon */}
-          <div
-            className={cn(
-              "w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 text-xl",
-              status === "valid" && "bg-blue-50",
-              status === "expiră_curând" && "bg-amber-50",
-              status === "expirat" && "bg-red-50"
-            )}
-            aria-hidden="true"
-          >
-            {icon}
+          <div className={cn("w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0", iconBg)}>
+            <DocTypeIcon type={doc.doc_type} size={22} />
           </div>
 
-          {/* Info */}
           <div className="flex-1 min-w-0">
             <div className="flex items-start justify-between gap-2">
               <div className="min-w-0">
@@ -80,43 +93,23 @@ export function DocumentCard({
                   <p className="text-xs text-muted-foreground font-mono mt-0.5">{doc.doc_number}</p>
                 )}
                 {delegatedFrom && (
-                  <p className="text-xs text-purple-600 mt-0.5">👤 {delegatedFrom}</p>
+                  <p className="text-xs text-purple-600 mt-0.5 flex items-center gap-1">
+                    <User size={11} aria-hidden="true" /> {delegatedFrom}
+                  </p>
                 )}
               </div>
-              <div className="flex-shrink-0 flex flex-col items-end gap-1">
-                <Badge
-                  variant={
-                    status === "valid"
-                      ? "success"
-                      : status === "expiră_curând"
-                      ? "warning"
-                      : "danger"
-                  }
-                >
-                  {status === "valid"
-                    ? "✓ Valid"
-                    : status === "expirat"
-                    ? "✕ Expirat"
-                    : `⚡ ${doc.days_remaining}z`}
-                </Badge>
-                {renewalSent && (
-                  <Badge variant="info" className="text-[10px]">🔄 Reînnoire solicitată</Badge>
-                )}
-              </div>
+              <Badge variant={badgeVariant} className="flex-shrink-0">{badgeText}</Badge>
             </div>
 
-            {/* Expiry info */}
             {doc.expires_date && (
               <div className="mt-2 flex items-center gap-1.5">
                 <span className="text-xs text-muted-foreground">Expiră:</span>
-                <span
-                  className={cn(
-                    "text-xs font-medium",
-                    status === "valid" && "text-foreground",
-                    status === "expiră_curând" && "text-amber-700",
-                    status === "expirat" && "text-red-700"
-                  )}
-                >
+                <span className={cn(
+                  "text-xs font-medium",
+                  status === "valid"        && "text-foreground",
+                  status === "expiră_curând" && "text-amber-700",
+                  status === "expirat"       && "text-red-700"
+                )}>
                   {formatDate(doc.expires_date)}
                 </span>
                 {doc.days_remaining !== undefined && doc.days_remaining !== null && (
@@ -132,7 +125,6 @@ export function DocumentCard({
           </div>
         </div>
 
-        {/* Expanded details */}
         {expanded && !compact && (
           <div className="mt-4 pt-4 border-t border-border space-y-2 animate-fade-in">
             {doc.issued_by && (
@@ -150,36 +142,24 @@ export function DocumentCard({
             {doc.is_verified && (
               <div className="flex justify-between text-xs">
                 <span className="text-muted-foreground">Stare:</span>
-                <span className="text-green-600 font-medium">✓ Verificat digital</span>
+                <span className="text-green-600 font-medium">Verificat digital</span>
               </div>
             )}
 
-            {/* Actions */}
             <div className="flex gap-2 pt-2" onClick={(e) => e.stopPropagation()}>
               {onView && (
-                <Button size="sm" variant="secondary" onClick={() => onView(doc)} className="flex-1">
-                  👁 Vizualizează
+                <Button size="sm" variant="secondary" onClick={() => onView(doc)} className="flex-1 gap-1.5">
+                  <Eye size={14} aria-hidden="true" /> Vizualizează
                 </Button>
               )}
               {onShare && (
-                <Button size="sm" variant="outline" onClick={() => onShare(doc)} className="flex-1">
-                  📱 Distribuie
-                </Button>
-              )}
-              {canRenewal && !renewalSent && (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={handleRenewal}
-                  loading={renewalPending}
-                  className="flex-1 border-blue-200 text-blue-700 hover:bg-blue-50"
-                >
-                  🔄 Solicită reînnoire
+                <Button size="sm" variant="outline" onClick={() => onShare(doc)} className="flex-1 gap-1.5">
+                  <Share2 size={14} aria-hidden="true" /> Distribuie
                 </Button>
               )}
               {onDelete && (
-                <Button size="sm" variant="ghost" onClick={() => onDelete(doc)}>
-                  🗑
+                <Button size="sm" variant="ghost" onClick={() => onDelete(doc)} aria-label="Șterge document">
+                  <Trash2 size={14} aria-hidden="true" />
                 </Button>
               )}
             </div>
@@ -189,8 +169,6 @@ export function DocumentCard({
     </div>
   );
 }
-
-// ─── Skeleton ─────────────────────────────────────────────────────────────────
 
 export function DocumentCardSkeleton() {
   return (

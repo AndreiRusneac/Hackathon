@@ -1,25 +1,27 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
   :root {
-    --background: 210 20% 98%;
+    --background: 40 14% 95%;
     --foreground: 222 47% 11%;
     --card: 0 0% 100%;
     --card-foreground: 222 47% 11%;
     --primary: 221 100% 25%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 210 20% 96%;
+    --secondary: 40 10% 93%;
     --secondary-foreground: 222 47% 11%;
-    --muted: 210 20% 96%;
+    --muted: 40 10% 93%;
     --muted-foreground: 215 16% 47%;
-    --accent: 210 20% 94%;
+    --accent: 40 10% 91%;
     --accent-foreground: 222 47% 11%;
     --destructive: 355 78% 44%;
     --destructive-foreground: 0 0% 100%;
-    --border: 214 32% 91%;
-    --input: 214 32% 91%;
+    --border: 40 10% 88%;
+    --input: 40 10% 88%;
     --ring: 221 100% 25%;
     --radius: 0.75rem;
   }
@@ -31,39 +33,94 @@
   }
   body {
     @apply bg-background text-foreground;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
-
-  /* Mobile-first safe area padding */
   .safe-top { padding-top: env(safe-area-inset-top); }
   .safe-bottom { padding-bottom: env(safe-area-inset-bottom); }
 }
 
+@keyframes shimmer {
+  0%   { background-position: -400% 0; }
+  100% { background-position:  400% 0; }
+}
+
 @layer utilities {
   .skeleton {
-    @apply animate-pulse bg-gray-200 rounded;
+    @apply rounded;
+    background: linear-gradient(90deg, #eceae5 25%, #f4f2ed 50%, #eceae5 75%);
+    background-size: 400% 100%;
+    animation: shimmer 1.8s ease-in-out infinite;
   }
 
   .card-hover {
     @apply transition-all duration-200 hover:shadow-md hover:-translate-y-0.5;
   }
 
-  /* Custom scrollbar */
   .scrollbar-thin::-webkit-scrollbar { width: 4px; }
   .scrollbar-thin::-webkit-scrollbar-track { background: transparent; }
   .scrollbar-thin::-webkit-scrollbar-thumb { @apply bg-gray-300 rounded; }
 }
 
-/* OTP input styling */
 .otp-input {
   @apply w-12 h-14 text-center text-2xl font-bold border-2 border-gray-300 rounded-xl
     focus:border-actid-blue focus:outline-none focus:ring-2 focus:ring-actid-blue/20
     transition-all duration-150;
 }
 
-/* Chain connector */
 .chain-connector {
-  @apply w-0.5 h-6 bg-gradient-to-b from-blue-200 to-blue-400 mx-auto;
+  width: 1px;
+  @apply h-6 mx-auto;
+  border-left: 1px dashed #CBD5E1;
 }
+
+@keyframes slide-up {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.animate-slide-up { animation: slide-up 0.25s ease-out; }
+
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-in { animation: fade-in 0.2s ease-out; }
+
+/* ─── Elderly Mode ───────────────────────────────────────────────────────── */
+
+html.elderly {
+  font-size: 112.5%;
+}
+
+html.elderly .text-xs  { font-size: 0.9rem  !important; line-height: 1.5; }
+html.elderly .text-sm  { font-size: 1rem    !important; line-height: 1.6; }
+html.elderly .text-base{ font-size: 1.125rem!important; }
+html.elderly .text-lg  { font-size: 1.3rem  !important; }
+html.elderly .text-xl  { font-size: 1.5rem  !important; }
+html.elderly .text-2xl { font-size: 1.75rem !important; }
+html.elderly .text-3xl { font-size: 2rem    !important; }
+
+html.elderly button,
+html.elderly [role="button"],
+html.elderly input,
+html.elderly select,
+html.elderly textarea {
+  min-height: 48px;
+}
+
+html.elderly .font-medium   { font-weight: 700 !important; }
+html.elderly .font-semibold { font-weight: 800 !important; }
+html.elderly .font-bold     { font-weight: 900 !important; }
+
+html.elderly .border          { border-width: 2px  !important; }
+html.elderly .border-2        { border-width: 2px  !important; }
+html.elderly .rounded-xl      { border-radius: 1rem !important; }
+html.elderly .rounded-2xl     { border-radius: 1.25rem !important; }
+
+html.elderly .p-3  { padding: 1rem   !important; }
+html.elderly .p-4  { padding: 1.25rem!important; }
+html.elderly .py-2 { padding-top: 0.75rem !important; padding-bottom: 0.75rem !important; }
+html.elderly .py-3 { padding-top: 1rem    !important; padding-bottom: 1rem    !important; }
+html.elderly .gap-2 { gap: 0.75rem !important; }
+html.elderly .gap-3 { gap: 1rem    !important; }

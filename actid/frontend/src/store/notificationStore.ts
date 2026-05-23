@@ -7,6 +7,7 @@ interface NotificationState {
   unreadCount: number;
   generateFromDocuments: (docs: Document[]) => void;
   dismiss: (id: string) => void;
+  dismissAll: () => void;
   addToast: (message: string, type?: "success" | "error" | "info") => void;
   removeToast: (id: string) => void;
 }
@@ -87,6 +88,11 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
       );
       return { notifications, unreadCount: notifications.filter((n) => !n.dismissed).length };
     }),
+
+  dismissAll: () =>
+    set((s) => ({
+      notifications: s.notifications.map((n) => ({ ...n, dismissed: true })),
+    })),
 
   addToast: (message, type = "info") => {
     const id = Math.random().toString(36).slice(2);

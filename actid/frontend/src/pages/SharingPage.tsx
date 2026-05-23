@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { documentsApi, sharingApi, getErrMsg } from "@/lib/api";
+import { QrCode, Link2, Camera, CheckCircle2, Inbox } from "lucide-react";
+import { documentsApi, sharingApi } from "@/lib/api";
 import { useDocumentStore } from "@/store/documentStore";
 import { useNotificationStore } from "@/store/notificationStore";
 import { QRGenerator } from "@/components/sharing/QRGenerator";
@@ -26,8 +27,8 @@ export default function SharingPage() {
         ]);
         setDocuments(docsRes.data);
         setTokens(tokensRes.data);
-      } catch (err) {
-        addToast(getErrMsg(err, "Eroare la încărcare"), "error");
+      } catch {
+        addToast("Eroare la încărcare", "error");
       } finally {
         setLoading(false);
       }
@@ -42,8 +43,8 @@ export default function SharingPage() {
         prev.map((t) => (t.id === id ? { ...t, is_active: false } : t))
       );
       addToast("Token revocat", "success");
-    } catch (err) {
-      addToast(getErrMsg(err, "Eroare la revocare"), "error");
+    } catch {
+      addToast("Eroare la revocare", "error");
     }
   };
 
@@ -56,20 +57,8 @@ export default function SharingPage() {
       const res = await sharingApi.scanToken(scanToken.trim());
       setScanResult(res.data);
       addToast("Token scanat cu succes!", "success");
-    } catch (err: any) {
-      const status = err.response?.status;
-      const detail = err.response?.data?.detail;
-      if (!err.response) {
-        addToast("Verifică conexiunea la internet", "error");
-      } else if (status === 410) {
-        addToast(detail || "Token expirat sau deja utilizat", "error");
-      } else if (status === 404) {
-        addToast("Token negăsit — verifică codul QR", "error");
-      } else if (status === 500) {
-        addToast("Eroare server, încearcă din nou", "error");
-      } else {
-        addToast(detail || "Token invalid", "error");
-      }
+    } catch (e: any) {
+      addToast(e.response?.data?.detail || "Token invalid sau expirat", "error");
     } finally {
       setScanning(false);
     }
@@ -90,21 +79,22 @@ export default function SharingPage() {
       {/* Tabs */}
       <div className="flex gap-1 bg-gray-100 p-1 rounded-xl" role="tablist">
         {[
-          { key: "create", label: "📱 Creare QR" },
-          { key: "active", label: `🔗 Active (${activeTokens.length})` },
-          { key: "scan", label: "📷 Scanare" },
+          { key: "create", label: "Creare QR",  Icon: QrCode },
+          { key: "active", label: `Active (${activeTokens.length})`, Icon: Link2 },
+          { key: "scan",   label: "Scanare",    Icon: Camera },
         ].map((tab) => (
           <button
             key={tab.key}
             role="tab"
             aria-selected={activeTab === tab.key}
             onClick={() => setActiveTab(tab.key as any)}
-            className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-all ${
+            className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-1.5 ${
               activeTab === tab.key
                 ? "bg-white shadow-sm text-actid-blue"
                 : "text-muted-foreground hover:text-foreground"
             }`}
           >
+            <tab.Icon size={14} aria-hidden="true" />
             {tab.label}
           </button>
         ))}
@@ -136,7 +126,9 @@ export default function SharingPage() {
           ) : activeTokens.length === 0 ? (
             <Card>
               <CardContent className="text-center py-12">
-                <p className="text-4xl mb-3">📭</p>
+                <div className="w-12 h-12 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-3">
+                  <Inbox size={22} className="text-muted-foreground" aria-hidden="true" />
+                </div>
                 <p className="font-semibold">Niciun token activ</p>
                 <p className="text-sm text-muted-foreground mt-1">
                   Generează un QR pentru a partaja documente
@@ -188,8 +180,8 @@ export default function SharingPage() {
                   onChange={(e) => setScanToken(e.target.value)}
                   aria-label="Token QR"
                 />
-                <Button type="submit" loading={scanning} className="w-full">
-                  📷 Verifică documente
+                <Button type="submit" loading={scanning} className="w-full gap-1.5">
+                  <Camera size={16} aria-hidden="true" /> Verifică documente
                 </Button>
               </form>
             </CardContent>
@@ -199,7 +191,7 @@ export default function SharingPage() {
             <Card className="border-green-200">
               <div className="bg-green-50 px-4 py-3 rounded-t-2xl border-b border-green-200">
                 <div className="flex items-center gap-2">
-                  <span className="text-lg">✅</span>
+                  <CheckCircle2 size={20} className="text-green-700 flex-shrink-0" aria-hidden="true" />
                   <div>
                     <p className="font-semibold text-green-800">Token valid</p>
                     <p className="text-xs text-green-600">
@@ -217,9 +209,9 @@ export default function SharingPage() {
                 </div>
                 {scanResult.documents?.map((doc: any) => (
                   <div key={doc.id} className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl">
-                    <span className="text-xl">
-                      {doc.doc_type === "CI" ? "🪪" : doc.doc_type === "PASAPORT" ? "📔" : "📄"}
-                    </span>
+                    <div className="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                      {doc.doc_type === "CI" ? "CI" : doc.doc_type === "PASAPORT" ? "P" : doc.doc_type.slice(0, 2)}
+                    </div>
                     <div className="flex-1">
                       <p className="text-sm font-medium">
                         {doc.doc_type === "CI"
@@ -233,7 +225,7 @@ export default function SharingPage() {
                       )}
                     </div>
                     <Badge variant={doc.status === "valid" ? "success" : doc.status === "expirat" ? "danger" : "warning"}>
-                      {doc.status === "valid" ? "✓ Valid" : doc.status === "expirat" ? "✕ Expirat" : "⚡ Expiră"}
+                      {doc.status === "valid" ? "Valabil" : doc.status === "expirat" ? "Expirat" : "Expiră curând"}
                     </Badge>
                   </div>
                 ))}
@@ -260,8 +252,8 @@ function TokenCard({
     <Card className={`mb-3 ${inactive ? "opacity-60" : ""}`}>
       <CardContent className="py-4">
         <div className="flex items-start gap-3">
-          <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-xl flex-shrink-0 ${inactive ? "bg-gray-100" : "bg-purple-50"}`}>
-            📱
+          <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${inactive ? "bg-gray-100" : "bg-purple-50"}`}>
+            <QrCode size={18} className={inactive ? "text-gray-400" : "text-purple-600"} aria-hidden="true" />
           </div>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">

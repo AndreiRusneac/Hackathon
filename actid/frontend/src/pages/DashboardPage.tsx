@@ -1,57 +1,82 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { documentsApi, auditApi, getErrMsg } from "@/lib/api";
+import {
+  ShieldCheck, Clock, ShieldAlert, QrCode, Users, Link2,
+  LogIn, LogOut, Eye, Upload, Trash2, UserPlus, UserMinus, Zap,
+  Globe, FileText, type LucideIcon,
+} from "lucide-react";
+import { documentsApi, auditApi } from "@/lib/api";
 import { useAuthStore } from "@/store/authStore";
 import { useDocumentStore } from "@/store/documentStore";
 import { useNotificationStore } from "@/store/notificationStore";
 import { Card, CardContent, Badge, Skeleton, Button } from "@/components/ui";
 import { NotificationBanner } from "@/components/notifications/NotificationBanner";
 import { DocumentCard, DocumentCardSkeleton } from "@/components/documents/DocumentCard";
-import { formatDateTime } from "@/lib/utils";
+import { formatDateTime, cn } from "@/lib/utils";
 import type { AuditEntry } from "@/types";
 
-const ACTION_ICONS: Record<string, string> = {
-  LOGIN_SUCCESS: "🔐",
-  DOCUMENT_VIEW: "👁️",
-  DOCUMENT_UPLOAD: "📤",
-  QR_TOKEN_CREATE: "📱",
-  QR_TOKEN_SCAN: "📷",
-  DELEGATION_CREATE: "🤝",
-  DELEGATION_REVOKE: "❌",
-  LOGOUT: "👋",
-  SYSTEM_INIT: "🚀",
+const ACTION_ICON_MAP: Record<string, LucideIcon> = {
+  LOGIN_SUCCESS:     LogIn,
+  LOGIN_ATTEMPT:     LogIn,
+  LOGOUT:            LogOut,
+  DOCUMENT_VIEW:     Eye,
+  DOCUMENT_UPLOAD:   Upload,
+  DOCUMENT_DELETE:   Trash2,
+  QR_TOKEN_CREATE:   QrCode,
+  QR_TOKEN_SCAN:     QrCode,
+  QR_TOKEN_REVOKE:   QrCode,
+  DELEGATION_CREATE: UserPlus,
+  DELEGATION_REVOKE: UserMinus,
+  SYSTEM_INIT:       Zap,
+};
+
+const ACTION_LABELS: Record<string, string> = {
+  LOGIN_SUCCESS:     "Autentificare reușită",
+  LOGOUT:            "Deconectare",
+  DOCUMENT_VIEW:     "Document vizualizat",
+  DOCUMENT_UPLOAD:   "Document adăugat",
+  DOCUMENT_DELETE:   "Document șters",
+  QR_TOKEN_CREATE:   "Token QR creat",
+  QR_TOKEN_SCAN:     "Token QR scanat",
+  QR_TOKEN_REVOKE:   "Token QR revocat",
+  DELEGATION_CREATE: "Delegare acordată",
+  DELEGATION_REVOKE: "Delegare revocată",
+  SYSTEM_INIT:       "Sistem inițializat",
 };
 
 export default function DashboardPage() {
   const { user } = useAuthStore();
   const { documents, setDocuments, loading, setLoading } = useDocumentStore();
-  const { generateFromDocuments, notifications, addToast } = useNotificationStore();
+  const { generateFromDocuments, notifications } = useNotificationStore();
   const navigate = useNavigate();
   const [recentActivity, setRecentActivity] = useState<AuditEntry[]>([]);
+  const [auditStats, setAuditStats] = useState<any>(null);
 
   useEffect(() => {
     const load = async () => {
       setLoading(true);
       try {
-        const [docsRes, activityRes] = await Promise.all([
+        const [docsRes, activityRes, statsRes] = await Promise.all([
           documentsApi.list(),
           auditApi.listEntries(5),
+          auditApi.stats(),
         ]);
         setDocuments(docsRes.data);
         generateFromDocuments(docsRes.data);
         setRecentActivity(activityRes.data);
-      } catch (err) {
-        addToast(getErrMsg(err, "Eroare la încărcarea datelor"), "error");
+        setAuditStats(statsRes.data);
+      } catch (e) {
+        console.error(e);
       } finally {
         setLoading(false);
       }
     };
     load();
-  }, [setLoading, setDocuments, generateFromDocuments, addToast]);
+  }, []);
 
-  const validDocs = documents.filter((d) => d.status === "valid");
+  const validDocs    = documents.filter((d) => d.status === "valid");
   const expiringSoon = documents.filter((d) => d.status === "expiră_curând");
-  const expired = documents.filter((d) => d.status === "expirat");
+  const expired      = documents.filter((d) => d.status === "expirat");
   const activeNotifs = notifications.filter((n) => !n.dismissed);
 
   const greeting = () => {
@@ -67,18 +92,18 @@ export default function DashboardPage() {
       <div className="flex items-start justify-between">
         <div>
           <p className="text-muted-foreground text-sm">{greeting()},</p>
-          <h1 className="text-2xl font-bold text-foreground mt-0.5">
-            {user?.full_name.split(" ")[0]} 👋
+          <h1 className="text-2xl font-bold text-foreground mt-0.5 tracking-tight">
+            {user?.full_name.split(" ")[0]}
           </h1>
           <p className="text-xs text-muted-foreground mt-1">
-            {user?.city}, {user?.country} ·{" "}
-            <span className="capitalize">{user?.role}</span>
+            {user?.city}, {user?.country} · <span className="capitalize">{user?.role}</span>
           </p>
         </div>
         <div className="relative">
           <button
             className="w-12 h-12 bg-actid-blue rounded-2xl flex items-center justify-center text-white font-bold text-sm shadow-sm"
             aria-label={`${activeNotifs.length} notificări active`}
+            onClick={() => navigate("/notifications")}
           >
             {user?.full_name.split(" ").map((n) => n[0]).join("").slice(0, 2)}
           </button>
@@ -100,26 +125,26 @@ export default function DashboardPage() {
       {/* Stats row */}
       <div className="grid grid-cols-3 gap-3">
         <StatCard
-          icon="✅"
+          Icon={ShieldCheck}
           count={loading ? null : validDocs.length}
           label="Valide"
-          color="text-green-600"
+          iconColor="text-green-600"
           bg="bg-green-50"
           onClick={() => navigate("/documents")}
         />
         <StatCard
-          icon="⚡"
+          Icon={Clock}
           count={loading ? null : expiringSoon.length}
           label="Expiră curând"
-          color="text-amber-600"
+          iconColor="text-amber-600"
           bg="bg-amber-50"
           onClick={() => navigate("/documents")}
         />
         <StatCard
-          icon="🚨"
+          Icon={ShieldAlert}
           count={loading ? null : expired.length}
           label="Expirate"
-          color="text-red-600"
+          iconColor="text-red-600"
           bg="bg-red-50"
           onClick={() => navigate("/documents")}
         />
@@ -127,24 +152,24 @@ export default function DashboardPage() {
 
       {/* Quick actions */}
       <div>
-        <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">
+        <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-3">
           Acțiuni rapide
         </h2>
         <div className="grid grid-cols-3 gap-3">
           <QuickAction
-            icon="📱"
+            Icon={QrCode}
             label="Partajează QR"
             onClick={() => navigate("/sharing")}
             color="bg-purple-50 text-purple-700"
           />
           <QuickAction
-            icon="👨‍👩‍👦"
+            Icon={Users}
             label="Familie"
             onClick={() => navigate("/family")}
             color="bg-teal-50 text-teal-700"
           />
           <QuickAction
-            icon="🔗"
+            Icon={Link2}
             label="Jurnal Audit"
             onClick={() => navigate("/audit")}
             color="bg-blue-50 text-blue-700"
@@ -155,14 +180,14 @@ export default function DashboardPage() {
       {/* Documents preview */}
       <div>
         <div className="flex items-center justify-between mb-3">
-          <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+          <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">
             Documentele mele
           </h2>
           <button
             onClick={() => navigate("/documents")}
-            className="text-xs text-actid-blue font-medium hover:underline"
+            className="text-xs text-actid-blue font-medium hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-actid-blue rounded"
           >
-            Vezi toate →
+            Vezi toate
           </button>
         </div>
         <div className="space-y-3">
@@ -173,9 +198,11 @@ export default function DashboardPage() {
             </>
           ) : documents.length === 0 ? (
             <Card>
-              <CardContent className="text-center py-8">
-                <p className="text-3xl mb-2">📂</p>
-                <p className="font-medium">Nu ai documente înregistrate</p>
+              <CardContent className="text-center py-10">
+                <div className="w-12 h-12 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-3">
+                  <FileText size={22} className="text-muted-foreground" aria-hidden="true" />
+                </div>
+                <p className="font-semibold">Nu ai documente înregistrate</p>
                 <p className="text-sm text-muted-foreground mt-1">
                   Adaugă primul tău document digital
                 </p>
@@ -185,13 +212,12 @@ export default function DashboardPage() {
                   className="mt-4"
                   onClick={() => navigate("/documents")}
                 >
-                  + Adaugă document
+                  Adaugă document
                 </Button>
               </CardContent>
             </Card>
           ) : (
             <>
-              {/* Show expiring/expired first, then valid */}
               {[...expiringSoon, ...expired, ...validDocs].slice(0, 3).map((doc) => (
                 <DocumentCard
                   key={doc.id}
@@ -204,7 +230,7 @@ export default function DashboardPage() {
               {documents.length > 3 && (
                 <button
                   onClick={() => navigate("/documents")}
-                  className="w-full py-3 text-sm text-actid-blue font-medium hover:bg-blue-50 rounded-xl transition-colors"
+                  className="w-full py-3 text-sm text-actid-blue font-medium hover:bg-blue-50 rounded-xl transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-actid-blue"
                 >
                   + {documents.length - 3} alte documente
                 </button>
@@ -217,14 +243,14 @@ export default function DashboardPage() {
       {/* Recent activity */}
       <div>
         <div className="flex items-center justify-between mb-3">
-          <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+          <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">
             Activitate recentă
           </h2>
           <button
             onClick={() => navigate("/audit")}
-            className="text-xs text-actid-blue font-medium hover:underline"
+            className="text-xs text-actid-blue font-medium hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-actid-blue rounded"
           >
-            Jurnal complet →
+            Jurnal complet
           </button>
         </div>
         <Card>
@@ -234,35 +260,40 @@ export default function DashboardPage() {
                 Nicio activitate înregistrată
               </p>
             ) : (
-              recentActivity.map((entry) => (
-                <div key={entry.id} className="flex items-center gap-3 py-3">
-                  <span className="text-lg w-8 text-center flex-shrink-0">
-                    {ACTION_ICONS[entry.action] || "📋"}
-                  </span>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-foreground truncate">
-                      {formatAction(entry.action)}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      {formatDateTime(entry.timestamp)}
-                    </p>
+              recentActivity.map((entry) => {
+                const IconComp = ACTION_ICON_MAP[entry.action] || FileText;
+                return (
+                  <div key={entry.id} className="flex items-center gap-3 py-3">
+                    <div className="w-8 h-8 bg-gray-50 rounded-xl flex items-center justify-center flex-shrink-0">
+                      <IconComp size={16} className="text-muted-foreground" aria-hidden="true" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-foreground truncate">
+                        {ACTION_LABELS[entry.action] || entry.action}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {formatDateTime(entry.timestamp)}
+                      </p>
+                    </div>
+                    <span className="font-mono text-[10px] text-muted-foreground flex-shrink-0">
+                      #{entry.block_number}
+                    </span>
                   </div>
-                  <span className="font-mono text-[10px] text-muted-foreground flex-shrink-0">
-                    #{entry.block_number}
-                  </span>
-                </div>
-              ))
+                );
+              })
             )}
           </CardContent>
         </Card>
       </div>
 
-      {/* Diaspora banner for Alex */}
+      {/* Diaspora banner */}
       {user?.country !== "România" && (
-        <Card className="bg-gradient-to-r from-blue-50 to-teal-50 border-blue-100">
+        <Card className="bg-gradient-to-r from-blue-50/60 to-teal-50/60 border-blue-100">
           <CardContent className="py-4">
             <div className="flex items-start gap-3">
-              <span className="text-2xl">🌍</span>
+              <div className="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center flex-shrink-0">
+                <Globe size={18} className="text-blue-600" aria-hidden="true" />
+              </div>
               <div>
                 <p className="font-semibold text-sm text-foreground">
                   Gestionezi documente din {user?.country}
@@ -272,9 +303,9 @@ export default function DashboardPage() {
                 </p>
                 <button
                   onClick={() => navigate("/family")}
-                  className="text-xs text-actid-blue font-medium mt-2 hover:underline"
+                  className="text-xs text-actid-blue font-medium mt-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-actid-blue rounded"
                 >
-                  → Vezi delegările →
+                  Vezi delegările
                 </button>
               </div>
             </div>
@@ -286,33 +317,33 @@ export default function DashboardPage() {
 }
 
 function StatCard({
-  icon,
+  Icon,
   count,
   label,
-  color,
+  iconColor,
   bg,
   onClick,
 }: {
-  icon: string;
+  Icon: LucideIcon;
   count: number | null;
   label: string;
-  color: string;
+  iconColor: string;
   bg: string;
   onClick?: () => void;
 }) {
   return (
     <button
       onClick={onClick}
-      className="bg-white rounded-2xl border border-border p-3 text-center hover:shadow-sm transition-all active:scale-[0.97]"
+      className="bg-white rounded-2xl border border-border p-3 text-center hover:shadow-sm transition-all active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-actid-blue"
       aria-label={`${count ?? ""} ${label}`}
     >
-      <div className={`w-10 h-10 ${bg} rounded-xl flex items-center justify-center mx-auto mb-2`}>
-        <span className="text-xl">{icon}</span>
+      <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center mx-auto mb-2", bg)}>
+        <Icon size={20} className={iconColor} aria-hidden="true" />
       </div>
       {count === null ? (
         <div className="skeleton h-6 w-8 mx-auto rounded mb-1" />
       ) : (
-        <p className={`text-2xl font-bold ${color}`}>{count}</p>
+        <p className={cn("text-2xl font-bold", iconColor)}>{count}</p>
       )}
       <p className="text-[11px] text-muted-foreground font-medium leading-tight">{label}</p>
     </button>
@@ -320,12 +351,12 @@ function StatCard({
 }
 
 function QuickAction({
-  icon,
+  Icon,
   label,
   onClick,
   color,
 }: {
-  icon: string;
+  Icon: LucideIcon;
   label: string;
   onClick: () => void;
   color: string;
@@ -333,27 +364,10 @@ function QuickAction({
   return (
     <button
       onClick={onClick}
-      className={`${color} rounded-2xl p-4 text-center hover:opacity-90 active:scale-[0.97] transition-all`}
+      className={cn(color, "rounded-2xl p-4 text-center hover:opacity-90 active:scale-[0.97] transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-actid-blue")}
     >
-      <span className="block text-2xl mb-1">{icon}</span>
-      <span className="text-xs font-semibold leading-tight">{label}</span>
+      <Icon size={22} className="mx-auto mb-1.5" aria-hidden="true" />
+      <span className="text-xs font-semibold leading-tight block">{label}</span>
     </button>
   );
-}
-
-function formatAction(action: string): string {
-  const labels: Record<string, string> = {
-    LOGIN_SUCCESS: "Autentificare reușită",
-    LOGOUT: "Deconectare",
-    DOCUMENT_VIEW: "Document vizualizat",
-    DOCUMENT_UPLOAD: "Document adăugat",
-    DOCUMENT_DELETE: "Document șters",
-    QR_TOKEN_CREATE: "Token QR creat",
-    QR_TOKEN_SCAN: "Token QR scanat",
-    QR_TOKEN_REVOKE: "Token QR revocat",
-    DELEGATION_CREATE: "Delegare acordată",
-    DELEGATION_REVOKE: "Delegare revocată",
-    SYSTEM_INIT: "Sistem inițializat",
-  };
-  return labels[action] || action;
 }

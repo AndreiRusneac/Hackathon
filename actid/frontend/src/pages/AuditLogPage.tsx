@@ -1,9 +1,29 @@
-import { useCallback, useEffect, useState } from "react";
-import { auditApi, getErrMsg } from "@/lib/api";
+import { useEffect, useState } from "react";
+import {
+  LogIn, LogOut, Eye, Upload, Trash2, QrCode,
+  UserPlus, UserMinus, Zap, FileText, Link2, CheckCircle2, XCircle,
+  type LucideIcon,
+} from "lucide-react";
+import { auditApi } from "@/lib/api";
 import { useNotificationStore } from "@/store/notificationStore";
 import { Card, CardContent, Badge, Button } from "@/components/ui";
 import { formatDateTime, truncateHash, ACTION_LABELS } from "@/lib/utils";
-import type { AuditEntry, AuditStats } from "@/types";
+import type { AuditEntry } from "@/types";
+
+const ACTION_ICON_MAP: Record<string, LucideIcon> = {
+  LOGIN_SUCCESS:     LogIn,
+  LOGIN_ATTEMPT:     LogIn,
+  LOGOUT:            LogOut,
+  DOCUMENT_VIEW:     Eye,
+  DOCUMENT_UPLOAD:   Upload,
+  DOCUMENT_DELETE:   Trash2,
+  QR_TOKEN_CREATE:   QrCode,
+  QR_TOKEN_SCAN:     QrCode,
+  QR_TOKEN_REVOKE:   QrCode,
+  DELEGATION_CREATE: UserPlus,
+  DELEGATION_REVOKE: UserMinus,
+  SYSTEM_INIT:       Zap,
+};
 
 export default function AuditLogPage() {
   const { addToast } = useNotificationStore();
@@ -15,10 +35,14 @@ export default function AuditLogPage() {
     entries_checked: number;
     message: string;
   } | null>(null);
-  const [stats, setStats] = useState<AuditStats | null>(null);
+  const [stats, setStats] = useState<any>(null);
   const [expanded, setExpanded] = useState<string | null>(null);
 
-  const load = useCallback(async () => {
+  useEffect(() => {
+    load();
+  }, []);
+
+  const load = async () => {
     setLoading(true);
     try {
       const [entriesRes, statsRes] = await Promise.all([
@@ -27,14 +51,12 @@ export default function AuditLogPage() {
       ]);
       setEntries(entriesRes.data);
       setStats(statsRes.data);
-    } catch (err) {
-      addToast(getErrMsg(err, "Eroare la încărcarea jurnalului"), "error");
+    } catch {
+      addToast("Eroare la încărcarea jurnalului", "error");
     } finally {
       setLoading(false);
     }
-  }, [addToast]);
-
-  useEffect(() => { load(); }, [load]);
+  };
 
   const handleVerify = async () => {
     setVerifying(true);
@@ -45,8 +67,8 @@ export default function AuditLogPage() {
         res.data.valid ? "✓ Lanț valid — nicio modificare detectată" : "⚠ Erori detectate în lanț",
         res.data.valid ? "success" : "error"
       );
-    } catch (err) {
-      addToast(getErrMsg(err, "Eroare la verificare"), "error");
+    } catch {
+      addToast("Eroare la verificare", "error");
     } finally {
       setVerifying(false);
     }
@@ -73,9 +95,15 @@ export default function AuditLogPage() {
           <p className="text-xs text-muted-foreground">Ale mele</p>
         </div>
         <div className="bg-white rounded-2xl border border-border p-3 text-center">
-          <p className="text-xl font-bold text-green-600">
-            {chainStatus === null ? "—" : chainStatus.valid ? "✓" : "✕"}
-          </p>
+          <div className="flex justify-center">
+            {chainStatus === null ? (
+              <span className="text-xl font-bold text-actid-blue">—</span>
+            ) : chainStatus.valid ? (
+              <CheckCircle2 size={24} className="text-green-600" aria-hidden="true" />
+            ) : (
+              <XCircle size={24} className="text-red-600" aria-hidden="true" />
+            )}
+          </div>
           <p className="text-xs text-muted-foreground">Lanț valid</p>
         </div>
       </div>
@@ -95,8 +123,9 @@ export default function AuditLogPage() {
               variant={chainStatus?.valid ? "outline" : "primary"}
               onClick={handleVerify}
               loading={verifying}
+              className="gap-1.5"
             >
-              🔍 Verifică
+              <Link2 size={14} aria-hidden="true" /> Verifică
             </Button>
           </div>
           {chainStatus && (
@@ -107,7 +136,7 @@ export default function AuditLogPage() {
                   : "bg-red-50 text-red-700"
               }`}
             >
-              {chainStatus.valid ? "✅" : "❌"} {chainStatus.message} ·{" "}
+              {chainStatus.message} ·{" "}
               {chainStatus.entries_checked} blocuri verificate
             </div>
           )}
@@ -138,7 +167,9 @@ export default function AuditLogPage() {
         ) : entries.length === 0 ? (
           <Card>
             <CardContent className="text-center py-12">
-              <p className="text-4xl mb-3">🔗</p>
+              <div className="w-12 h-12 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-3">
+                <Link2 size={22} className="text-muted-foreground" aria-hidden="true" />
+              </div>
               <p className="font-semibold">Jurnal gol</p>
               <p className="text-sm text-muted-foreground mt-1">
                 Nu există intrări înregistrate
@@ -179,6 +210,7 @@ function AuditBlock({
     icon: "📋",
     color: "text-gray-600",
   };
+  const ActionIcon = ACTION_ICON_MAP[entry.action] || FileText;
 
   const roleColors: Record<string, string> = {
     "cetățean": "bg-blue-50 text-blue-700",
@@ -212,7 +244,9 @@ function AuditBlock({
       >
         <div className="p-3">
           <div className="flex items-start gap-2">
-            <span className="text-lg flex-shrink-0">{actionInfo.icon}</span>
+            <div className="w-7 h-7 bg-gray-50 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
+              <ActionIcon size={15} className="text-muted-foreground" aria-hidden="true" />
+            </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
                 <p className={`text-sm font-semibold ${actionInfo.color}`}>
@@ -228,7 +262,7 @@ function AuditBlock({
                 {entry.actor_name || "Sistem"} · {formatDateTime(entry.timestamp)}
               </p>
               <p className="font-mono text-[10px] text-muted-foreground mt-1">
-                🔐 {truncateHash(entry.hash, 10)}
+                {truncateHash(entry.hash, 10)}
               </p>
             </div>
           </div>
