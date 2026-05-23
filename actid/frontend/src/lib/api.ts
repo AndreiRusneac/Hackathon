@@ -181,7 +181,7 @@ export const credentialsApi = {
 export interface PresentationCreatePayload {
   document_id: string;
   disclosed_attributes: string[];
-  purpose: string;
+  purpose?: string;
   verifier_role?: "funcționar" | "any";
 }
 
@@ -202,7 +202,7 @@ export interface PresentationVerifyResult {
   };
   credential_type: string;
   disclosed_attributes: Record<string, string | number | boolean>;
-  purpose: string;
+  purpose: string | null;
   verified_at: string;
 }
 
@@ -214,36 +214,32 @@ export const presentationsApi = {
 };
 
 // ─── Wallet Security (Teo) ────────────────────────────────────────────────────
+// Shapes here mirror Andrei's actual /wallet/* responses (credentials.py).
+// Teo's Security page is not yet built; these are accurate for when it lands.
 
 export interface WalletSecurity {
-  wallet_instance_id: string;
-  encryption: {
-    algorithm: string;
-    at_rest_enabled: boolean;
-    encrypted_fields: string[];
-  };
-  trusted_issuers: Array<{
-    id: string;
-    name: string;
-    country: string;
-    valid_from: string;
-  }>;
-  issuer_public_key_fingerprint: string;
+  issuer_url: string;
+  issuer_kid: string;
+  issuer_alg: string;
+  issuer_fingerprint: string;
+  issuer_jwk: Record<string, unknown>;
+  vault_encryption: string;
+  vault_kdf: string;
+  sd_jwt_spec: string;
+  eidas_compliance: string;
 }
 
 export interface PresentationHistoryEntry {
   id: string;
-  document_id: string;
-  document_type: string;
-  disclosed_attributes: string[];
-  purpose: string;
-  created_at: string;
-  scanned_at: string | null;
-  scanned_by_name: string | null;
+  action: string;
+  timestamp: string;
+  target_document_id: string | null;
+  actor_role: string;
+  block_number: number;
+  hash: string;
 }
 
 export const walletApi = {
   security: () => api.get<WalletSecurity>("/wallet/security"),
-  history: () =>
-    api.get<{ presentations: PresentationHistoryEntry[] }>("/wallet/presentations-history"),
+  history: () => api.get<PresentationHistoryEntry[]>("/wallet/presentations-history"),
 };

@@ -17,7 +17,14 @@ import PresentationsPage from "@/pages/PresentationsPage";
 
 function VerifyRedirect() {
   const { presentationId } = useParams<{ presentationId: string }>();
-  return <Navigate to={`/functionar?pid=${presentationId}`} replace />;
+  const { isAuthenticated } = useAuthStore();
+  const target = `/functionar?pid=${presentationId}`;
+  // If a funcționar scans the QR while logged out, route through /login?next=...
+  // so the post-login redirect lands back on the verify flow instead of /dashboard.
+  if (!isAuthenticated) {
+    return <Navigate to={`/login?next=${encodeURIComponent(target)}`} replace />;
+  }
+  return <Navigate to={target} replace />;
 }
 
 export default function App() {

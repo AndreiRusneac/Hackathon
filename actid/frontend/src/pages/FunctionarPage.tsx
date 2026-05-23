@@ -467,11 +467,13 @@ function EudiVerifyResult({
         </div>
 
         <CardContent className="py-4 space-y-4">
-          {/* Purpose */}
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-xs text-muted-foreground font-medium">Scop:</span>
-            <Badge variant="info">{result.purpose}</Badge>
-          </div>
+          {/* Purpose — citizen may have skipped this when creating the presentation */}
+          {result.purpose && (
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-xs text-muted-foreground font-medium">Scop:</span>
+              <Badge variant="info">{result.purpose}</Badge>
+            </div>
+          )}
 
           {/* Disclosed attributes */}
           <div>
