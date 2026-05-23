@@ -77,6 +77,7 @@ export const authApi = {
   me: () => api.get("/auth/me"),
 
   logout: () => api.post("/auth/logout"),
+  deleteAccount: () => api.delete("/auth/me"),
 };
 
 // ─── Identity verification (registration flow) ───────────────────────────────

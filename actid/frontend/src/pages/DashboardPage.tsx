@@ -1,17 +1,16 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   ShieldCheck, Clock, ShieldAlert, QrCode, Users, Link2,
   LogIn, LogOut, Eye, Upload, Trash2, UserPlus, UserMinus, Zap,
   Globe, FileText, type LucideIcon,
 } from "lucide-react";
-import { documentsApi, auditApi } from "@/lib/api";
+import { documentsApi, auditApi, authApi } from "@/lib/api";
 import { useAuthStore } from "@/store/authStore";
 import { useDocumentStore } from "@/store/documentStore";
 import { useNotificationStore } from "@/store/notificationStore";
-import { Card, CardContent, Badge, Skeleton, Button } from "@/components/ui";
+import { Card, CardContent, Badge, Skeleton, Button, ConfirmDialog } from "@/components/ui";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { NotificationBanner } from "@/components/notifications/NotificationBanner";
 import { DocumentCard, DocumentCardSkeleton } from "@/components/documents/DocumentCard";
 import { formatDateTime, cn } from "@/lib/utils";
 import type { AuditEntry } from "@/types";
@@ -46,12 +45,34 @@ const ACTION_LABELS: Record<string, string> = {
 };
 
 export default function DashboardPage() {
-  const { user } = useAuthStore();
+  const { user, logout } = useAuthStore();
   const { documents, setDocuments, loading, setLoading } = useDocumentStore();
   const { generateFromDocuments, notifications } = useNotificationStore();
   const navigate = useNavigate();
   const [recentActivity, setRecentActivity] = useState<AuditEntry[]>([]);
   const [auditStats, setAuditStats] = useState<any>(null);
+  const [showProfile, setShowProfile] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deletingAccount, setDeletingAccount] = useState(false);
+  const profileRef = useRef<HTMLDivElement>(null);
+
+  const handleLogout = async () => {
+    try { await authApi.logout(); } catch { /* ignore */ }
+    logout();
+    navigate("/", { replace: true });
+  };
+
+  const handleDeleteAccount = async () => {
+    setDeletingAccount(true);
+    try {
+      await authApi.deleteAccount();
+      logout();
+      navigate("/", { replace: true });
+    } catch {
+      setDeletingAccount(false);
+      setShowDeleteConfirm(false);
+    }
+  };
 
   useEffect(() => {
     const load = async () => {
@@ -78,8 +99,6 @@ export default function DashboardPage() {
   const validDocs    = documents.filter((d) => d.status === "valid");
   const expiringSoon = documents.filter((d) => d.status === "expiră_curând");
   const expired      = documents.filter((d) => d.status === "expirat");
-  const activeNotifs = notifications.filter((n) => !n.dismissed);
-
   const greeting = () => {
     const h = new Date().getHours();
     if (h < 12) return "Bună dimineața";
@@ -100,11 +119,12 @@ export default function DashboardPage() {
             {user?.city}, {user?.country} · <span className="capitalize">{user?.role}</span>
           </p>
         </div>
-        <div className="relative">
+        <div className="relative" ref={profileRef}>
           <button
             className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-actid-blue focus-visible:ring-offset-2 rounded-full"
-            aria-label={`${activeNotifs.length > 0 ? `${activeNotifs.length} notificări necitite. ` : ""}Deschide notificările`}
-            onClick={() => navigate("/notifications")}
+            aria-label="Deschide meniul contului"
+            aria-expanded={showProfile}
+            onClick={() => setShowProfile((v) => !v)}
           >
             <Avatar className="w-12 h-12 shadow-sm">
               <AvatarFallback className="bg-actid-blue text-white font-bold text-sm">
@@ -112,23 +132,52 @@ export default function DashboardPage() {
               </AvatarFallback>
             </Avatar>
           </button>
-          {activeNotifs.length > 0 && (
-            <span
-              className="absolute -top-1 -right-1 bg-actid-red text-white text-xs font-bold w-5 h-5 rounded-full flex items-center justify-center pointer-events-none"
-              aria-hidden="true"
-            >
-              {activeNotifs.length > 9 ? "9+" : activeNotifs.length}
-            </span>
+          {showProfile && (
+            <>
+              <div
+                className="fixed inset-0 z-10"
+                aria-hidden="true"
+                onClick={() => setShowProfile(false)}
+              />
+              <div className="absolute right-0 top-14 z-20 w-56 bg-white rounded-2xl shadow-xl border border-border overflow-hidden animate-fade-in">
+                <div className="px-4 py-3 border-b border-border">
+                  <p className="font-semibold text-sm truncate">{user?.full_name}</p>
+                  <p className="text-xs text-muted-foreground truncate">{user?.email}</p>
+                  <span className="inline-block mt-1.5 text-[10px] font-semibold bg-blue-50 text-blue-700 px-2 py-0.5 rounded-full capitalize">
+                    {user?.role}
+                  </span>
+                </div>
+                <div className="p-2 space-y-1">
+                  <button
+                    onClick={handleLogout}
+                    className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm font-medium text-foreground hover:bg-gray-50 transition-colors text-left"
+                  >
+                    <LogOut size={16} className="text-muted-foreground" aria-hidden="true" />
+                    Deconectare
+                  </button>
+                  <button
+                    onClick={() => { setShowProfile(false); setShowDeleteConfirm(true); }}
+                    className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm font-medium text-actid-red hover:bg-red-50 transition-colors text-left"
+                  >
+                    <Trash2 size={16} aria-hidden="true" />
+                    Șterge contul
+                  </button>
+                </div>
+              </div>
+            </>
           )}
         </div>
-      </div>
 
-      {/* Notification banners */}
-      {activeNotifs.length > 0 && (
-        <div>
-          <NotificationBanner />
-        </div>
-      )}
+        <ConfirmDialog
+          open={showDeleteConfirm}
+          title="Ștergi contul?"
+          description="Toate documentele, delegările și tokenurile QR vor fi șterse permanent. Această acțiune nu poate fi anulată."
+          confirmLabel={deletingAccount ? "Se șterge..." : "Da, șterge contul"}
+          destructive
+          onConfirm={handleDeleteAccount}
+          onCancel={() => setShowDeleteConfirm(false)}
+        />
+      </div>
 
       {/* Documents preview */}
       <div>
