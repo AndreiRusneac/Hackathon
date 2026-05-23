@@ -122,6 +122,13 @@ class DelegationResponse(BaseModel):
     model_config = {"from_attributes": True}
 
 
+# ─── Renewal Request ─────────────────────────────────────────────────────────
+
+class RenewalRequestCreate(BaseModel):
+    document_id: str
+    note: Optional[str] = None
+
+
 # ─── Audit ───────────────────────────────────────────────────────────────────
 
 class AuditEntryResponse(BaseModel):
@@ -146,3 +153,44 @@ class ChainVerifyResponse(BaseModel):
     entries_checked: int
     errors: List[str]
     message: str
+
+
+# ─── Renewal ─────────────────────────────────────────────────────────────────
+
+class RenewalRequestCreate(BaseModel):
+    document_id: str
+    note: Optional[str] = None
+
+
+class RenewalRequestResponse(BaseModel):
+    success: bool
+    message: str
+
+
+# ─── Notifications ────────────────────────────────────────────────────────────
+
+class NotificationItem(BaseModel):
+    doc_id: str
+    doc_type: str
+    doc_title: Optional[str] = None
+    days_until_expiry: Optional[int] = None
+    severity: str  # urgent / warning / expired
+    is_delegated: bool = False
+    delegated_from_name: Optional[str] = None
+
+
+# ─── Funcționar ──────────────────────────────────────────────────────────────
+
+class RecentScanResponse(BaseModel):
+    scan_id: str
+    token: str
+    scanned_at: datetime
+    owner_name: str
+    doc_types: List[str]
+    context: Optional[str] = None
+
+
+class FunctionarStatsResponse(BaseModel):
+    total_scans_today: int
+    total_scans_week: int
+    unique_citizens: int

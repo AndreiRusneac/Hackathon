@@ -6,7 +6,7 @@ import bcrypt
 from sqlalchemy.orm import Session
 
 from .ledger import add_audit_entry
-from .models.models import AuditEntry, DelegationGrant, Document, User
+from .models.models import AuditEntry, DelegationGrant, Document, ShareScanLog, ShareToken, User
 
 # Fixed IDs for reproducibility
 ION_ID = "user-ion-popescu-0001"
@@ -207,6 +207,67 @@ def seed_database(db: Session) -> None:
     db.add(delegation)
     db.flush()
 
+    # ── Share tokens (for funcționar demo scan logs) ──────────────────────────
+    share_token_1 = ShareToken(
+        id="share-token-demo-0001",
+        creator_id=ION_ID,
+        token="demo-token-ion-cj123456",
+        document_ids=json.dumps(["doc-ion-ci-0001", "doc-ion-pasaport-0002"]),
+        permissions=json.dumps(["read"]),
+        context="Verificare angajare — CFR Cluj",
+        expires_at=datetime.utcnow() + timedelta(days=1),
+        max_uses=3,
+        use_count=3,
+        is_active=False,
+    )
+    share_token_2 = ShareToken(
+        id="share-token-demo-0002",
+        creator_id=MARIA_ID,
+        token="demo-token-maria-cj987654",
+        document_ids=json.dumps(["doc-maria-ci-0005"]),
+        permissions=json.dumps(["read"]),
+        context="Verificare identitate notar",
+        expires_at=datetime.utcnow() + timedelta(days=1),
+        max_uses=2,
+        use_count=2,
+        is_active=False,
+    )
+    share_token_3 = ShareToken(
+        id="share-token-demo-0003",
+        creator_id=ALEX_ID,
+        token="demo-token-alex-cj555111",
+        document_ids=json.dumps(["doc-alex-ci-0009"]),
+        permissions=json.dumps(["read"]),
+        context="Verificare identitate consulat",
+        expires_at=datetime.utcnow() + timedelta(days=2),
+        max_uses=1,
+        use_count=1,
+        is_active=False,
+    )
+    db.add_all([share_token_1, share_token_2, share_token_3])
+    db.flush()
+
+    scan_1 = ShareScanLog(
+        id="scan-log-demo-0001",
+        token_id="share-token-demo-0001",
+        scanned_by=FUNC_ID,
+        scanned_at=datetime.utcnow() - timedelta(hours=2),
+    )
+    scan_2 = ShareScanLog(
+        id="scan-log-demo-0002",
+        token_id="share-token-demo-0002",
+        scanned_by=FUNC_ID,
+        scanned_at=datetime.utcnow() - timedelta(hours=5),
+    )
+    scan_3 = ShareScanLog(
+        id="scan-log-demo-0003",
+        token_id="share-token-demo-0003",
+        scanned_by=FUNC_ID,
+        scanned_at=datetime.utcnow() - timedelta(days=1),
+    )
+    db.add_all([scan_1, scan_2, scan_3])
+    db.flush()
+
     # ── Seed audit entries ────────────────────────────────────────────────────
     add_audit_entry(
         db,
@@ -246,6 +307,33 @@ def seed_database(db: Session) -> None:
         actor_role="cetățean",
         target_document_id="doc-maria-rovinieta-0008",
         metadata={"event": "Alex a verificat rovinieta mamei din Londra", "location": "Londra, UK"},
+    )
+    add_audit_entry(
+        db,
+        action="QR_TOKEN_SCAN",
+        actor_id=FUNC_ID,
+        actor_name="Gheorghe Munteanu",
+        actor_role="funcționar",
+        target_user_id=ION_ID,
+        metadata={"context": "Verificare angajare — CFR Cluj", "scanned_docs": 2},
+    )
+    add_audit_entry(
+        db,
+        action="QR_TOKEN_SCAN",
+        actor_id=FUNC_ID,
+        actor_name="Gheorghe Munteanu",
+        actor_role="funcționar",
+        target_user_id=MARIA_ID,
+        metadata={"context": "Verificare identitate notar", "scanned_docs": 1},
+    )
+    add_audit_entry(
+        db,
+        action="QR_TOKEN_SCAN",
+        actor_id=FUNC_ID,
+        actor_name="Gheorghe Munteanu",
+        actor_role="funcționar",
+        target_user_id=ALEX_ID,
+        metadata={"context": "Verificare identitate consulat", "scanned_docs": 1},
     )
 
     db.commit()

@@ -100,13 +100,10 @@ export const ACTION_LABELS: Record<string, { label: string; icon: string; color:
   QR_TOKEN_REVOKE: { label: "Revocare partajare QR", icon: "🚫", color: "text-red-600" },
   DELEGATION_CREATE: { label: "Acordare delegare familie", icon: "🤝", color: "text-teal-600" },
   DELEGATION_REVOKE: { label: "Revocare delegare", icon: "❌", color: "text-red-600" },
-  SYSTEM_INIT: { label: "Inițializare sistem", icon: "🚀", color: "text-violet-600" },
+  SYSTEM_INIT: { label: "Inițializare sistem", icon: "🚀", color: "text-gray-600" },
+  RENEWAL_REQUEST: { label: "Cerere reînnoire", icon: "🔄", color: "text-blue-600" },
 };
 
-/**
- * Per-action styling for the blockchain visualization. `block` colors the
- * numbered block node, `line` is the gradient for the chain connector below it.
- */
 export const ACTION_STYLE: Record<string, { block: string; ring: string; line: string }> = {
   LOGIN_SUCCESS: { block: "bg-slate-500", ring: "ring-slate-200", line: "from-slate-200 to-slate-400" },
   LOGIN_ATTEMPT: { block: "bg-slate-400", ring: "ring-slate-200", line: "from-slate-200 to-slate-300" },
@@ -120,6 +117,7 @@ export const ACTION_STYLE: Record<string, { block: string; ring: string; line: s
   DELEGATION_CREATE: { block: "bg-teal-600", ring: "ring-teal-200", line: "from-teal-200 to-teal-400" },
   DELEGATION_REVOKE: { block: "bg-red-500", ring: "ring-red-200", line: "from-red-200 to-red-400" },
   SYSTEM_INIT: { block: "bg-violet-600", ring: "ring-violet-200", line: "from-violet-200 to-violet-400" },
+  RENEWAL_REQUEST: { block: "bg-blue-500", ring: "ring-blue-200", line: "from-blue-200 to-blue-400" },
 };
 
 export const DEFAULT_ACTION_STYLE = {

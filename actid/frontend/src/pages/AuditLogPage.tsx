@@ -1,9 +1,10 @@
-import { useEffect, useMemo, useState } from "react";
-import { auditApi } from "@/lib/api";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { auditApi, getErrMsg } from "@/lib/api";
 import { useNotificationStore } from "@/store/notificationStore";
 import { Card, CardContent, Badge, Button } from "@/components/ui";
 import {
   formatDateTime,
+  truncateHash,
   ACTION_LABELS,
   ACTION_STYLE,
   DEFAULT_ACTION_STYLE,
@@ -36,11 +37,7 @@ export default function AuditLogPage() {
   const [actionFilter, setActionFilter] = useState<string>("");
   const [actorFilter, setActorFilter] = useState<string>("");
 
-  useEffect(() => {
-    load();
-  }, []);
-
-  const load = async () => {
+  const load = useCallback(async () => {
     setLoading(true);
     try {
       const [entriesRes, statsRes] = await Promise.all([
@@ -49,12 +46,14 @@ export default function AuditLogPage() {
       ]);
       setEntries(entriesRes.data);
       setStats(statsRes.data);
-    } catch {
-      addToast("Eroare la încărcarea jurnalului", "error");
+    } catch (err) {
+      addToast(getErrMsg(err, "Eroare la încărcarea jurnalului"), "error");
     } finally {
       setLoading(false);
     }
-  };
+  }, [addToast]);
+
+  useEffect(() => { load(); }, [load]);
 
   const handleVerify = async () => {
     setVerifying(true);
@@ -67,8 +66,8 @@ export default function AuditLogPage() {
           : "✗ Integritate compromisă",
         res.data.valid ? "success" : "error"
       );
-    } catch {
-      addToast("Eroare la verificare", "error");
+    } catch (err) {
+      addToast(getErrMsg(err, "Eroare la verificare"), "error");
     } finally {
       setVerifying(false);
     }
