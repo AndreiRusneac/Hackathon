@@ -1,2 +1,6 @@
 # Local-only files — never push
 CLAUDE.md
+
+# EUDI issuer keys — generated at first startup, never committed
+actid/backend/app/keys/*.pem
+actid/backend/app/keys/*.jwk

@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from .config import settings
 from .database import Base, engine, SessionLocal
-from .api import auth, documents, sharing, family, audit, functionar, notifications, identity
+from .api import auth, documents, sharing, family, audit, functionar, notifications, identity, presentations
 from .models import models  # noqa: F401 — registers models with Base
 
 app = FastAPI(
@@ -33,6 +33,7 @@ app.include_router(audit.router, prefix="/api")
 app.include_router(functionar.router, prefix="/api")
 app.include_router(notifications.router, prefix="/api")
 app.include_router(identity.router, prefix="/api")
+app.include_router(presentations.router, prefix="/api")
 
 
 # ── Startup ──────────────────────────────────────────────────────────────────
