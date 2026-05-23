@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { QRCodeSVG } from "qrcode.react";
-import { QrCode } from "lucide-react";
+import { QrCode, Search, X } from "lucide-react";
 import { sharingApi } from "@/lib/api";
 import { useNotificationStore } from "@/store/notificationStore";
 import { Button, Card, CardContent, Badge } from "@/components/ui";
@@ -11,6 +11,7 @@ import type { Document, ShareToken } from "@/types";
 interface QRGeneratorProps {
   documents: Document[];
   onTokenCreated?: (token: ShareToken) => void;
+  initialSelectedIds?: string[];
 }
 
 const CONTEXTS = [
@@ -23,8 +24,10 @@ const CONTEXTS = [
   "Alt serviciu public",
 ];
 
-export function QRGenerator({ documents, onTokenCreated }: QRGeneratorProps) {
-  const [selectedDocs, setSelectedDocs] = useState<string[]>([]);
+export function QRGenerator({ documents, onTokenCreated, initialSelectedIds }: QRGeneratorProps) {
+  const [selectedDocs, setSelectedDocs] = useState<string[]>(initialSelectedIds ?? []);
+  const [showAll, setShowAll] = useState(false);
+  const [search, setSearch] = useState("");
   const [context, setContext] = useState(CONTEXTS[0]);
   const [expires, setExpires] = useState(24);
   const [loading, setLoading] = useState(false);
@@ -127,23 +130,121 @@ export function QRGenerator({ documents, onTokenCreated }: QRGeneratorProps) {
     <Card>
       <CardContent className="space-y-5 py-5">
         <div>
-          <p className="text-sm font-semibold mb-3">1. Selectează documentele</p>
+          {/* Section header */}
+          <div className="flex items-center justify-between mb-3">
+            <p className="text-sm font-semibold">1. Selectează documentele</p>
+            <button
+              type="button"
+              onClick={() => { setShowAll((v) => !v); setSearch(""); }}
+              className="text-xs text-actid-blue font-medium hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-actid-blue rounded"
+            >
+              {showAll ? "Restrânge" : "Vizualizează toate"}
+            </button>
+          </div>
+
+          {/* Expanded panel — search + full scrollable list */}
+          {showAll && (
+            <div className="mb-3 rounded-2xl border border-actid-blue/20 bg-blue-50/30 p-3 space-y-2 animate-fade-in">
+              <div className="relative">
+                <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" aria-hidden="true" />
+                <input
+                  type="text"
+                  placeholder="Caută document..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="w-full h-9 pl-8 pr-8 rounded-xl border border-input bg-white text-sm focus:outline-none focus:ring-2 focus:ring-actid-blue/30 focus:border-actid-blue transition-all placeholder:text-muted-foreground"
+                  aria-label="Caută document"
+                  autoFocus
+                />
+                {search && (
+                  <button
+                    type="button"
+                    onClick={() => setSearch("")}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                    aria-label="Șterge căutare"
+                  >
+                    <X size={13} aria-hidden="true" />
+                  </button>
+                )}
+              </div>
+
+              <div className="space-y-1.5 max-h-64 overflow-y-auto scrollbar-thin pr-0.5">
+                {documents
+                  .filter((doc) => {
+                    if (!search) return true;
+                    const q = search.toLowerCase();
+                    return (
+                      (DOC_LABELS[doc.doc_type as keyof typeof DOC_LABELS] || doc.doc_type).toLowerCase().includes(q) ||
+                      doc.doc_number?.toLowerCase().includes(q) ||
+                      doc.issued_by?.toLowerCase().includes(q)
+                    );
+                  })
+                  .map((doc) => {
+                    const selected = selectedDocs.includes(doc.id);
+                    return (
+                      <button
+                        key={doc.id}
+                        type="button"
+                        onClick={() => toggleDoc(doc.id)}
+                        className={`w-full flex items-center gap-3 p-2.5 rounded-xl border-2 text-left transition-all ${
+                          selected ? "border-actid-blue bg-white" : "border-transparent bg-white hover:border-gray-200"
+                        }`}
+                        aria-pressed={selected}
+                      >
+                        <div className="w-7 h-7 bg-gray-50 rounded-lg flex items-center justify-center flex-shrink-0 border border-border">
+                          <DocTypeIcon type={doc.doc_type} size={14} className="text-actid-blue" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium truncate">
+                            {DOC_LABELS[doc.doc_type as keyof typeof DOC_LABELS] || doc.doc_type}
+                          </p>
+                          {doc.doc_number && (
+                            <p className="text-[10px] text-muted-foreground font-mono">{doc.doc_number}</p>
+                          )}
+                        </div>
+                        <div
+                          className={`w-5 h-5 rounded-md flex items-center justify-center border-2 flex-shrink-0 transition-all ${
+                            selected ? "bg-actid-blue border-actid-blue" : "border-gray-300"
+                          }`}
+                          aria-hidden="true"
+                        >
+                          {selected && <span className="text-white text-[10px] font-bold leading-none">✓</span>}
+                        </div>
+                      </button>
+                    );
+                  })}
+                {search && documents.filter((doc) => {
+                  const q = search.toLowerCase();
+                  return (
+                    (DOC_LABELS[doc.doc_type as keyof typeof DOC_LABELS] || doc.doc_type).toLowerCase().includes(q) ||
+                    doc.doc_number?.toLowerCase().includes(q) ||
+                    doc.issued_by?.toLowerCase().includes(q)
+                  );
+                }).length === 0 && (
+                  <p className="text-xs text-muted-foreground text-center py-3">
+                    Niciun rezultat pentru &ldquo;{search}&rdquo;
+                  </p>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Default compact list */}
           <div className="space-y-2">
             {documents.length === 0 && (
               <p className="text-sm text-muted-foreground text-center py-4">
                 Nu ai documente disponibile
               </p>
             )}
-            {documents.map((doc) => {
+            {documents.slice(0, 3).map((doc) => {
               const selected = selectedDocs.includes(doc.id);
               return (
                 <button
                   key={doc.id}
+                  type="button"
                   onClick={() => toggleDoc(doc.id)}
                   className={`w-full flex items-center gap-3 p-3 rounded-xl border-2 text-left transition-all ${
-                    selected
-                      ? "border-actid-blue bg-blue-50"
-                      : "border-border hover:border-gray-300"
+                    selected ? "border-actid-blue bg-blue-50" : "border-border hover:border-gray-300"
                   }`}
                   aria-pressed={selected}
                 >
@@ -167,20 +268,23 @@ export function QRGenerator({ documents, onTokenCreated }: QRGeneratorProps) {
                     )}
                   </div>
                   <Badge
-                    variant={
-                      doc.status === "valid"
-                        ? "success"
-                        : doc.status === "expirat"
-                        ? "danger"
-                        : "warning"
-                    }
+                    variant={doc.status === "valid" ? "success" : doc.status === "expirat" ? "danger" : "warning"}
                     className="flex-shrink-0"
                   >
-                    {doc.status === "valid" ? "Valid" : doc.status === "expirat" ? "Expirat" : `${doc.days_remaining}z`}
+                    {doc.status === "valid" ? "Valabil" : doc.status === "expirat" ? "Expirat" : "Expiră curând"}
                   </Badge>
                 </button>
               );
             })}
+            {documents.length > 3 && !showAll && (
+              <button
+                type="button"
+                onClick={() => setShowAll(true)}
+                className="w-full mt-1 py-2 text-xs text-actid-blue font-medium hover:bg-blue-50 rounded-xl transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-actid-blue"
+              >
+                + {documents.length - 3} alte documente — Vizualizează toate
+              </button>
+            )}
           </div>
         </div>
 
