@@ -9,7 +9,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { cn, DOC_LABELS, STATUS_CONFIG, formatDate } from "@/lib/utils";
-import { Badge, Button } from "@/components/ui";
+import { Button, StatusBadge } from "@/components/ui";
 import type { Document, DocStatus } from "@/types";
 
 const DOC_ICON_MAP: Record<string, LucideIcon> = {
@@ -104,12 +104,12 @@ export function DocumentCard({
     ? "Expirat"
     : "Expiră curând";
 
-  const badgeVariant = status === "valid" ? "success" : status === "expirat" ? "danger" : "warning";
-
   return (
     <div
       className={cn(
         "bg-white rounded-2xl border card-hover cursor-pointer",
+        // ACCESSIBILITY: visible keyboard focus indicator (WCAG 2.4.7)
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-actid-blue focus-visible:ring-offset-1",
         status === "expirat"       ? "border-red-200"   : "",
         status === "expiră_curând" ? "border-amber-200" : "border-border"
       )}
@@ -117,6 +117,8 @@ export function DocumentCard({
       role="button"
       tabIndex={0}
       aria-expanded={!compact ? expanded : undefined}
+      // ACCESSIBILITY: concise SR announcement, e.g. "Carte de Identitate — Expirat"
+      aria-label={`${label} — ${badgeText}`}
       onKeyDown={(e) => {
         if (e.key === "Enter" || e.key === " ") {
           e.preventDefault();
@@ -124,8 +126,8 @@ export function DocumentCard({
         }
       }}
     >
-      <div className="p-4">
-        <div className="flex items-start gap-3">
+      <div className="p-5">
+        <div className="flex items-start gap-4">
           <div className={cn("w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0", iconBg)}>
             <DocTypeIcon type={doc.doc_type} size={22} />
           </div>
@@ -143,7 +145,7 @@ export function DocumentCard({
                   </p>
                 )}
               </div>
-              <Badge variant={badgeVariant} className="flex-shrink-0">{badgeText}</Badge>
+              <StatusBadge status={status} className="flex-shrink-0" />
             </div>
 
             {doc.expires_date && (
@@ -171,7 +173,7 @@ export function DocumentCard({
         </div>
 
         {expanded && !compact && (
-          <div className="mt-4 pt-4 border-t border-border space-y-2 animate-fade-in">
+          <div className="mt-5 pt-5 border-t border-border space-y-2.5 animate-fade-in">
             {doc.issued_by && (
               <div className="flex justify-between text-xs">
                 <span className="text-muted-foreground">Emis de:</span>
@@ -203,8 +205,9 @@ export function DocumentCard({
                 </Button>
               )}
               {onDelete && (
-                <Button size="sm" variant="ghost" onClick={() => onDelete(doc)} aria-label="Șterge document">
-                  <Trash2 size={14} aria-hidden="true" />
+                /* ACCESSIBILITY: 44x44 minimum touch target for icon-only control (WCAG 2.5.5) */
+                <Button size="sm" variant="ghost" onClick={() => onDelete(doc)} aria-label="Șterge document" className="min-h-11 min-w-11">
+                  <Trash2 size={16} aria-hidden="true" />
                 </Button>
               )}
             </div>

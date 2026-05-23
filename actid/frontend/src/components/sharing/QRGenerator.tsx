@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { QRCodeSVG } from "qrcode.react";
-import { QrCode, Search, X, ChevronDown, Check, Clock, FolderOpen, Minus } from "lucide-react";
+import { QrCode, Search, X, ChevronDown, Check, FolderOpen, Minus } from "lucide-react";
 import { sharingApi } from "@/lib/api";
 import { useNotificationStore } from "@/store/notificationStore";
 import { Button, Card, CardContent, Badge } from "@/components/ui";
@@ -79,9 +79,6 @@ export function QRGenerator({ documents, onTokenCreated, initialSelectedIds }: Q
   };
 
   const folders = groupDocsIntoFolders(documents);
-  const recent = [...documents]
-    .sort((a, b) => (b.created_at || "").localeCompare(a.created_at || ""))
-    .slice(0, 3);
   const q = search.trim().toLowerCase();
   const searchResults = q
     ? documents.filter(
@@ -192,10 +189,11 @@ export function QRGenerator({ documents, onTokenCreated, initialSelectedIds }: Q
                   <button
                     type="button"
                     onClick={() => setSearch("")}
-                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                    aria-label="Șterge căutare"
+                    /* ACCESSIBILITY: larger hit area + focus ring for the clear button */
+                    className="absolute right-1 top-1/2 -translate-y-1/2 min-h-9 min-w-9 flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-actid-blue"
+                    aria-label="Șterge căutarea"
                   >
-                    <X size={14} aria-hidden="true" />
+                    <X size={16} aria-hidden="true" />
                   </button>
                 )}
               </div>
@@ -214,21 +212,6 @@ export function QRGenerator({ documents, onTokenCreated, initialSelectedIds }: Q
                 </div>
               ) : (
                 <>
-                  {/* Recent — quick access to your latest documents */}
-                  {recent.length > 0 && documents.length > 3 && (
-                    <div>
-                      <div className="flex items-center gap-1.5 mb-2">
-                        <Clock size={12} className="text-muted-foreground" aria-hidden="true" />
-                        <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">Recente</p>
-                      </div>
-                      <div className="space-y-1.5">
-                        {recent.map((doc) => (
-                          <DocPickItem key={doc.id} doc={doc} selected={selectedDocs.includes(doc.id)} onToggle={() => toggleDoc(doc.id)} />
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
                   {/* Folders — browse by category */}
                   <div>
                     <div className="flex items-center gap-1.5 mb-2">
@@ -255,8 +238,9 @@ export function QRGenerator({ documents, onTokenCreated, initialSelectedIds }: Q
                                   if (next) setExpandedFolder(f.key);
                                 }}
                                 aria-pressed={allSelected}
-                                aria-label={allSelected ? `Deselectează tot din ${f.label}` : `Selectează tot din ${f.label}`}
-                                className="flex-shrink-0 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-actid-blue"
+                                aria-label={`${allSelected ? "Deselectează" : "Selectează"} tot din ${f.label}, ${f.docs.length} documente`}
+                                /* ACCESSIBILITY: 44x44 touch target around the small checkbox (WCAG 2.5.5) */
+                                className="flex-shrink-0 min-h-11 min-w-11 flex items-center justify-center rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-actid-blue"
                               >
                                 <span
                                   className={cn(
@@ -278,7 +262,8 @@ export function QRGenerator({ documents, onTokenCreated, initialSelectedIds }: Q
                                 type="button"
                                 onClick={() => setExpandedFolder(open ? null : f.key)}
                                 aria-expanded={open}
-                                className="flex items-center gap-3 flex-1 min-w-0 text-left"
+                                aria-label={`${f.label}, ${f.docs.length} documente`}
+                                className="flex items-center gap-3 flex-1 min-w-0 text-left rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-actid-blue"
                               >
                                 <div className={cn("w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0", meta.tile)}>
                                   <Icon size={16} aria-hidden="true" />
@@ -376,8 +361,12 @@ function DocPickItem({
       type="button"
       onClick={onToggle}
       aria-pressed={selected}
+      // ACCESSIBILITY: announce name + selection state, e.g. "Pașaport, Selectat" (WCAG 4.1.2)
+      aria-label={`${DOC_LABELS[doc.doc_type] || doc.doc_type}, ${selected ? "Selectat" : "Neselectat"}`}
       className={cn(
         "w-full flex items-center gap-3 p-2.5 rounded-xl border-2 text-left transition-all",
+        // ACCESSIBILITY: visible keyboard focus indicator (WCAG 2.4.7)
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-actid-blue",
         selected ? "border-actid-blue bg-blue-50" : "border-border bg-white hover:border-gray-300"
       )}
     >

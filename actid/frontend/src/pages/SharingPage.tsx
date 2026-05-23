@@ -7,7 +7,7 @@ import { documentsApi, sharingApi } from "@/lib/api";
 import { useDocumentStore } from "@/store/documentStore";
 import { useNotificationStore } from "@/store/notificationStore";
 import { QRGenerator } from "@/components/sharing/QRGenerator";
-import { Card, CardContent, Badge, Button } from "@/components/ui";
+import { Card, CardContent, Badge, Button, StatusBadge } from "@/components/ui";
 import { formatDateTime, truncateHash } from "@/lib/utils";
 import type { ShareToken } from "@/types";
 
@@ -235,9 +235,7 @@ export default function SharingPage() {
                         <p className="text-xs text-muted-foreground font-mono">{doc.doc_number}</p>
                       )}
                     </div>
-                    <Badge variant={doc.status === "valid" ? "success" : doc.status === "expirat" ? "danger" : "warning"}>
-                      {doc.status === "valid" ? "Valabil" : doc.status === "expirat" ? "Expirat" : "Expiră curând"}
-                    </Badge>
+                    <StatusBadge status={doc.status} />
                   </div>
                 ))}
               </CardContent>

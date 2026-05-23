@@ -88,7 +88,7 @@ export default function DashboardPage() {
   };
 
   return (
-    <div className="max-w-2xl mx-auto px-4 py-6 space-y-6">
+    <div className="max-w-2xl mx-auto px-4 py-6 space-y-8">
       {/* Header */}
       <div className="flex items-start justify-between">
         <div>
@@ -130,61 +130,6 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* Stats row */}
-      <div className="grid grid-cols-3 gap-3">
-        <StatCard
-          Icon={ShieldCheck}
-          count={loading ? null : validDocs.length}
-          label="Valide"
-          iconColor="text-green-600"
-          bg="bg-green-50"
-          onClick={() => navigate("/documents")}
-        />
-        <StatCard
-          Icon={Clock}
-          count={loading ? null : expiringSoon.length}
-          label="Expiră curând"
-          iconColor="text-amber-600"
-          bg="bg-amber-50"
-          onClick={() => navigate("/documents")}
-        />
-        <StatCard
-          Icon={ShieldAlert}
-          count={loading ? null : expired.length}
-          label="Expirate"
-          iconColor="text-red-600"
-          bg="bg-red-50"
-          onClick={() => navigate("/documents")}
-        />
-      </div>
-
-      {/* Quick actions */}
-      <div>
-        <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-3">
-          Acțiuni rapide
-        </h2>
-        <div className="grid grid-cols-3 gap-3">
-          <QuickAction
-            Icon={QrCode}
-            label="Partajează QR"
-            onClick={() => navigate("/sharing")}
-            color="bg-purple-50 text-purple-700"
-          />
-          <QuickAction
-            Icon={Users}
-            label="Familie"
-            onClick={() => navigate("/family")}
-            color="bg-teal-50 text-teal-700"
-          />
-          <QuickAction
-            Icon={Link2}
-            label="Jurnal Audit"
-            onClick={() => navigate("/audit")}
-            color="bg-blue-50 text-blue-700"
-          />
-        </div>
-      </div>
-
       {/* Documents preview */}
       <div>
         <div className="flex items-center justify-between mb-3">
@@ -198,7 +143,7 @@ export default function DashboardPage() {
             Vezi toate
           </button>
         </div>
-        <div className="space-y-3">
+        <div className="space-y-4">
           {loading ? (
             <>
               <DocumentCardSkeleton />
@@ -237,13 +182,76 @@ export default function DashboardPage() {
               {documents.length > 3 && (
                 <button
                   onClick={() => navigate("/documents")}
-                  className="w-full py-3 text-sm text-actid-blue font-medium hover:bg-blue-50 rounded-xl transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-actid-blue"
+                  className="w-full py-3 text-sm text-actid-blue font-semibold border-2 border-actid-blue/20 hover:border-actid-blue/40 hover:bg-blue-50/60 rounded-2xl transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-actid-blue"
                 >
-                  + {documents.length - 3} alte documente
+                  + {documents.length - 3} {documents.length - 3 === 1 ? "alt document" : "alte documente"}
                 </button>
               )}
             </>
           )}
+        </div>
+      </div>
+
+      {/* Quick actions */}
+      <div>
+        <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-3">
+          Acțiuni rapide
+        </h2>
+        <div className="grid grid-cols-3 gap-2 sm:gap-3">
+          <QuickAction
+            Icon={QrCode}
+            label="Partajează QR"
+            desc="Trimite documente rapid"
+            onClick={() => navigate("/sharing")}
+            color="bg-blue-50 text-blue-700"
+          />
+          <QuickAction
+            Icon={Users}
+            label="Familie"
+            desc="Gestionează accesul"
+            onClick={() => navigate("/family")}
+            color="bg-blue-50 text-blue-700"
+          />
+          <QuickAction
+            Icon={Link2}
+            label="Jurnal Audit"
+            desc="Verifică activitatea"
+            onClick={() => navigate("/audit")}
+            color="bg-blue-50 text-blue-700"
+          />
+        </div>
+      </div>
+
+      {/* Validity state (documents) */}
+      <div>
+        <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-3">
+          Stare documente
+        </h2>
+        <div className="grid grid-cols-3 gap-3">
+          <StatCard
+            Icon={ShieldCheck}
+            count={loading ? null : validDocs.length}
+            label="Valide"
+            iconColor="text-green-600"
+            bg="bg-green-50"
+            onClick={() => navigate("/documents")}
+          />
+          <StatCard
+            Icon={Clock}
+            count={loading ? null : expiringSoon.length}
+            label="Expiră curând"
+            iconColor="text-amber-600"
+            bg="bg-amber-50"
+            onClick={() => navigate("/documents")}
+          />
+          <StatCard
+            Icon={ShieldAlert}
+            count={loading ? null : expired.length}
+            label="Expirate"
+            iconColor="text-red-600"
+            bg="bg-red-50"
+            onClick={() => navigate("/documents")}
+          />
         </div>
       </div>
 
@@ -352,7 +360,7 @@ function StatCard({
       ) : (
         <p className={cn("text-2xl font-bold", iconColor)}>{count}</p>
       )}
-      <p className="text-[11px] text-muted-foreground font-medium leading-tight">{label}</p>
+      <p className="text-xs text-muted-foreground font-medium leading-tight mt-0.5">{label}</p>
     </button>
   );
 }
@@ -360,21 +368,29 @@ function StatCard({
 function QuickAction({
   Icon,
   label,
+  desc,
   onClick,
   color,
 }: {
   Icon: LucideIcon;
   label: string;
+  desc: string;
   onClick: () => void;
   color: string;
 }) {
   return (
     <button
       onClick={onClick}
-      className={cn(color, "rounded-2xl p-4 text-center hover:opacity-90 active:scale-[0.97] transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-actid-blue")}
+      className={cn(
+        color,
+        "rounded-2xl p-3 sm:p-4 md:p-5 text-center hover:opacity-90 active:scale-[0.97] transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-actid-blue"
+      )}
     >
-      <Icon size={22} className="mx-auto mb-1.5" aria-hidden="true" />
-      <span className="text-xs font-semibold leading-tight block">{label}</span>
+      <div className="flex items-center justify-center mb-2 sm:mb-3">
+        <Icon size={28} className="sm:w-8 sm:h-8" aria-hidden="true" />
+      </div>
+      <span className="text-xs sm:text-sm font-semibold leading-tight block">{label}</span>
+      <span className="text-[10px] sm:text-xs opacity-60 leading-snug mt-0.5 block line-clamp-2 sm:line-clamp-1">{desc}</span>
     </button>
   );
 }

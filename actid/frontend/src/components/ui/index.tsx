@@ -76,6 +76,30 @@ export const Badge = ({ className, variant = "default", ...props }: BadgeProps) 
   );
 };
 
+// ─── Status Badge ───────────────────────────────────────────────────────────────
+// ACCESSIBILITY: document status is conveyed by icon + text + color together, never
+// color alone (WCAG 1.4.1). One source of truth so every status reads the same way.
+const STATUS_BADGE = {
+  valid:         { variant: "success" as const, Icon: CheckCircle2,  label: "Valabil" },
+  expiră_curând: { variant: "warning" as const, Icon: AlertTriangle, label: "Expiră curând" },
+  expirat:       { variant: "danger"  as const, Icon: XCircle,       label: "Expirat" },
+};
+
+export function statusLabel(status?: string): string {
+  return STATUS_BADGE[status as keyof typeof STATUS_BADGE]?.label ?? STATUS_BADGE.valid.label;
+}
+
+export const StatusBadge = ({ status, className }: { status?: string; className?: string }) => {
+  const cfg = STATUS_BADGE[status as keyof typeof STATUS_BADGE] ?? STATUS_BADGE.valid;
+  const Icon = cfg.Icon;
+  return (
+    <Badge variant={cfg.variant} className={className}>
+      <Icon size={12} aria-hidden="true" />
+      {cfg.label}
+    </Badge>
+  );
+};
+
 // ─── Card ─────────────────────────────────────────────────────────────────────
 
 export const Card = ({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
@@ -206,6 +230,8 @@ interface ToastItem {
   id: string;
   message: string;
   type: "success" | "error" | "info";
+  // ACCESSIBILITY: optional inline action (e.g. "Anulează") so destructive actions are reversible (WCAG 3.3.4)
+  action?: { label: string; onClick: () => void };
 }
 
 // ─── Confirm Dialog ───────────────────────────────────────────────────────────
@@ -273,7 +299,12 @@ export const ConfirmDialog = ({
 export const ToastContainer = ({ toasts, onRemove }: { toasts: ToastItem[]; onRemove: (id: string) => void }) => {
   if (!toasts.length) return null;
   return (
-    <div className="fixed bottom-20 left-1/2 -translate-x-1/2 z-50 flex flex-col gap-2 w-[calc(100%-2rem)] max-w-sm">
+    // ACCESSIBILITY: role=status + aria-live=polite so screen readers announce toasts (WCAG 4.1.3)
+    <div
+      className="fixed bottom-[calc(4rem+env(safe-area-inset-bottom)+0.75rem)] lg:bottom-6 left-1/2 -translate-x-1/2 z-50 flex flex-col gap-2 w-[calc(100%-2rem)] max-w-sm"
+      role="status"
+      aria-live="polite"
+    >
       {toasts.map((t) => (
         <div
           key={t.id}
@@ -286,7 +317,16 @@ export const ToastContainer = ({ toasts, onRemove }: { toasts: ToastItem[]; onRe
         >
           <span>{t.type === "success" ? <CheckCircle2 size={16} aria-hidden="true" /> : t.type === "error" ? <XCircle size={16} aria-hidden="true" /> : <Info size={16} aria-hidden="true" />}</span>
           <span className="flex-1">{t.message}</span>
-          <button onClick={() => onRemove(t.id)} className="opacity-70 hover:opacity-100" aria-label="Închide"><X size={14} aria-hidden="true" /></button>
+          {/* ACCESSIBILITY: inline undo/action button, large enough to tap */}
+          {t.action && (
+            <button
+              onClick={() => { t.action!.onClick(); onRemove(t.id); }}
+              className="font-bold underline underline-offset-2 px-2 py-1 -my-1 rounded hover:opacity-100 opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+            >
+              {t.action.label}
+            </button>
+          )}
+          <button onClick={() => onRemove(t.id)} className="flex items-center justify-center min-w-9 min-h-9 -mr-2 opacity-70 hover:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white rounded" aria-label="Închide notificarea"><X size={16} aria-hidden="true" /></button>
         </div>
       ))}
     </div>
