@@ -11,6 +11,7 @@ import type { Document, ShareToken } from "@/types";
 interface QRGeneratorProps {
   documents: Document[];
   onTokenCreated?: (token: ShareToken) => void;
+  initialSelectedIds?: string[];
 }
 
 const CONTEXTS = [
@@ -23,8 +24,8 @@ const CONTEXTS = [
   "Alt serviciu public",
 ];
 
-export function QRGenerator({ documents, onTokenCreated }: QRGeneratorProps) {
-  const [selectedDocs, setSelectedDocs] = useState<string[]>([]);
+export function QRGenerator({ documents, onTokenCreated, initialSelectedIds }: QRGeneratorProps) {
+  const [selectedDocs, setSelectedDocs] = useState<string[]>(initialSelectedIds ?? []);
   const [context, setContext] = useState(CONTEXTS[0]);
   const [expires, setExpires] = useState(24);
   const [loading, setLoading] = useState(false);
