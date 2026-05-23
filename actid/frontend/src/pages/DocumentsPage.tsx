@@ -640,25 +640,6 @@ export default function DocumentsPage() {
           })}
         </div>
 
-        {/* Delete confirmation */}
-        {deletePending && (
-          <Card className="border-actid-red/30 bg-red-50/50">
-            <CardContent className="py-4">
-              <p className="text-sm font-semibold text-red-800">
-                Ștergi &ldquo;{DOC_LABELS[deletePending.doc_type]}&rdquo;?
-              </p>
-              <p className="text-xs text-red-600 mt-0.5">Această acțiune nu poate fi anulată.</p>
-              <div className="flex gap-2 mt-3">
-                <Button size="sm" variant="destructive" onClick={handleDeleteConfirm} className="flex-1">
-                  Da, șterge
-                </Button>
-                <Button size="sm" variant="secondary" onClick={() => setDeletePending(null)} className="flex-1">
-                  Anulează
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        )}
 
         {/* ── Loading ─────────────────────────────────────────────────────── */}
         {loading ? (
@@ -687,8 +668,15 @@ export default function DocumentsPage() {
               </Card>
             ) : (
               searchResults.map((doc) => (
-                <div key={doc.id} role="listitem">
+                <div key={doc.id} role="listitem" className="space-y-2">
                   <DocumentCard doc={doc} onDelete={handleDelete} onShare={() => {}} onView={setViewDoc} />
+                  {deletePending?.id === doc.id && (
+                    <DeleteConfirm
+                      label={DOC_LABELS[doc.doc_type]}
+                      onConfirm={handleDeleteConfirm}
+                      onCancel={() => setDeletePending(null)}
+                    />
+                  )}
                 </div>
               ))
             )}
@@ -720,8 +708,15 @@ export default function DocumentsPage() {
                 </div>
                 <div className="space-y-4" role="list" aria-label={activeFolder.label}>
                   {activeFolder.docs.map((doc) => (
-                    <div key={doc.id} role="listitem">
+                    <div key={doc.id} role="listitem" className="space-y-2">
                       <DocumentCard doc={doc} onDelete={handleDelete} onShare={() => {}} onView={setViewDoc} />
+                      {deletePending?.id === doc.id && (
+                        <DeleteConfirm
+                          label={DOC_LABELS[doc.doc_type]}
+                          onConfirm={handleDeleteConfirm}
+                          onCancel={() => setDeletePending(null)}
+                        />
+                      )}
                     </div>
                   ))}
                 </div>
@@ -800,5 +795,32 @@ export default function DocumentsPage() {
         )}
       </div>
     </>
+  );
+}
+
+function DeleteConfirm({
+  label,
+  onConfirm,
+  onCancel,
+}: {
+  label: string;
+  onConfirm: () => void;
+  onCancel: () => void;
+}) {
+  return (
+    <Card className="border-actid-red/30 bg-red-50/50">
+      <CardContent className="py-4">
+        <p className="text-sm font-semibold text-red-800">Ștergi &ldquo;{label}&rdquo;?</p>
+        <p className="text-xs text-red-600 mt-0.5">Această acțiune nu poate fi anulată.</p>
+        <div className="flex gap-2 mt-3">
+          <Button size="sm" variant="destructive" onClick={onConfirm} className="flex-1">
+            Da, șterge
+          </Button>
+          <Button size="sm" variant="secondary" onClick={onCancel} className="flex-1">
+            Anulează
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
   );
 }
