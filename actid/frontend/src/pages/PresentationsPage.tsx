@@ -58,12 +58,9 @@ const DEFAULT_ATTRS: Attr[] = [
   { key: "expiry_date",     label: "Data expirării" },
 ];
 
-const VERIFIER_ROLES = [
-  { value: "funcționar", label: "Funcționar public" },
-  { value: "medic",      label: "Medic" },
-  { value: "angajator",  label: "Angajator" },
-  { value: "operator",   label: "Operator transport" },
-  { value: "alt",        label: "Alt verificator" },
+const VERIFIER_ROLES: { value: "funcționar" | "any"; label: string }[] = [
+  { value: "funcționar", label: "Funcționar public (SPCLEP, primărie)" },
+  { value: "any",        label: "Alt verificator (medic, angajator, operator)" },
 ];
 
 const PURPOSE_SUGGESTIONS = [
@@ -85,7 +82,7 @@ export default function PresentationsPage() {
   const [fetchedAttrs, setFetchedAttrs]   = useState<Attr[] | null>(null);
   const [attrsLoading, setAttrsLoading]   = useState(false);
   const [purpose, setPurpose]             = useState("");
-  const [verifierRole, setVerifierRole]   = useState("funcționar");
+  const [verifierRole, setVerifierRole]   = useState<"funcționar" | "any">("funcționar");
   const [submitting, setSubmitting]       = useState(false);
   const [result, setResult]               = useState<Presentation | null>(null);
 
@@ -358,7 +355,7 @@ export default function PresentationsPage() {
                   <select
                     id="verifier-role"
                     value={verifierRole}
-                    onChange={(e) => setVerifierRole(e.target.value)}
+                    onChange={(e) => setVerifierRole(e.target.value as "funcționar" | "any")}
                     className="w-full h-11 rounded-xl border border-input bg-white px-4 text-sm focus:outline-none focus:ring-2 focus:ring-actid-blue/30 focus:border-actid-blue"
                   >
                     {VERIFIER_ROLES.map((r) => (

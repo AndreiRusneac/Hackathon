@@ -154,66 +154,6 @@ export const familyApi = {
   revokeDelegation: (id: string) => api.delete(`/family/delegations/${id}`),
 };
 
-// ─── EUDI Credentials (Andrei) ────────────────────────────────────────────────
-
-export interface CredentialResult {
-  credential_sd_jwt: string;
-  vct: string;
-  issuer_id: string;
-  disclosed_attributes_available: string[];
-}
-
-export const credentialsApi = {
-  get: (docId: string) => api.get<CredentialResult>(`/credentials/${docId}`),
-};
-
-// ─── EUDI Presentations (Radu) ────────────────────────────────────────────────
-
-export interface PresentationVerifyResult {
-  valid: boolean;
-  issuer: {
-    id: string;
-    name: string;
-    trusted: boolean;
-    country: string;
-  };
-  credential_type: string;
-  disclosed_attributes: Record<string, string | number | boolean>;
-  purpose: string;
-  verified_at: string;
-}
-
-export const presentationsApi = {
-  create: (data: object) => api.post("/presentations", data),
-  scan:   (presentationId: string) =>
-    api.get<PresentationVerifyResult>(`/presentations/${presentationId}/scan`),
-};
-
-// ─── Wallet Security (Andrei + Teo) ───────────────────────────────────────────
-
-export interface WalletSecurity {
-  wallet_instance_id: string;
-  encryption: { algorithm: string; at_rest_enabled: boolean; encrypted_fields: string[] };
-  trusted_issuers: Array<{ id: string; name: string; country: string; valid_from: string }>;
-  issuer_public_key_fingerprint: string;
-}
-
-export interface PresentationHistoryEntry {
-  id: string;
-  document_id: string;
-  document_type: string;
-  disclosed_attributes: string[];
-  purpose: string;
-  created_at: string;
-  scanned_at: string | null;
-  scanned_by_name: string | null;
-}
-
-export const walletApi = {
-  security: () => api.get<WalletSecurity>("/wallet/security"),
-  history:  () => api.get<{ presentations: PresentationHistoryEntry[] }>("/wallet/presentations-history"),
-};
-
 // ─── Audit ───────────────────────────────────────────────────────────────────
 
 export const auditApi = {
