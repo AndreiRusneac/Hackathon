@@ -12,6 +12,7 @@ import FamilyPage from "@/pages/FamilyPage";
 import AuditLogPage from "@/pages/AuditLogPage";
 import NotificationsPage from "@/pages/NotificationsPage";
 import FunctionarPage from "@/pages/FunctionarPage";
+import ScanPage from "@/pages/ScanPage";
 
 export default function App() {
   const { hydrate } = useAuthStore();
@@ -25,6 +26,7 @@ export default function App() {
       <Route path="/" element={<LandingPage />} />
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
+      <Route path="/scan/:token" element={<ScanPage />} />
 
       <Route element={<AppLayout />}>
         <Route path="/dashboard" element={<DashboardPage />} />

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   LogIn, LogOut, Eye, Upload, Trash2, QrCode,
-  UserPlus, UserMinus, Zap, FileText, Link2, CheckCircle2, XCircle,
+  UserPlus, UserMinus, Zap, FileText, Link2, CheckCircle2, XCircle, Users,
   type LucideIcon,
 } from "lucide-react";
 import { auditApi } from "@/lib/api";
@@ -13,6 +13,7 @@ import {
   ACTION_LABELS,
   ACTION_STYLE,
   DEFAULT_ACTION_STYLE,
+  cn,
 } from "@/lib/utils";
 import type { AuditEntry } from "@/types";
 
@@ -132,25 +133,33 @@ export default function AuditLogPage() {
         <StatCard
           value={stats?.total_entries}
           label="Înregistrări totale"
-          icon="🔗"
+          Icon={Link2}
+          iconColor="text-actid-blue"
+          iconBg="bg-blue-50"
           loading={loading}
         />
         <StatCard
           value={stats?.documents_created}
           label="Documente create"
-          icon="📤"
+          Icon={Upload}
+          iconColor="text-blue-600"
+          iconBg="bg-blue-50"
           loading={loading}
         />
         <StatCard
           value={stats?.qr_shares}
           label="Partajări QR"
-          icon="📱"
+          Icon={QrCode}
+          iconColor="text-amber-600"
+          iconBg="bg-amber-50"
           loading={loading}
         />
         <StatCard
           value={stats?.delegations}
           label="Delegări familie"
-          icon="🤝"
+          Icon={Users}
+          iconColor="text-teal-600"
+          iconBg="bg-teal-50"
           loading={loading}
         />
       </div>
@@ -305,17 +314,23 @@ export default function AuditLogPage() {
 function StatCard({
   value,
   label,
-  icon,
+  Icon,
+  iconColor = "text-actid-blue",
+  iconBg = "bg-blue-50",
   loading,
 }: {
   value: number | undefined;
   label: string;
-  icon: string;
+  Icon: LucideIcon;
+  iconColor?: string;
+  iconBg?: string;
   loading: boolean;
 }) {
   return (
     <div className="bg-white rounded-2xl border border-border p-3 flex items-center gap-3">
-      <span className="text-2xl flex-shrink-0">{icon}</span>
+      <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0", iconBg)}>
+        <Icon size={20} className={iconColor} aria-hidden="true" />
+      </div>
       <div className="min-w-0">
         {loading ? (
           <div className="skeleton h-6 w-10 rounded mb-1" />
@@ -343,7 +358,6 @@ function AuditBlock({
 }) {
   const actionInfo = ACTION_LABELS[entry.action] || {
     label: entry.action,
-    icon: "📋",
     color: "text-gray-600",
   };
   const ActionIcon = ACTION_ICON_MAP[entry.action] || FileText;
@@ -368,11 +382,7 @@ function AuditBlock({
         >
           {entry.block_number}
         </button>
-        {!isLast && (
-          <div
-            className={`w-0.5 h-7 bg-gradient-to-b ${style.line} mx-auto`}
-          />
-        )}
+        {!isLast && <div className="chain-connector mt-1" />}
       </div>
 
       {/* Block content */}
@@ -395,8 +405,8 @@ function AuditBlock({
                   {actionInfo.label}
                 </p>
                 {isGenesis && (
-                  <Badge className="text-[10px] bg-violet-50 text-violet-700 ring-1 ring-violet-200">
-                    ⛓ Bloc geneză
+                  <Badge className="text-[10px] bg-violet-50 text-violet-700 ring-1 ring-violet-200 inline-flex items-center gap-1">
+                    <Link2 size={9} aria-hidden="true" /> Bloc geneză
                   </Badge>
                 )}
                 <Badge

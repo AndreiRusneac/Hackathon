@@ -92,6 +92,7 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
   dismissAll: () =>
     set((s) => ({
       notifications: s.notifications.map((n) => ({ ...n, dismissed: true })),
+      unreadCount: 0,
     })),
 
   addToast: (message, type = "info") => {
