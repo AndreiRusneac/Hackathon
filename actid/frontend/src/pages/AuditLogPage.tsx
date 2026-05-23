@@ -32,6 +32,7 @@ const ACTION_ICON_MAP: Record<string, LucideIcon> = {
   DELEGATION_REVOKE:     UserMinus,
   SYSTEM_INIT:           Zap,
   CREDENTIAL_ISSUED:     Shield,
+  PRESENTATION_CREATED:  Shield,
   PRESENTATION_VERIFIED: ShieldCheck,
 };
 

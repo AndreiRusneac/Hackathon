@@ -169,7 +169,7 @@ export interface CredentialResult {
   credential_sd_jwt: string;
   vct: string;
   issuer_id: string;
-  disclosed_attributes_available: string[];
+  attributes_available: string[];
 }
 
 export const credentialsApi = {

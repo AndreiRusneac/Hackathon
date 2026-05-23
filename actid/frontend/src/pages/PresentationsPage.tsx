@@ -106,7 +106,7 @@ export default function PresentationsPage() {
     setAttrsLoading(true);
     try {
       const res = await credentialsApi.get(doc.id);
-      const available = res.data.disclosed_attributes_available;
+      const available = res.data.attributes_available;
       const catalogAttrs = ATTR_CATALOG[doc.doc_type] ?? DEFAULT_ATTRS;
       const catalogMap = new Map(catalogAttrs.map((a) => [a.key, a]));
       const dynamicAttrs: Attr[] = available.map(
@@ -413,7 +413,7 @@ function PresentationResult({
           {/* QR */}
           <div className="flex justify-center">
             <div className="p-4 bg-white rounded-2xl shadow-inner border border-gray-100">
-              <QRCodeSVG value={result.qr_url} size={200} level="H" includeMargin={false} />
+              <QRCodeSVG value={`${window.location.origin}${result.qr_url}`} size={200} level="H" includeMargin={false} />
             </div>
           </div>
 
