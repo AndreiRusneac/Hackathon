@@ -1,53 +1,11 @@
 import { useCallback, useEffect, useState, type ElementType, type ReactNode } from "react";
 import {
   ShieldCheck, Lock, BadgeCheck, History, ChevronDown, ChevronUp,
-  Globe, Calendar, Key, Eye, EyeOff, AlertCircle, CheckCircle2,
+  Globe, Calendar, Key, Eye, EyeOff, AlertCircle, CheckCircle2, RefreshCw,
 } from "lucide-react";
 import { walletApi, type WalletSecurity, type PresentationHistoryEntry } from "@/lib/api";
-import { useNotificationStore } from "@/store/notificationStore";
-import { Badge, Card, CardContent } from "@/components/ui";
+import { Badge, Card, CardContent, Button } from "@/components/ui";
 import { cn, formatDate } from "@/lib/utils";
-
-const MOCK_SECURITY: WalletSecurity = {
-  wallet_instance_id: "wia_demo_user_12345678",
-  encryption: {
-    algorithm: "AES-256-GCM",
-    at_rest_enabled: true,
-    encrypted_fields: ["users.cnp", "documents.cnp", "documents.photo_base64"],
-  },
-  trusted_issuers: [
-    {
-      id: "actid-issuer-001",
-      name: "Statul Român — Ministerul Afacerilor Interne",
-      country: "RO",
-      valid_from: "2026-01-01",
-    },
-  ],
-  issuer_public_key_fingerprint: "SHA256:demo123abc456def789...",
-};
-
-const MOCK_HISTORY: PresentationHistoryEntry[] = [
-  {
-    id: "pres_demo1",
-    document_id: "doc_ci",
-    document_type: "CI",
-    disclosed_attributes: ["given_name", "birth_date"],
-    purpose: "Verificare vârstă bar",
-    created_at: new Date(Date.now() - 3600_000).toISOString(),
-    scanned_at: new Date(Date.now() - 3500_000).toISOString(),
-    scanned_by_name: "Funcționar SPCLEP Cluj",
-  },
-  {
-    id: "pres_demo2",
-    document_id: "doc_permis",
-    document_type: "PERMIS",
-    disclosed_attributes: ["given_name", "family_name", "document_number", "expiry_date"],
-    purpose: "Control trafic",
-    created_at: new Date(Date.now() - 86_400_000).toISOString(),
-    scanned_at: null,
-    scanned_by_name: null,
-  },
-];
 
 const ATTR_LABELS: Record<string, string> = {
   given_name: "Prenume",
@@ -188,28 +146,27 @@ function PresentationCard({ entry }: { entry: PresentationHistoryEntry }) {
 }
 
 export default function SecurityPage() {
-  const { addToast } = useNotificationStore();
   const [security, setSecurity] = useState<WalletSecurity | null>(null);
+  const [securityError, setSecurityError] = useState<string | null>(null);
   const [history, setHistory] = useState<PresentationHistoryEntry[]>([]);
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
     setLoading(true);
-    try {
-      const [secRes, histRes] = await Promise.allSettled([
-        walletApi.security(),
-        walletApi.history(),
-      ]);
-      setSecurity(secRes.status === "fulfilled" ? secRes.value.data : MOCK_SECURITY);
-      setHistory(histRes.status === "fulfilled" ? histRes.value.data.presentations : MOCK_HISTORY);
-    } catch {
-      setSecurity(MOCK_SECURITY);
-      setHistory(MOCK_HISTORY);
-      addToast("Date demo — backend în curs de implementare", "info");
-    } finally {
-      setLoading(false);
+    setSecurityError(null);
+    const [secRes, histRes] = await Promise.allSettled([
+      walletApi.security(),
+      walletApi.history(),
+    ]);
+    if (secRes.status === "fulfilled") {
+      setSecurity(secRes.value.data);
+    } else {
+      setSecurity(null);
+      setSecurityError("Nu s-au putut încărca datele de securitate. Verifică conexiunea sau repornește serverul.");
     }
-  }, [addToast]);
+    setHistory(histRes.status === "fulfilled" ? histRes.value.data.presentations : []);
+    setLoading(false);
+  }, []);
 
   useEffect(() => { load(); }, [load]);
 
@@ -225,6 +182,27 @@ export default function SecurityPage() {
             </div>
           </div>
         ))}
+      </div>
+    );
+  }
+
+  if (securityError) {
+    return (
+      <div className="max-w-2xl mx-auto px-4 py-6">
+        <Card className="border-red-200">
+          <CardContent className="py-10 flex flex-col items-center gap-4 text-center">
+            <div className="w-14 h-14 bg-red-50 rounded-2xl flex items-center justify-center">
+              <AlertCircle size={28} className="text-red-500" aria-hidden="true" />
+            </div>
+            <div>
+              <p className="font-semibold text-base">Eroare la încărcare</p>
+              <p className="text-sm text-muted-foreground mt-1 max-w-sm">{securityError}</p>
+            </div>
+            <Button variant="secondary" onClick={load} className="gap-2">
+              <RefreshCw size={14} aria-hidden="true" /> Reîncearcă
+            </Button>
+          </CardContent>
+        </Card>
       </div>
     );
   }
