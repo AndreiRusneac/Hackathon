@@ -8,10 +8,14 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from ..api.auth import get_current_user_dep
+from ..crypto.face_generator import fetch_ai_face, gender_from_cnp
 from ..crypto.vault import decrypt as vault_decrypt, encrypt as vault_encrypt
 from ..database import get_db
 from ..ledger import add_audit_entry
 from ..models.models import DelegationGrant, Document, User
+
+# Document types that should have a portrait photo
+_PHOTO_DOC_TYPES = {"CI", "PASAPORT", "PERMIS"}
 from ..schemas.schemas import (
     DocumentCatalogItem,
     DocumentCreate,
@@ -301,6 +305,43 @@ def request_document(
 
     uid = current_user.id
     cnp_value = current_user.cnp if payload.doc_type in {"CI", "PASAPORT"} else None
+
+    # Identity docs (CI / PASAPORT / PERMIS) get an AI-generated portrait.
+    # Reuse the face across all of a user's identity docs so they look like
+    # the same person; only fetch a new one if this is their first identity doc.
+    # Also BACKFILL any existing identity docs that lack a photo (e.g. seeded).
+    photo_data: str | None = None
+    if payload.doc_type in _PHOTO_DOC_TYPES:
+        existing_with_photo = (
+            db.query(Document)
+            .filter(
+                Document.owner_id == uid,
+                Document.doc_type.in_(_PHOTO_DOC_TYPES),
+                Document.photo_base64.isnot(None),
+            )
+            .first()
+        )
+        if existing_with_photo:
+            photo_data = vault_decrypt(existing_with_photo.photo_base64, uid)
+        else:
+            gender = gender_from_cnp(current_user.cnp)
+            photo_data = fetch_ai_face(gender)  # may be None on network failure
+
+        # Backfill: copy this face onto any seeded/older identity docs lacking one
+        if photo_data:
+            photoless = (
+                db.query(Document)
+                .filter(
+                    Document.owner_id == uid,
+                    Document.doc_type.in_(_PHOTO_DOC_TYPES),
+                    Document.photo_base64.is_(None),
+                )
+                .all()
+            )
+            encrypted_photo = vault_encrypt(photo_data, uid)
+            for d in photoless:
+                d.photo_base64 = encrypted_photo
+
     doc = Document(
         owner_id=uid,
         doc_type=payload.doc_type,
@@ -310,7 +351,7 @@ def request_document(
         expires_date=expires,
         description=vault_encrypt(meta["label"], uid),
         cnp=vault_encrypt(cnp_value, uid),
-        photo_base64=None,
+        photo_base64=vault_encrypt(photo_data, uid),
         is_verified=True,
     )
     db.add(doc)
@@ -412,6 +453,49 @@ def create_document(
     db.commit()
     db.refresh(doc)
     return _serialize_doc(doc)
+
+
+@router.post("/refresh-photo")
+def refresh_identity_photo(
+    current_user: User = Depends(get_current_user_dep),
+    db: Session = Depends(get_db),
+):
+    """
+    Fetches a fresh AI face and applies it to ALL the user's identity docs
+    (CI / PASAPORT / PERMIS). Used when the previously generated face doesn't
+    match the user's gender (the source service has no gender filter).
+    """
+    if current_user.role == "funcționar":
+        raise HTTPException(status_code=403, detail="Indisponibil pentru funcționar")
+
+    new_face = fetch_ai_face()
+    if not new_face:
+        raise HTTPException(status_code=503, detail="Nu am putut obține o poză nouă. Încearcă din nou.")
+
+    uid = current_user.id
+    encrypted = vault_encrypt(new_face, uid)
+
+    docs = (
+        db.query(Document)
+        .filter(Document.owner_id == uid, Document.doc_type.in_(_PHOTO_DOC_TYPES))
+        .all()
+    )
+    if not docs:
+        raise HTTPException(status_code=404, detail="Nu ai documente de identitate")
+
+    for d in docs:
+        d.photo_base64 = encrypted
+
+    add_audit_entry(
+        db,
+        action="PHOTO_REGENERATED",
+        actor_id=uid,
+        actor_name=current_user.full_name,
+        actor_role=current_user.role,
+        metadata={"affected_docs": len(docs), "doc_types": [d.doc_type for d in docs]},
+    )
+    db.commit()
+    return {"success": True, "updated_count": len(docs)}
 
 
 @router.delete("/{doc_id}")

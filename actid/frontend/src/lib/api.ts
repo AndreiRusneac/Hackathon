@@ -146,6 +146,7 @@ export const documentsApi = {
     api.post("/documents/renewal-request", { document_id, note }),
   catalog: () => api.get<DocumentCatalogItem[]>("/documents/catalog"),
   request: (doc_type: string) => api.post("/documents/request", { doc_type }),
+  refreshPhoto: () => api.post<{ success: boolean; updated_count: number }>("/documents/refresh-photo"),
 };
 
 // ─── Sharing ─────────────────────────────────────────────────────────────────

@@ -7,8 +7,12 @@ import {
 import { documentsApi, type DocumentCatalogItem } from "@/lib/api";
 import { useDocumentStore } from "@/store/documentStore";
 import { useNotificationStore } from "@/store/notificationStore";
+import { useAuthStore } from "@/store/authStore";
 import { DocumentCard, DocumentCardSkeleton, CATEGORY_META, DocTypeIcon } from "@/components/documents/DocumentCard";
 import { Button, Card, CardContent, Input } from "@/components/ui";
+import { CITemplate } from "@/components/documents/templates/CITemplate";
+import { PasaportTemplate } from "@/components/documents/templates/PasaportTemplate";
+import { PermisTemplate } from "@/components/documents/templates/PermisTemplate";
 import type { Document } from "@/types";
 import { DOC_LABELS, DOC_CATEGORIES, groupDocsIntoFolders, cn, formatDate } from "@/lib/utils";
 
@@ -28,6 +32,7 @@ const CATEGORY_LABELS: Record<string, string> = Object.fromEntries(
 export default function DocumentsPage() {
   const { documents, setDocuments, loading, setLoading, removeDocument } = useDocumentStore();
   const { generateFromDocuments, addToast } = useNotificationStore();
+  const { user } = useAuthStore();
 
   const [filter, setFilter] = useState<Filter>("all");
   const [search, setSearch] = useState("");
@@ -232,26 +237,28 @@ export default function DocumentsPage() {
           onClick={() => setViewDoc(null)}
         >
           <div
-            className="bg-white w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl overflow-hidden max-h-[90dvh] overflow-y-auto"
+            className="bg-white w-full sm:max-w-2xl rounded-t-3xl sm:rounded-3xl overflow-hidden max-h-[90dvh] overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Photo or placeholder */}
-            {viewDoc.photo_base64 ? (
-              <img
-                src={viewDoc.photo_base64}
-                alt="Document"
-                className="w-full aspect-video object-cover"
-              />
-            ) : (
-              <div className="w-full aspect-video bg-gradient-to-br from-blue-50 to-indigo-100 flex flex-col items-center justify-center gap-2 relative">
-                <DocTypeIcon type={viewDoc.doc_type} size={56} className="text-actid-blue/60" />
-                {viewDoc.is_verified && (
-                  <span className="absolute top-3 right-3 inline-flex items-center gap-1 text-[11px] font-semibold bg-green-50 text-green-700 px-2 py-1 rounded-full border border-green-200 shadow-sm">
-                    <ShieldCheck size={11} aria-hidden="true" /> Document Oficial
-                  </span>
-                )}
-              </div>
-            )}
+            {/* Document template — visual replica with watermark */}
+            <div className="p-4 bg-gradient-to-br from-gray-50 to-slate-100">
+              {viewDoc.doc_type === "CI" ? (
+                <CITemplate doc={viewDoc} fullName={user?.full_name || ""} userCnp={user?.cnp} />
+              ) : viewDoc.doc_type === "PASAPORT" ? (
+                <PasaportTemplate doc={viewDoc} fullName={user?.full_name || ""} userCnp={user?.cnp} />
+              ) : viewDoc.doc_type === "PERMIS" ? (
+                <PermisTemplate doc={viewDoc} fullName={user?.full_name || ""} userCnp={user?.cnp} />
+              ) : (
+                <div className="w-full aspect-video bg-gradient-to-br from-blue-50 to-indigo-100 rounded-xl flex flex-col items-center justify-center gap-2 relative">
+                  <DocTypeIcon type={viewDoc.doc_type} size={56} className="text-actid-blue/60" />
+                  {viewDoc.is_verified && (
+                    <span className="absolute top-3 right-3 inline-flex items-center gap-1 text-[11px] font-semibold bg-green-50 text-green-700 px-2 py-1 rounded-full border border-green-200 shadow-sm">
+                      <ShieldCheck size={11} aria-hidden="true" /> Document Oficial
+                    </span>
+                  )}
+                </div>
+              )}
+            </div>
 
             {/* Fields */}
             <div className="p-5 space-y-4">
