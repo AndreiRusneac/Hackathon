@@ -29,9 +29,7 @@ const CITIZEN_NAV: NavItem[] = [
 ];
 
 const FUNCTIONAR_NAV: NavItem[] = [
-  { to: "/dashboard",  icon: Home,      label: "Acasă" },
   { to: "/functionar", icon: Search,    label: "Portal Funcționar" },
-  { to: "/family",     icon: Users,     label: "Familie" },
   { to: "/audit",      icon: Link2,     label: "Jurnal Audit" },
 ];
 

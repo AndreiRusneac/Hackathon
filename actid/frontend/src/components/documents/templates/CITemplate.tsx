@@ -5,6 +5,7 @@
  * Watermark "DEMO — Document de prezentare" overlays the entire card
  * so the rendering cannot be confused for a real ID.
  */
+import { ShieldCheck } from "lucide-react";
 import type { Document } from "@/types";
 import { formatDate } from "@/lib/utils";
 
@@ -168,6 +169,28 @@ export function DemoWatermark() {
         </text>
       </g>
     </svg>
+  );
+}
+
+// ─── "Document Oficial" stamp (watermark, can't be removed) ──────────────────
+
+export function OfficialStamp() {
+  // Translucent rotated rubber-stamp look, embedded over the document so it
+  // reads as part of the artwork rather than a removable UI badge.
+  return (
+    <div className="pointer-events-none select-none absolute bottom-3 right-3 -rotate-12">
+      <div className="flex items-center gap-1.5 rounded-lg border-2 border-green-700/45 bg-green-50/10 px-2.5 py-1.5 backdrop-blur-[1px]">
+        <ShieldCheck size={18} className="text-green-700/55" aria-hidden="true" />
+        <div className="leading-none text-left">
+          <p className="text-[12px] font-black uppercase tracking-wider text-green-700/55">
+            Document Oficial
+          </p>
+          <p className="text-[6.5px] font-bold uppercase tracking-[0.18em] text-green-700/50 mt-0.5">
+            Verificat · ActID
+          </p>
+        </div>
+      </div>
+    </div>
   );
 }
 

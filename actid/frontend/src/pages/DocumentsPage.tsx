@@ -10,7 +10,7 @@ import { useNotificationStore } from "@/store/notificationStore";
 import { useAuthStore } from "@/store/authStore";
 import { DocumentCard, DocumentCardSkeleton, CATEGORY_META, DocTypeIcon } from "@/components/documents/DocumentCard";
 import { Button, Card, CardContent, Input } from "@/components/ui";
-import { CITemplate } from "@/components/documents/templates/CITemplate";
+import { CITemplate, OfficialStamp } from "@/components/documents/templates/CITemplate";
 import { PasaportTemplate } from "@/components/documents/templates/PasaportTemplate";
 import { PermisTemplate } from "@/components/documents/templates/PermisTemplate";
 import type { Document } from "@/types";
@@ -240,8 +240,8 @@ export default function DocumentsPage() {
             className="bg-white w-full sm:max-w-2xl rounded-t-3xl sm:rounded-3xl overflow-hidden max-h-[90dvh] overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Document template — visual replica with watermark */}
-            <div className="p-4 bg-gradient-to-br from-gray-50 to-slate-100">
+            {/* Document template — visual replica; "Document Oficial" stamp overlaid */}
+            <div className="relative p-4 bg-gradient-to-br from-gray-50 to-slate-100">
               {viewDoc.doc_type === "CI" ? (
                 <CITemplate doc={viewDoc} fullName={user?.full_name || ""} userCnp={user?.cnp} />
               ) : viewDoc.doc_type === "PASAPORT" ? (
@@ -249,15 +249,11 @@ export default function DocumentsPage() {
               ) : viewDoc.doc_type === "PERMIS" ? (
                 <PermisTemplate doc={viewDoc} fullName={user?.full_name || ""} userCnp={user?.cnp} />
               ) : (
-                <div className="w-full aspect-video bg-gradient-to-br from-blue-50 to-indigo-100 rounded-xl flex flex-col items-center justify-center gap-2 relative">
+                <div className="w-full aspect-video bg-gradient-to-br from-blue-50 to-indigo-100 rounded-xl flex flex-col items-center justify-center gap-2">
                   <DocTypeIcon type={viewDoc.doc_type} size={56} className="text-actid-blue/60" />
-                  {viewDoc.is_verified && (
-                    <span className="absolute top-3 right-3 inline-flex items-center gap-1 text-[11px] font-semibold bg-green-50 text-green-700 px-2 py-1 rounded-full border border-green-200 shadow-sm">
-                      <ShieldCheck size={11} aria-hidden="true" /> Document Oficial
-                    </span>
-                  )}
                 </div>
               )}
+              {viewDoc.is_verified && <OfficialStamp />}
             </div>
 
             {/* Fields */}
@@ -343,11 +339,10 @@ export default function DocumentsPage() {
             </p>
           </div>
           <Button
-            size="sm"
             onClick={openCatalog}
             className="gap-1.5 flex-shrink-0"
           >
-            <Plus size={14} aria-hidden="true" /> Solicită
+            <Plus size={16} aria-hidden="true" /> Solicită
           </Button>
         </div>
 
@@ -601,12 +596,11 @@ function CatalogRow({
         </Button>
       ) : (
         <Button
-          size="sm"
           onClick={onRequest}
           loading={loading}
           className="gap-1.5 flex-shrink-0"
         >
-          <Plus size={13} aria-hidden="true" /> Solicită
+          <Plus size={16} aria-hidden="true" /> Solicită
         </Button>
       )}
     </div>

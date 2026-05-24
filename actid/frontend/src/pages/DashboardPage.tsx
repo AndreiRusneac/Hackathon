@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import {
   ShieldCheck, Clock, ShieldAlert, QrCode, Users, Link2, Bell,
   LogIn, LogOut, Eye, Upload, Trash2, UserPlus, UserMinus, Zap,
-  Globe, FileText, ZoomIn, type LucideIcon,
+  Globe, FileText, ZoomIn, X, type LucideIcon,
 } from "lucide-react";
 import { documentsApi, auditApi, authApi } from "@/lib/api";
 import { useAuthStore } from "@/store/authStore";
@@ -12,9 +12,12 @@ import { useNotificationStore } from "@/store/notificationStore";
 import { useElderlyStore } from "@/store/elderlyStore";
 import { Card, CardContent, Badge, Skeleton, Button, ConfirmDialog } from "@/components/ui";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { DocumentCard, DocumentCardSkeleton } from "@/components/documents/DocumentCard";
-import { formatDateTime, cn } from "@/lib/utils";
-import type { AuditEntry } from "@/types";
+import { DocumentCard, DocumentCardSkeleton, DocTypeIcon } from "@/components/documents/DocumentCard";
+import { CITemplate, OfficialStamp } from "@/components/documents/templates/CITemplate";
+import { PasaportTemplate } from "@/components/documents/templates/PasaportTemplate";
+import { PermisTemplate } from "@/components/documents/templates/PermisTemplate";
+import { formatDateTime, formatDate, DOC_LABELS, cn } from "@/lib/utils";
+import type { AuditEntry, Document } from "@/types";
 
 const ACTION_ICON_MAP: Record<string, LucideIcon> = {
   LOGIN_SUCCESS:     LogIn,
@@ -56,6 +59,7 @@ export default function DashboardPage() {
   const [showProfile, setShowProfile] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deletingAccount, setDeletingAccount] = useState(false);
+  const [viewDoc, setViewDoc] = useState<Document | null>(null);
   const profileRef = useRef<HTMLDivElement>(null);
 
   const handleLogout = async () => {
@@ -109,6 +113,103 @@ export default function DashboardPage() {
   };
 
   return (
+    <>
+    {/* ── View modal ─────────────────────────────────────────────────────── */}
+    {viewDoc && (
+      <div
+        className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center"
+        onClick={() => setViewDoc(null)}
+      >
+        <div
+          className="bg-white w-full sm:max-w-2xl rounded-t-3xl sm:rounded-3xl overflow-hidden max-h-[90dvh] overflow-y-auto"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="relative p-4 bg-gradient-to-br from-gray-50 to-slate-100">
+            {viewDoc.doc_type === "CI" ? (
+              <CITemplate doc={viewDoc} fullName={user?.full_name || ""} userCnp={user?.cnp} />
+            ) : viewDoc.doc_type === "PASAPORT" ? (
+              <PasaportTemplate doc={viewDoc} fullName={user?.full_name || ""} userCnp={user?.cnp} />
+            ) : viewDoc.doc_type === "PERMIS" ? (
+              <PermisTemplate doc={viewDoc} fullName={user?.full_name || ""} userCnp={user?.cnp} />
+            ) : (
+              <div className="w-full aspect-video bg-gradient-to-br from-blue-50 to-indigo-100 rounded-xl flex flex-col items-center justify-center gap-2">
+                <DocTypeIcon type={viewDoc.doc_type} size={56} className="text-actid-blue/60" />
+              </div>
+            )}
+            {viewDoc.is_verified && <OfficialStamp />}
+          </div>
+
+          <div className="p-5 space-y-4">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="font-bold text-lg leading-tight">
+                  {DOC_LABELS[viewDoc.doc_type as keyof typeof DOC_LABELS] || viewDoc.doc_type}
+                </p>
+                {viewDoc.doc_number && (
+                  <p className="font-mono text-sm text-muted-foreground mt-0.5">{viewDoc.doc_number}</p>
+                )}
+              </div>
+              <button
+                onClick={() => setViewDoc(null)}
+                className="w-9 h-9 bg-gray-100 rounded-full flex items-center justify-center flex-shrink-0"
+                aria-label="Închide"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="grid grid-cols-2 gap-x-4 gap-y-3">
+              {viewDoc.doc_type === "CI" && viewDoc.cnp && (
+                <div className="col-span-2">
+                  <p className="text-xs text-muted-foreground">CNP</p>
+                  <p className="text-sm font-medium font-mono">{viewDoc.cnp}</p>
+                </div>
+              )}
+              {viewDoc.doc_number && (
+                <div className="col-span-2">
+                  <p className="text-xs text-muted-foreground">
+                    {viewDoc.doc_type === "CI" ? "Număr serie" : "Număr document"}
+                  </p>
+                  <p className="text-sm font-medium font-mono">{viewDoc.doc_number}</p>
+                </div>
+              )}
+              {viewDoc.issued_by && (
+                <div className="col-span-2">
+                  <p className="text-xs text-muted-foreground">Emis de</p>
+                  <p className="text-sm font-medium">{viewDoc.issued_by}</p>
+                </div>
+              )}
+              {viewDoc.issued_date && (
+                <div>
+                  <p className="text-xs text-muted-foreground">Data emiterii</p>
+                  <p className="text-sm font-medium">{formatDate(viewDoc.issued_date)}</p>
+                </div>
+              )}
+              {viewDoc.expires_date && (
+                <div>
+                  <p className="text-xs text-muted-foreground">Expiră</p>
+                  <p className={cn(
+                    "text-sm font-medium",
+                    viewDoc.status === "expirat" ? "text-red-600" :
+                    viewDoc.status === "expiră_curând" ? "text-amber-600" : ""
+                  )}>
+                    {formatDate(viewDoc.expires_date)}
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {viewDoc.description && (
+              <div>
+                <p className="text-xs text-muted-foreground">Descriere</p>
+                <p className="text-sm">{viewDoc.description}</p>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    )}
+
     <div className="max-w-2xl mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-8">
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
@@ -241,7 +342,7 @@ export default function DashboardPage() {
                 <DocumentCard
                   key={doc.id}
                   doc={doc}
-                  onView={() => {}}
+                  onView={setViewDoc}
                   onShare={(doc) => navigate("/sharing", { state: { preselect: doc.id } })}
                 />
               ))}
@@ -394,6 +495,7 @@ export default function DashboardPage() {
         </Card>
       )}
     </div>
+    </>
   );
 }
 

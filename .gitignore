@@ -10,3 +10,7 @@ actid/backend/app/keys/*.jwk
 
 # OpenCV gender classifier model — downloaded on first startup (~45MB binary)
 actid/backend/app/assets/models/*.caffemodel
+
+# Python virtual environments
+venv/
+.venv/

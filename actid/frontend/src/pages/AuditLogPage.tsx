@@ -6,6 +6,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { auditApi } from "@/lib/api";
+import { useAuthStore } from "@/store/authStore";
 import { useNotificationStore } from "@/store/notificationStore";
 import { Card, CardContent, Badge, Button } from "@/components/ui";
 import {
@@ -53,6 +54,8 @@ interface AuditStats {
 
 export default function AuditLogPage() {
   const { addToast } = useNotificationStore();
+  const { user } = useAuthStore();
+  const isFunctionar = user?.role === "funcționar";
   const [entries, setEntries] = useState<AuditEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [verifying, setVerifying] = useState(false);
@@ -122,6 +125,18 @@ export default function AuditLogPage() {
 
   const hasFilter = Boolean(actionFilter || actorFilter);
 
+  const qrScanCount = useMemo(
+    () => entries.filter((e) => e.action === "QR_TOKEN_SCAN").length,
+    [entries]
+  );
+  const docsReceivedCount = useMemo(
+    () =>
+      entries
+        .filter((e) => e.action === "QR_TOKEN_SCAN")
+        .reduce((sum, e) => sum + ((e.metadata as any)?.document_count ?? 1), 0),
+    [entries]
+  );
+
   return (
     <div className="max-w-2xl mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-5">
       {/* Header */}
@@ -133,40 +148,61 @@ export default function AuditLogPage() {
       </div>
 
       {/* Stats cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <StatCard
-          value={stats?.total_entries}
-          label="Înregistrări totale"
-          Icon={Link2}
-          iconColor="text-actid-blue"
-          iconBg="bg-blue-50"
-          loading={loading}
-        />
-        <StatCard
-          value={stats?.documents_created}
-          label="Documente create"
-          Icon={Upload}
-          iconColor="text-blue-600"
-          iconBg="bg-blue-50"
-          loading={loading}
-        />
-        <StatCard
-          value={stats?.qr_shares}
-          label="Partajări QR"
-          Icon={QrCode}
-          iconColor="text-amber-600"
-          iconBg="bg-amber-50"
-          loading={loading}
-        />
-        <StatCard
-          value={stats?.delegations}
-          label="Delegări familie"
-          Icon={Users}
-          iconColor="text-teal-600"
-          iconBg="bg-teal-50"
-          loading={loading}
-        />
-      </div>
+      {isFunctionar ? (
+        <div className="grid grid-cols-2 gap-3">
+          <StatCard
+            value={loading ? undefined : qrScanCount}
+            label="Scanări QR"
+            Icon={QrCode}
+            iconColor="text-amber-600"
+            iconBg="bg-amber-50"
+            loading={loading}
+          />
+          <StatCard
+            value={loading ? undefined : docsReceivedCount}
+            label="Documente primite"
+            Icon={FileText}
+            iconColor="text-blue-600"
+            iconBg="bg-blue-50"
+            loading={loading}
+          />
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <StatCard
+            value={stats?.total_entries}
+            label="Înregistrări totale"
+            Icon={Link2}
+            iconColor="text-actid-blue"
+            iconBg="bg-blue-50"
+            loading={loading}
+          />
+          <StatCard
+            value={stats?.documents_created}
+            label="Documente create"
+            Icon={Upload}
+            iconColor="text-blue-600"
+            iconBg="bg-blue-50"
+            loading={loading}
+          />
+          <StatCard
+            value={stats?.qr_shares}
+            label="Partajări QR"
+            Icon={QrCode}
+            iconColor="text-amber-600"
+            iconBg="bg-amber-50"
+            loading={loading}
+          />
+          <StatCard
+            value={stats?.delegations}
+            label="Delegări familie"
+            Icon={Users}
+            iconColor="text-teal-600"
+            iconBg="bg-teal-50"
+            loading={loading}
+          />
+        </div>
+      )}
 
       {/* Verify chain */}
       <Card

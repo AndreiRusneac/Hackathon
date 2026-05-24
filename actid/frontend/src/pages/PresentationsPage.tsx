@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Navigate } from "react-router-dom";
 import { QRCodeSVG } from "qrcode.react";
 import {
-  Shield, ShieldCheck, Check, Clock, RotateCcw, AlertTriangle,
+  Shield, ShieldCheck, Check, Clock, RotateCcw,
   type LucideIcon,
 } from "lucide-react";
 import { presentationsApi, documentsApi, credentialsApi, type PresentationCreateResult } from "@/lib/api";
@@ -16,47 +16,57 @@ import type { Document } from "@/types";
 
 // ─── Attribute catalog per doc type ──────────────────────────────────────────
 
-interface Attr { key: string; label: string; sensitive?: boolean }
+interface Attr { key: string; label: string }
 
-const ATTR_CATALOG: Record<string, Attr[]> = {
-  CI: [
-    { key: "given_name",  label: "Prenume" },
-    { key: "family_name", label: "Nume de familie" },
-    { key: "birth_date",  label: "Data nașterii" },
-    { key: "age_over_18", label: "Vârstă peste 18 ani" },
-    { key: "cnp",         label: "CNP", sensitive: true },
-    { key: "address",     label: "Adresă domiciliu", sensitive: true },
-    { key: "expiry_date", label: "Data expirării" },
-  ],
-  PASAPORT: [
-    { key: "given_name",      label: "Prenume" },
-    { key: "family_name",     label: "Nume de familie" },
-    { key: "birth_date",      label: "Data nașterii" },
-    { key: "nationality",     label: "Naționalitate" },
-    { key: "document_number", label: "Număr pașaport", sensitive: true },
-    { key: "expiry_date",     label: "Data expirării" },
-  ],
-  PERMIS: [
-    { key: "given_name",         label: "Prenume" },
-    { key: "family_name",        label: "Nume de familie" },
-    { key: "birth_date",         label: "Data nașterii" },
-    { key: "license_categories", label: "Categorii permis" },
-    { key: "expiry_date",        label: "Data expirării" },
-  ],
-  CAZIER: [
-    { key: "given_name",          label: "Prenume" },
-    { key: "family_name",         label: "Nume de familie" },
-    { key: "has_criminal_record", label: "Cazier curat (DA/NU)" },
-  ],
+// Romanian labels keyed by the REAL backend attribute keys (see vc/issuer.py).
+// Single source of truth so chips never render raw snake_case like "over_18".
+const ATTR_LABELS: Record<string, string> = {
+  given_name:          "Prenume",
+  family_name:         "Nume de familie",
+  birth_date:          "Data nașterii",
+  cnp:                 "CNP",
+  address:             "Adresă domiciliu",
+  document_number:     "Număr document",
+  issue_date:          "Data emiterii",
+  expiry_date:         "Data expirării",
+  nationality:         "Naționalitate",
+  categories:          "Categorii permis",
+  over_18:             "Major (peste 18 ani)",
+  over_65:             "Senior (peste 65 ani)",
+  has_criminal_record: "Cazier judiciar",
+  document_type:       "Tip document",
+  issued_by:           "Emis de",
 };
 
-const DEFAULT_ATTRS: Attr[] = [
-  { key: "given_name",      label: "Prenume" },
-  { key: "family_name",     label: "Nume de familie" },
-  { key: "birth_date",      label: "Data nașterii" },
-  { key: "document_number", label: "Număr document", sensitive: true },
-  { key: "expiry_date",     label: "Data expirării" },
-];
+// Prettify any key we don't have an explicit label for: "some_key" → "Some key".
+function prettifyKey(key: string): string {
+  const spaced = key.replace(/_/g, " ").trim();
+  return spaced.charAt(0).toUpperCase() + spaced.slice(1);
+}
+
+function attrLabel(key: string): string {
+  return ATTR_LABELS[key] ?? prettifyKey(key);
+}
+
+function toAttr(key: string): Attr {
+  return { key, label: attrLabel(key) };
+}
+
+// Offline fallback only — used when the live credentials fetch fails. Keys here
+// MUST match what vc/issuer.py actually produces per document type.
+const ATTR_CATALOG: Record<string, string[]> = {
+  CI:       ["given_name", "family_name", "birth_date", "cnp", "address", "document_number", "issue_date", "expiry_date", "over_18", "over_65"],
+  PASAPORT: ["given_name", "family_name", "birth_date", "cnp", "document_number", "issue_date", "expiry_date", "nationality", "over_18", "over_65"],
+  PERMIS:   ["given_name", "family_name", "document_number", "issue_date", "expiry_date", "categories"],
+  CAZIER:   ["given_name", "family_name", "has_criminal_record", "document_number", "issue_date", "expiry_date"],
+};
+
+const DEFAULT_KEYS = ["given_name", "family_name", "document_number", "issue_date", "expiry_date"];
+
+function catalogAttrs(docType: string | undefined): Attr[] {
+  const keys = (docType && ATTR_CATALOG[docType]) || DEFAULT_KEYS;
+  return keys.map(toAttr);
+}
 
 const VERIFIER_ROLES: { value: "funcționar" | "any"; label: string }[] = [
   { value: "funcționar", label: "Funcționar public (SPCLEP, primărie)" },
@@ -109,11 +119,7 @@ export default function PresentationsPage() {
     try {
       const res = await credentialsApi.get(doc.id);
       const available = res.data.disclosed_attributes_available;
-      const catalogAttrs = ATTR_CATALOG[doc.doc_type] ?? DEFAULT_ATTRS;
-      const catalogMap = new Map(catalogAttrs.map((a) => [a.key, a]));
-      const dynamicAttrs: Attr[] = available.map(
-        (key) => catalogMap.get(key) ?? { key, label: key }
-      );
+      const dynamicAttrs: Attr[] = available.map(toAttr);
       setFetchedAttrs(dynamicAttrs.length > 0 ? dynamicAttrs : null);
     } catch {
       // endpoint not ready — silently fall back to catalog
@@ -158,7 +164,7 @@ export default function PresentationsPage() {
     setResult(null);
   };
 
-  const attrs = fetchedAttrs ?? (ATTR_CATALOG[selectedDoc?.doc_type ?? ""] ?? DEFAULT_ATTRS);
+  const attrs = fetchedAttrs ?? catalogAttrs(selectedDoc?.doc_type);
 
   if (result) return <PresentationResult result={result} onReset={reset} />;
 
@@ -282,20 +288,11 @@ export default function PresentationsPage() {
                               "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border-2 transition-all",
                               "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-actid-blue",
                               sel
-                                ? attr.sensitive
-                                  ? "border-amber-500 bg-amber-50 text-amber-800"
-                                  : "border-actid-blue bg-blue-50 text-actid-blue"
-                                : attr.sensitive
-                                ? "border-amber-200 text-amber-700 hover:border-amber-400"
+                                ? "border-actid-blue bg-blue-50 text-actid-blue"
                                 : "border-border text-muted-foreground hover:border-gray-300"
                             )}
                           >
-                            {sel
-                              ? <Check size={11} aria-hidden="true" />
-                              : attr.sensitive
-                              ? <AlertTriangle size={11} aria-hidden="true" />
-                              : null
-                            }
+                            {sel && <Check size={11} aria-hidden="true" />}
                             {attr.label}
                           </button>
                         );
@@ -433,7 +430,7 @@ function PresentationResult({
             <div className="flex flex-wrap gap-2">
               {result.disclosed_attributes.map((attr) => (
                 <Badge key={attr} variant="info">
-                  <Check size={11} aria-hidden="true" /> {attr}
+                  <Check size={11} aria-hidden="true" /> {attrLabel(attr)}
                 </Badge>
               ))}
             </div>

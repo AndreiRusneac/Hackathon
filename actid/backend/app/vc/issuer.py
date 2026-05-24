@@ -25,6 +25,7 @@ _VCT_MAP = {
     "CI": "RomanianID",
     "PASAPORT": "Passport",
     "PERMIS": "DriverLicense",
+    "CAZIER": "CriminalRecord",
 }
 _VCT_DEFAULT = "GenericAttestation"
 
@@ -42,8 +43,22 @@ def issue_credential(document: Document, owner: User) -> str:
         SD-JWT issuance string: <jwt>~<disclosure1>~<disclosure2>~...
     """
     vct = _VCT_MAP.get(document.doc_type, _VCT_DEFAULT)
-    attributes = _build_attributes(document, owner, vct)
+    attributes = build_attributes(document, owner)
     return sign_credential(vct=vct, subject_id=owner.id, attributes=attributes)
+
+
+def build_attributes(document: Document, owner: User) -> dict[str, Any]:
+    """
+    Public single source of truth for a document's signable attributes.
+
+    Both the credential-issuance path and the presentation-creation path call
+    this, so the attributes OFFERED to the wallet UI are exactly the ones that
+    get SIGNED into the SD-JWT. Drops None values so only real, disclosable
+    attributes are returned.
+    """
+    vct = _VCT_MAP.get(document.doc_type, _VCT_DEFAULT)
+    attrs = _build_attributes(document, owner, vct)
+    return {k: v for k, v in attrs.items() if v is not None}
 
 
 def get_available_attributes(document: Document, owner: User) -> list[str]:
@@ -51,9 +66,7 @@ def get_available_attributes(document: Document, owner: User) -> list[str]:
     Return list of attribute names that would be included in the VC.
     Used by GET /api/credentials/{id} to inform the wallet UI.
     """
-    vct = _VCT_MAP.get(document.doc_type, _VCT_DEFAULT)
-    attrs = _build_attributes(document, owner, vct)
-    return [k for k, v in attrs.items() if v is not None]
+    return list(build_attributes(document, owner).keys())
 
 
 def get_vct(document: Document) -> str:
@@ -70,7 +83,45 @@ def _build_attributes(document: Document, owner: User, vct: str) -> dict[str, An
         return _pasaport_attributes(document, owner)
     if vct == "DriverLicense":
         return _permis_attributes(document, owner)
+    if vct == "CriminalRecord":
+        return _cazier_attributes(document, owner)
     return _generic_attributes(document, owner)
+
+
+def _meta(document: Document) -> dict[str, Any]:
+    """Parse the document's metadata_json blob into a dict (empty on failure)."""
+    if not document.metadata_json:
+        return {}
+    try:
+        data = json.loads(document.metadata_json)
+        return data if isinstance(data, dict) else {}
+    except (json.JSONDecodeError, TypeError):
+        return {}
+
+
+def _home_address(document: Document, owner: User) -> str | None:
+    """
+    Resolve the holder's domicile address. Prefer an explicit address stored in
+    the document metadata; otherwise compose from the owner's city + country,
+    which is the real domicile data we have on the account.
+    """
+    explicit = _meta(document).get("address")
+    if explicit:
+        return str(explicit)
+    parts = [p for p in (owner.city, owner.country) if p]
+    return ", ".join(parts) or None
+
+
+def _over_65(birth_date_iso: str | None) -> bool | None:
+    """Derive age-over-65 boolean from birth date (eIDAS minimum-disclosure)."""
+    if birth_date_iso is None:
+        return None
+    try:
+        bd = date.fromisoformat(birth_date_iso)
+        today = datetime.now(timezone.utc).date()
+        return (today - bd).days >= 65 * 365
+    except ValueError:
+        return None
 
 
 def _split_name(full_name: str) -> tuple[str, str]:
@@ -126,10 +177,12 @@ def _ci_attributes(doc: Document, owner: User) -> dict[str, Any]:
         "family_name": family_name,
         "birth_date": bd,
         "cnp": cnp,
+        "address": _home_address(doc, owner),
         "document_number": vault_decrypt(doc.doc_number, owner.id),
         "issue_date": doc.issued_date.isoformat() if doc.issued_date else None,
         "expiry_date": doc.expires_date.isoformat() if doc.expires_date else None,
         "over_18": _over_18(bd),
+        "over_65": _over_65(bd),
     }
 
 
@@ -147,6 +200,25 @@ def _pasaport_attributes(doc: Document, owner: User) -> dict[str, Any]:
         "expiry_date": doc.expires_date.isoformat() if doc.expires_date else None,
         "nationality": "RO",
         "over_18": _over_18(bd),
+        "over_65": _over_65(bd),
+    }
+
+
+def _cazier_attributes(doc: Document, owner: User) -> dict[str, Any]:
+    """
+    Criminal-record attestation. The defining attribute is has_criminal_record;
+    a cazier judiciar is issued "clean" by default (no record), overridable via
+    metadata_json {"has_criminal_record": true}.
+    """
+    given_name, family_name = _split_name(owner.full_name)
+    has_record = bool(_meta(doc).get("has_criminal_record", False))
+    return {
+        "given_name": given_name,
+        "family_name": family_name,
+        "has_criminal_record": has_record,
+        "document_number": vault_decrypt(doc.doc_number, owner.id),
+        "issue_date": doc.issued_date.isoformat() if doc.issued_date else None,
+        "expiry_date": doc.expires_date.isoformat() if doc.expires_date else None,
     }
 
 

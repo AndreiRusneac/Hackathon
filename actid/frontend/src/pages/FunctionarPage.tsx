@@ -23,20 +23,27 @@ const ATTR_LABELS: Record<string, string> = {
   document_number:   "Număr document",
   issue_date:        "Data emiterii",
   expiry_date:       "Data expirării",
-  over_18:           "Peste 18 ani",
-  over_65:           "Peste 65 ani",
-  age_over_18:       "Vârstă peste 18 ani",
+  over_18:           "Major (peste 18 ani)",
+  over_65:           "Senior (peste 65 ani)",
   nationality:       "Naționalitate",
   categories:        "Categorii permis",
-  license_categories:"Categorii permis",
   address:           "Adresă domiciliu",
-  has_criminal_record:"Cazier curat",
+  has_criminal_record:"Cazier judiciar",
+  document_type:     "Tip document",
+  issued_by:         "Emis de",
 };
+
+function attrLabel(key: string): string {
+  if (ATTR_LABELS[key]) return ATTR_LABELS[key];
+  const spaced = key.replace(/_/g, " ").trim();
+  return spaced.charAt(0).toUpperCase() + spaced.slice(1);
+}
 
 const CREDENTIAL_TYPE_LABEL: Record<string, string> = {
   RomanianID:         "Carte de Identitate Română",
   Passport:           "Pașaport",
   DriverLicense:      "Permis de Conducere",
+  CriminalRecord:     "Cazier Judiciar",
   GenericAttestation: "Atestat Generic",
 };
 
@@ -487,7 +494,7 @@ function EudiVerifyResult({
                   className="flex items-center justify-between gap-3 px-3 py-2.5 bg-gray-50 rounded-xl"
                 >
                   <span className="text-xs text-muted-foreground">
-                    {ATTR_LABELS[key] || key}
+                    {attrLabel(key)}
                   </span>
                   <span className="text-sm font-semibold text-foreground">
                     {typeof value === "boolean" ? (value ? "Da" : "Nu") : String(value)}

@@ -81,7 +81,8 @@ export default function LoginPage() {
       const res  = await authApi.verify2fa(sessionToken!, otpCode);
       const data = res.data;
       setUser(data.user, data.access_token);
-      navigate(next, { replace: true });
+      const destination = next !== "/dashboard" ? next : data.user.role === "funcționar" ? "/functionar" : "/dashboard";
+      navigate(destination, { replace: true });
     } catch (err) {
       setError(getErrMsg(err, "Cod OTP incorect"));
       setOtp(["", "", "", "", "", ""]);
