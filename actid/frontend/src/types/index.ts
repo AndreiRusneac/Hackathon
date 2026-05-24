@@ -59,6 +59,10 @@ export type DocType =
   | "ITP"
   | "ASIGURARE"
   | "ROVINIETA"
+  // Copii
+  | "DECRET_ADOPTIE"
+  | "CARNET_ELEV"
+  | "CARD_TRANSPORT_ELEV"
   // Legacy (kept for backward compatibility, not in add form)
   | "ADEVERINTA"
   | "ANAF"
@@ -130,6 +134,72 @@ export interface DelegationGrant {
   is_active: boolean;
   consent_timestamp: string;
   notes?: string;
+}
+
+// ─── Children / Guardians ────────────────────────────────────────────────────
+
+export interface GuardianSummary {
+  relationship_type: string;
+  guardian_name: string;
+  proof_verified: boolean;
+}
+
+export interface ChildDocument {
+  id: string;
+  child_id: string;
+  doc_type: string;
+  doc_number?: string;
+  issued_by?: string;
+  issued_date?: string;
+  expires_date?: string;
+  description?: string;
+  created_at: string;
+}
+
+export interface GovDocResult {
+  gov_doc_id: string;
+  doc_type: string;
+  doc_number?: string;
+  issued_by?: string;
+  issued_date?: string;
+  expires_date?: string;
+  description?: string;
+  already_linked: boolean;
+}
+
+export interface ChildProfile {
+  id: string;
+  full_name: string;
+  date_of_birth: string;
+  cnp?: string;
+  created_at: string;
+  relationship_type: string;
+  proof_type: string;
+  proof_verified: boolean;
+  is_student: boolean;
+  documents: ChildDocument[];
+  guardians: GuardianSummary[];
+}
+
+export interface MyChildProfile {
+  id: string;
+  full_name: string;
+  date_of_birth: string;
+  cnp?: string;
+  documents: ChildDocument[];
+  guardians: GuardianSummary[];
+}
+
+export interface RegistryChild {
+  registry_id: string;
+  child_full_name: string;
+  child_date_of_birth: string;
+  child_cnp?: string;
+  record_type: string;
+  document_number?: string;
+  issued_by?: string;
+  relationship_type: string;
+  already_linked: boolean;
 }
 
 // ─── Audit ────────────────────────────────────────────────────────────────────

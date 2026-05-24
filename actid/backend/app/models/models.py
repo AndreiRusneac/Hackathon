@@ -138,6 +138,100 @@ class PendingAuth(Base):
     user = relationship("User", back_populates="pending_auths")
 
 
+# ─── Children / Guardian ─────────────────────────────────────────────────────
+
+class ChildProfile(Base):
+    __tablename__ = "child_profiles"
+
+    id = Column(String, primary_key=True, default=lambda: str(uuid4()))
+    full_name = Column(String, nullable=False)
+    date_of_birth = Column(Date, nullable=False)
+    cnp = Column(String(13), nullable=True)   # optional for children < 14
+    # Set when the child turns 14 and creates their own account
+    user_id = Column(String, ForeignKey("users.id"), nullable=True, unique=True)
+    is_student = Column(Boolean, default=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    guardians = relationship("ChildGuardian", back_populates="child", cascade="all, delete-orphan")
+    documents = relationship("ChildDocument", back_populates="child", cascade="all, delete-orphan")
+    user = relationship("User", foreign_keys=[user_id])
+
+
+class ChildGuardian(Base):
+    """
+    Links a User (guardian) to a ChildProfile.
+    Two guardians of the same child have no direct link — privacy isolation by design.
+    """
+    __tablename__ = "child_guardians"
+
+    id = Column(String, primary_key=True, default=lambda: str(uuid4()))
+    child_id = Column(String, ForeignKey("child_profiles.id"), nullable=False)
+    guardian_id = Column(String, ForeignKey("users.id"), nullable=False)
+    relationship_type = Column(String, default="parent")  # parent / legal_guardian / adoptive_parent
+    proof_type = Column(String, default="birth_certificate")  # birth_certificate / adoption_decree / court_order / ci
+    proof_verified = Column(Boolean, default=False)
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    child = relationship("ChildProfile", back_populates="guardians")
+    guardian = relationship("User")
+
+
+class ChildDocument(Base):
+    __tablename__ = "child_documents"
+
+    id = Column(String, primary_key=True, default=lambda: str(uuid4()))
+    child_id = Column(String, ForeignKey("child_profiles.id"), nullable=False)
+    doc_type = Column(String, nullable=False)
+    doc_number = Column(String)
+    issued_by = Column(String)
+    issued_date = Column(Date)
+    expires_date = Column(Date)
+    description = Column(String)
+    photo_base64 = Column(Text)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    child = relationship("ChildProfile", back_populates="documents")
+
+
+class GovernmentDocRegistry(Base):
+    """Mock government-issued document database — searched when a parent adds a child document."""
+    __tablename__ = "gov_doc_registry"
+
+    id = Column(String, primary_key=True, default=lambda: str(uuid4()))
+    holder_cnp = Column(String(13), nullable=False, index=True)
+    doc_type = Column(String, nullable=False)
+    doc_number = Column(String)
+    issued_by = Column(String)
+    issued_date = Column(Date)
+    expires_date = Column(Date)
+    description = Column(String)
+    is_valid = Column(Boolean, default=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+
+class CivilRegistry(Base):
+    """State civil registry — birth certificates, adoptions, court orders."""
+    __tablename__ = "civil_registry"
+
+    id = Column(String, primary_key=True, default=lambda: str(uuid4()))
+    record_type = Column(String, nullable=False)  # birth_certificate / adoption_decree / court_order
+    child_full_name = Column(String, nullable=False)
+    child_date_of_birth = Column(Date, nullable=False)
+    child_cnp = Column(String(13), nullable=True)
+    parent1_cnp = Column(String(13), nullable=True)   # typically mother
+    parent1_name = Column(String, nullable=True)
+    parent2_cnp = Column(String(13), nullable=True)   # typically father
+    parent2_name = Column(String, nullable=True)
+    guardian_cnp = Column(String(13), nullable=True)  # adoptive parent / court guardian
+    guardian_name = Column(String, nullable=True)
+    document_number = Column(String, nullable=True)
+    issued_date = Column(Date, nullable=True)
+    issued_by = Column(String, nullable=True)
+    is_valid = Column(Boolean, default=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+
 # TEMPORARY — table belongs to Andrei per API_CONTRACT.md §2.2. Kept here so
 # Radu's presentations endpoints can be tested end-to-end before Andrei merges.
 class PresentationLog(Base):

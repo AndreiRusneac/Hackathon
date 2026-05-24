@@ -1,18 +1,96 @@
 import { useEffect, useRef, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import {
   Files, ShieldCheck, Clock, ShieldAlert, Plus, X, FileText,
-  ChevronRight, ChevronLeft, Camera, type LucideIcon,
+  ChevronRight, ChevronLeft, Camera, Baby, ChevronDown, type LucideIcon,
 } from "lucide-react";
-import { documentsApi } from "@/lib/api";
+import { documentsApi, childrenApi } from "@/lib/api";
 import { useDocumentStore } from "@/store/documentStore";
 import { useNotificationStore } from "@/store/notificationStore";
 import { DocumentCard, DocumentCardSkeleton, CATEGORY_META } from "@/components/documents/DocumentCard";
 import { Button, Card, CardContent, Input } from "@/components/ui";
-import type { Document, DocType } from "@/types";
+import type { Document, DocType, ChildProfile, ChildDocument } from "@/types";
 import { DOC_LABELS, DOC_CATEGORIES, groupDocsIntoFolders, cn, formatDate } from "@/lib/utils";
 
 type Filter = "all" | "valid" | "expiră_curând" | "expirat";
 type ScanStep = "type" | "camera" | "form";
+
+function childDocToDocument(doc: ChildDocument, childId: string): Document {
+  const today = new Date();
+  const expires = doc.expires_date ? new Date(doc.expires_date) : null;
+  const delta = expires
+    ? Math.floor((expires.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
+    : null;
+  const status =
+    delta === null ? "valid" : delta < 0 ? "expirat" : delta <= 30 ? "expiră_curând" : "valid";
+  return {
+    id: doc.id,
+    owner_id: childId,
+    doc_type: doc.doc_type as DocType,
+    doc_number: doc.doc_number,
+    issued_by: doc.issued_by,
+    issued_date: doc.issued_date,
+    expires_date: doc.expires_date,
+    is_verified: true,
+    description: doc.description,
+    created_at: doc.created_at,
+    days_remaining: delta ?? undefined,
+    status,
+  };
+}
+
+function ChildDocSection({
+  child,
+  onView,
+  autoOpen = false,
+}: {
+  child: ChildProfile;
+  onView: (doc: Document) => void;
+  autoOpen?: boolean;
+}) {
+  const [open, setOpen] = useState(autoOpen);
+  const sectionRef = useRef<HTMLDivElement>(null);
+  const docs = child.documents.map((d) => childDocToDocument(d, child.id));
+
+  useEffect(() => {
+    if (autoOpen && sectionRef.current) {
+      sectionRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }, [autoOpen]);
+
+  if (docs.length === 0) return null;
+  return (
+    <div ref={sectionRef} className="rounded-2xl border border-border overflow-hidden">
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        className="w-full flex items-center gap-3 px-4 py-3 bg-white hover:bg-gray-50/70 text-left transition-colors"
+        aria-expanded={open}
+      >
+        <div className="w-9 h-9 bg-blue-50 rounded-xl flex items-center justify-center flex-shrink-0">
+          <Baby size={16} className="text-actid-blue" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="font-semibold text-sm">{child.full_name}</p>
+          <p className="text-xs text-muted-foreground">
+            {docs.length} {docs.length === 1 ? "document" : "documente"}
+          </p>
+        </div>
+        <ChevronDown
+          size={15}
+          className={cn("text-muted-foreground transition-transform flex-shrink-0", open && "rotate-180")}
+        />
+      </button>
+      {open && (
+        <div className="border-t border-border/60 bg-gray-50/30 px-4 py-3 space-y-3">
+          {docs.map((doc) => (
+            <DocumentCard key={doc.id} doc={doc} onView={onView} />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 const FILTERS: { key: Filter; label: string; Icon: LucideIcon }[] = [
   { key: "all",           label: "Toate",         Icon: Files },
@@ -31,6 +109,10 @@ const STEPS: ScanStep[] = ["type", "camera", "form"];
 export default function DocumentsPage() {
   const { documents, setDocuments, loading, setLoading, removeDocument } = useDocumentStore();
   const { generateFromDocuments, addToast } = useNotificationStore();
+  const [searchParams] = useSearchParams();
+  const highlightChildId = searchParams.get("child");
+
+  const [children, setChildren] = useState<ChildProfile[]>([]);
 
   const [filter, setFilter] = useState<Filter>("all");
   const [search, setSearch] = useState("");
@@ -79,9 +161,13 @@ export default function DocumentsPage() {
   const load = async () => {
     setLoading(true);
     try {
-      const res = await documentsApi.list();
-      setDocuments(res.data);
-      generateFromDocuments(res.data);
+      const [docsRes, childrenRes] = await Promise.all([
+        documentsApi.list(),
+        childrenApi.list().catch(() => ({ data: [] })),
+      ]);
+      setDocuments(docsRes.data);
+      generateFromDocuments(docsRes.data);
+      setChildren(childrenRes.data);
     } catch {
       addToast("Eroare la încărcarea documentelor", "error");
     } finally {
@@ -791,6 +877,26 @@ export default function DocumentsPage() {
                 );
               })}
             </div>
+          </div>
+        )}
+
+        {/* ── Children's documents ──────────────────────────────────────── */}
+        {!loading && children.filter((c) => c.documents.length > 0).length > 0 && (
+          <div className="space-y-3">
+            <div className="flex items-center gap-2">
+              <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-widest flex items-center gap-1.5">
+                <Baby size={12} aria-hidden="true" /> Documente copii
+              </h2>
+              <div className="flex-1 h-px bg-border" aria-hidden="true" />
+            </div>
+            {children.map((child) => (
+              <ChildDocSection
+                key={child.id}
+                child={child}
+                onView={setViewDoc}
+                autoOpen={child.id === highlightChildId}
+              />
+            ))}
           </div>
         )}
       </div>

@@ -11,7 +11,7 @@ from ..config import settings
 from ..database import get_db
 from ..ledger import add_audit_entry
 from ..models.models import (
-    PendingAuth, User, Document, ShareToken, ShareScanLog, DelegationGrant,
+    ChildProfile, PendingAuth, User, Document, ShareToken, ShareScanLog, DelegationGrant,
 )
 from ..schemas.schemas import (
     LoginRequest,
@@ -126,6 +126,14 @@ def register(req: RegisterRequest, db: Session = Depends(get_db)):
     db.add(user)
     db.flush()
 
+    # Auto-link to an existing ChildProfile when the child turns 14 and signs up
+    child_profile = db.query(ChildProfile).filter(
+        ChildProfile.cnp == cnp,
+        ChildProfile.user_id.is_(None),
+    ).first()
+    if child_profile:
+        child_profile.user_id = user.id
+
     add_audit_entry(
         db,
         action="USER_REGISTERED",
@@ -137,6 +145,7 @@ def register(req: RegisterRequest, db: Session = Depends(get_db)):
             "id_verified": req.id_verified,
             "face_verified": req.face_verified,
             "face_match_score": req.face_match_score,
+            "child_profile_linked": child_profile.id if child_profile else None,
         },
     )
     db.commit()

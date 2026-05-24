@@ -46,9 +46,14 @@ def on_startup():
     # Add new columns to existing DBs (SQLite doesn't auto-migrate)
     from sqlalchemy import text
     with engine.connect() as conn:
-        for col, definition in [("photo_base64", "TEXT"), ("cnp", "VARCHAR(13)")]:
+        for table, col, definition in [
+            ("documents", "photo_base64", "TEXT"),
+            ("documents", "cnp", "VARCHAR(13)"),
+            ("child_profiles", "user_id", "TEXT REFERENCES users(id)"),
+            ("child_profiles", "is_student", "BOOLEAN DEFAULT 0"),
+        ]:
             try:
-                conn.execute(text(f"ALTER TABLE documents ADD COLUMN {col} {definition}"))
+                conn.execute(text(f"ALTER TABLE {table} ADD COLUMN {col} {definition}"))
                 conn.commit()
             except Exception:
                 pass  # column already exists

@@ -72,6 +72,10 @@ export const DOC_LABELS: Record<DocType, string> = {
   ITP: "ITP",
   ASIGURARE: "Asigurare (RCA / CASCO)",
   ROVINIETA: "Rovinietă",
+  // Copii
+  DECRET_ADOPTIE: "Decret de Adopție",
+  CARNET_ELEV: "Carnet de Elev",
+  CARD_TRANSPORT_ELEV: "Card Transport Elev",
   // Legacy
   ADEVERINTA: "Adeverință",
   ANAF: "Certificat ANAF",

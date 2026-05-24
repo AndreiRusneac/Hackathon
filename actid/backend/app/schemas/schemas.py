@@ -233,6 +233,127 @@ class PresentationVerifyResult(BaseModel):
     verified_at: datetime
 
 
+# ─── Children / Guardians ────────────────────────────────────────────────────
+
+class ScanBirthCertRequest(BaseModel):
+    image_base64: str
+
+
+class ScanBirthCertResponse(BaseModel):
+    success: bool
+    child_name: Optional[str] = None
+    date_of_birth: Optional[str] = None  # ISO YYYY-MM-DD
+    cnp: Optional[str] = None
+    parent_names: List[str] = []
+    requester_found: bool = False  # True if current user's name found in parents
+    raw_text: Optional[str] = None
+    message: str
+
+
+class ChildDocumentCreate(BaseModel):
+    doc_type: str
+    doc_number: Optional[str] = None
+    issued_by: Optional[str] = None
+    issued_date: Optional[date] = None
+    expires_date: Optional[date] = None
+    description: Optional[str] = None
+    photo_base64: Optional[str] = None
+
+
+class ChildDocumentResponse(BaseModel):
+    id: str
+    child_id: str
+    doc_type: str
+    doc_number: Optional[str] = None
+    issued_by: Optional[str] = None
+    issued_date: Optional[date] = None
+    expires_date: Optional[date] = None
+    description: Optional[str] = None
+    created_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
+class GuardianSummary(BaseModel):
+    relationship_type: str
+    guardian_name: str
+    proof_verified: bool
+
+
+class ChildCreate(BaseModel):
+    full_name: str
+    date_of_birth: date
+    cnp: Optional[str] = None
+    relationship_type: str = "parent"
+    proof_type: str = "birth_certificate"
+    proof_image_base64: Optional[str] = None  # used for verification
+    proof_verified: bool = False
+
+
+class AddGuardianRequest(BaseModel):
+    guardian_email: str
+    relationship_type: str = "legal_guardian"  # parent / legal_guardian / adoptive_parent
+    proof_type: str = "court_order"
+    proof_image_base64: Optional[str] = None
+
+
+class ChildResponse(BaseModel):
+    id: str
+    full_name: str
+    date_of_birth: date
+    cnp: Optional[str] = None
+    created_at: datetime
+    relationship_type: str
+    proof_type: str
+    proof_verified: bool
+    is_student: bool = False
+    documents: List[ChildDocumentResponse] = []
+    guardians: List[GuardianSummary] = []
+
+    model_config = {"from_attributes": True}
+
+
+class GovDocResult(BaseModel):
+    gov_doc_id: str
+    doc_type: str
+    doc_number: Optional[str] = None
+    issued_by: Optional[str] = None
+    issued_date: Optional[date] = None
+    expires_date: Optional[date] = None
+    description: Optional[str] = None
+    already_linked: bool = False
+
+
+class StudentStatusUpdate(BaseModel):
+    is_student: bool
+
+
+class MyChildProfileResponse(BaseModel):
+    id: str
+    full_name: str
+    date_of_birth: date
+    cnp: Optional[str] = None
+    is_student: bool = False
+    documents: List[ChildDocumentResponse] = []
+    guardians: List[GuardianSummary] = []
+
+    model_config = {"from_attributes": True}
+
+
+# ─── Civil Registry ──────────────────────────────────────────────────────────
+
+class RegistryChildResult(BaseModel):
+    registry_id: str
+    child_full_name: str
+    child_date_of_birth: date
+    child_cnp: Optional[str] = None
+    record_type: str
+    document_number: Optional[str] = None
+    issued_by: Optional[str] = None
+    relationship_type: str  # parent / legal_guardian / adoptive_parent
+    already_linked: bool = False
+
+
 # ─── Funcționar ──────────────────────────────────────────────────────────────
 
 class RecentScanResponse(BaseModel):

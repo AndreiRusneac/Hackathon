@@ -5,7 +5,7 @@ import {
   Flag, HeartHandshake, Cross, BookUser, Home, FileSignature, Banknote,
   Briefcase, GraduationCap, Award, BadgeCheck, HeartPulse, Accessibility,
   ParkingSquare, ScrollText, CalendarClock, Wrench, ShieldCheck,
-  Fingerprint, Users, FolderOpen,
+  Fingerprint, Users, FolderOpen, Bus,
   type LucideIcon,
 } from "lucide-react";
 import { cn, DOC_LABELS, STATUS_CONFIG, formatDate } from "@/lib/utils";
@@ -44,6 +44,10 @@ const DOC_ICON_MAP: Record<string, LucideIcon> = {
   ITP:                  Wrench,
   ASIGURARE:            ShieldCheck,
   ROVINIETA:            Route,
+  // Copii
+  DECRET_ADOPTIE:       HeartHandshake,
+  CARNET_ELEV:          GraduationCap,
+  CARD_TRANSPORT_ELEV:  Bus,
   // Legacy
   ADEVERINTA:           ClipboardList,
   ANAF:                 Receipt,

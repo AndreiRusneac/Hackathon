@@ -163,6 +163,53 @@ export const auditApi = {
   stats: () => api.get("/audit/stats"),
 };
 
+// ─── Children / Guardians ────────────────────────────────────────────────────
+
+export const childrenApi = {
+  myProfile: () => api.get("/family/my-child-profile"),
+
+  searchRegistry: () => api.get("/family/children/registry"),
+
+  linkFromRegistry: (registryId: string) =>
+    api.post(`/family/children/link-from-registry/${registryId}`),
+
+  list: () => api.get("/family/children"),
+
+  get: (childId: string) => api.get(`/family/children/${childId}`),
+
+  availableDocuments: (childId: string) =>
+    api.get(`/family/children/${childId}/available-documents`),
+
+  linkDocument: (childId: string, govDocId: string) =>
+    api.post(`/family/children/${childId}/link-document/${govDocId}`),
+
+  requestStudentId: (childId: string) =>
+    api.post(`/family/children/${childId}/request-student-id`),
+
+  generateTransportCard: (childId: string) =>
+    api.post(`/family/children/${childId}/transport-card`),
+
+  addDocument: (childId: string, data: {
+    doc_type: string;
+    doc_number?: string;
+    issued_by?: string;
+    issued_date?: string;
+    expires_date?: string;
+    description?: string;
+    photo_base64?: string;
+  }) => api.post(`/family/children/${childId}/documents`, data),
+
+  addGuardian: (childId: string, data: {
+    guardian_email: string;
+    relationship_type: string;
+    proof_type: string;
+    proof_image_base64?: string;
+  }) => api.post(`/family/children/${childId}/guardians`, data),
+
+  removeMeAsGuardian: (childId: string) =>
+    api.delete(`/family/children/${childId}/guardians/me`),
+};
+
 // ─── Credentials (Andrei) ────────────────────────────────────────────────────
 
 export interface CredentialResult {

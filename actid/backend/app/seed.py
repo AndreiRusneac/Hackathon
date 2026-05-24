@@ -6,20 +6,150 @@ import bcrypt
 from sqlalchemy.orm import Session
 
 from .ledger import add_audit_entry
-from .models.models import AuditEntry, DelegationGrant, Document, ShareScanLog, ShareToken, User
+from .models.models import AuditEntry, CivilRegistry, ChildDocument, ChildGuardian, ChildProfile, DelegationGrant, Document, GovernmentDocRegistry, ShareScanLog, ShareToken, User
 
 # Fixed IDs for reproducibility
 ION_ID = "user-ion-popescu-0001"
 MARIA_ID = "user-maria-ionescu-0002"
 ALEX_ID = "user-alex-ionescu-0003"
 FUNC_ID = "user-functionar-0004"
+SOFIA_ID = "user-sofia-constantin-0005"
 
 TODAY = date.today()
 
 
+def _seed_extensions(db: Session) -> None:
+    """Seed data added after initial release — each item checked independently."""
+    pw = bcrypt.hashpw(b"Parola@123", bcrypt.gensalt()).decode()
+
+    # Sofia user
+    if not db.query(User).filter(User.id == SOFIA_ID).first():
+        sofia = User(
+            id=SOFIA_ID,
+            cnp="6110315120033",
+            email="sofia.constantin@gmail.com",
+            full_name="Sofia Constantin-Popescu",
+            phone="0745234567",
+            hashed_password=pw,
+            role="cetățean",
+            city="Cluj-Napoca",
+            country="România",
+        )
+        db.add(sofia)
+        db.flush()
+
+    # Civil registry records
+    if not db.query(CivilRegistry).filter(CivilRegistry.id == "registry-elena-0001").first():
+        db.add(CivilRegistry(
+            id="registry-elena-0001",
+            record_type="birth_certificate",
+            child_full_name="Elena Ionescu-Popescu",
+            child_date_of_birth=date(2015, 5, 10),
+            child_cnp="6150510120011",
+            parent1_cnp="2650820123457",
+            parent1_name="Maria Ionescu",
+            parent2_cnp="1820315123456",
+            parent2_name="Ion Popescu",
+            document_number="CN-2015-8821",
+            issued_date=date(2015, 5, 18),
+            issued_by="Primăria Cluj-Napoca — Stare Civilă",
+        ))
+
+    if not db.query(CivilRegistry).filter(CivilRegistry.id == "registry-sofia-0002").first():
+        db.add(CivilRegistry(
+            id="registry-sofia-0002",
+            record_type="adoption_decree",
+            child_full_name="Sofia Constantin-Popescu",
+            child_date_of_birth=date(2011, 3, 15),
+            child_cnp="6110315120033",
+            guardian_cnp="1820315123456",
+            guardian_name="Ion Popescu",
+            document_number="DA-2016-0042",
+            issued_date=date(2016, 7, 22),
+            issued_by="Tribunalul Cluj",
+        ))
+
+    # Pre-built child profiles
+    if not db.query(ChildProfile).filter(ChildProfile.id == "child-elena-0001").first():
+        db.add(ChildProfile(
+            id="child-elena-0001",
+            full_name="Elena Ionescu-Popescu",
+            date_of_birth=date(2015, 5, 10),
+            cnp="6150510120011",
+            user_id=None,
+        ))
+        db.flush()
+        db.add(ChildGuardian(
+            id="guardian-elena-maria-0001",
+            child_id="child-elena-0001",
+            guardian_id=MARIA_ID,
+            relationship_type="parent",
+            proof_type="birth_certificate",
+            proof_verified=True,
+        ))
+        db.add(ChildDocument(
+            id="child-doc-elena-0001",
+            child_id="child-elena-0001",
+            doc_type="CERT_NASTERE",
+            doc_number="CN-2015-8821",
+            issued_by="Primăria Cluj-Napoca — Stare Civilă",
+            issued_date=date(2015, 5, 18),
+            description="Certificat de naștere",
+        ))
+
+    if not db.query(ChildProfile).filter(ChildProfile.id == "child-sofia-0002").first():
+        db.add(ChildProfile(
+            id="child-sofia-0002",
+            full_name="Sofia Constantin-Popescu",
+            date_of_birth=date(2011, 3, 15),
+            cnp="6110315120033",
+            user_id=SOFIA_ID,
+        ))
+        db.flush()
+        db.add(ChildGuardian(
+            id="guardian-sofia-ion-0002",
+            child_id="child-sofia-0002",
+            guardian_id=ION_ID,
+            relationship_type="adoptive_parent",
+            proof_type="adoption_decree",
+            proof_verified=True,
+        ))
+        db.add(ChildDocument(
+            id="child-doc-sofia-0002",
+            child_id="child-sofia-0002",
+            doc_type="DECRET_ADOPTIE",
+            doc_number="DA-2016-0042",
+            issued_by="Tribunalul Cluj",
+            issued_date=date(2016, 7, 22),
+            description="Decret de adopție nr. DA-2016-0042",
+        ))
+
+    # Government document registry — mock gov DB for children
+    gov_docs = [
+        # Elena (CNP 6150510120011, born 2015, age ~11) — Școala Generală nr. 7
+        ("gov-doc-elena-health-0001",  "6150510120011", "CARD_SANATATE",  "CS-2015-089123", "CNAS Cluj",                               date(2015, 9,  1), date(2029, 9,  1), "Card național de sănătate"),
+        ("gov-doc-elena-pasaport-0002","6150510120011", "PASAPORT",       "RO7654321",      "MAI Cluj",                                date(2022, 6, 15), date(2027, 6, 15), "Pașaport biometric"),
+        ("gov-doc-elena-carnet-0006",  "6150510120011", "CARNET_ELEV",    "CE-2025-07-1142","Școala Generală nr. 7 Cluj-Napoca",        date(2025, 9,  1), date(2026, 8, 31), "Carnet de elev — an școlar 2025/2026, clasa a V-a"),
+        # Sofia (CNP 6110315120033, born 2011, age ~15) — Liceul Teoretic Emil Racoviță
+        ("gov-doc-sofia-ci-0003",      "6110315120033", "CI",             "CJ555222",       "SPCLEP Cluj-Napoca",                      date(2025, 4, 20), date(2035, 4, 20), "Carte de identitate"),
+        ("gov-doc-sofia-health-0004",  "6110315120033", "CARD_SANATATE",  "CS-2011-045678", "CNAS Cluj",                               date(2011, 9,  1), date(2029, 9,  1), "Card național de sănătate"),
+        ("gov-doc-sofia-pasaport-0005","6110315120033", "PASAPORT",       "RO8877665",      "MAI Cluj",                                date(2023, 3, 15), date(2028, 3, 15), "Pașaport biometric"),
+        ("gov-doc-sofia-carnet-0007",  "6110315120033", "CARNET_ELEV",    "CE-2025-LR-0884","Liceul Teoretic «Emil Racoviță» Cluj",     date(2025, 9,  1), date(2026, 8, 31), "Carnet de elev — an școlar 2025/2026, clasa a IX-a"),
+    ]
+    for (gid, cnp, dtype, num, issuer, idate, edate, desc) in gov_docs:
+        if not db.query(GovernmentDocRegistry).filter(GovernmentDocRegistry.id == gid).first():
+            db.add(GovernmentDocRegistry(
+                id=gid, holder_cnp=cnp, doc_type=dtype, doc_number=num,
+                issued_by=issuer, issued_date=idate, expires_date=edate, description=desc,
+            ))
+
+    db.commit()
+
+
 def seed_database(db: Session) -> None:
     if db.query(User).filter(User.id == ION_ID).first():
-        return  # Already seeded
+        _seed_extensions(db)  # Ensure newer data is present even in existing DBs
+        return
 
     pw = bcrypt.hashpw(b"Parola@123", bcrypt.gensalt()).decode()
 
@@ -338,3 +468,4 @@ def seed_database(db: Session) -> None:
 
     db.commit()
     print("✅ Seed data loaded successfully")
+    _seed_extensions(db)
