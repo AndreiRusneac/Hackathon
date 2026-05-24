@@ -372,7 +372,7 @@ export default function PresentationsPage() {
             type="submit"
             loading={submitting}
             disabled={disclosedAttrs.length === 0}
-            className="w-full gap-2"
+            className="w-full gap-2 h-14 sm:h-13 text-base font-bold"
             size="lg"
           >
             <Shield size={18} aria-hidden="true" />

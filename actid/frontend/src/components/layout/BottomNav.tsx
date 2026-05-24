@@ -148,7 +148,7 @@ export function BottomNav() {
                 className={({ isActive }) =>
                   cn(
                     "flex flex-col items-center justify-center flex-1 h-full font-medium transition-colors relative focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-actid-blue focus-visible:ring-inset",
-                    elderly ? "gap-1.5" : "gap-1",
+                    elderly ? "gap-0.5" : "gap-1",
                     isActive ? "text-actid-blue" : "text-muted-foreground"
                   )
                 }
@@ -156,10 +156,10 @@ export function BottomNav() {
               >
                 {({ isActive }) => (
                   <>
-                    <Icon size={elderly ? 28 : 22} aria-hidden="true" />
+                    <Icon size={elderly ? 32 : 22} aria-hidden="true" />
                     <span className={cn(
                       "leading-none",
-                      elderly ? "text-[10px] font-semibold" : "text-[8px]",
+                      elderly ? "text-[8px] font-semibold" : "text-[8px]",
                       isActive && "font-bold"
                     )}>
                       {item.label}
@@ -191,11 +191,11 @@ export function BottomNav() {
               aria-label="Profil"
               className={cn(
                 "flex flex-col items-center justify-center flex-1 h-full font-medium transition-colors relative focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-actid-blue focus-visible:ring-inset text-muted-foreground hover:text-foreground",
-                elderly ? "gap-1.5" : "gap-1"
+                elderly ? "gap-0.5" : "gap-1"
               )}
             >
-              <UserCircle size={elderly ? 28 : 22} aria-hidden="true" />
-              <span className={cn("leading-none", elderly ? "text-[10px] font-semibold" : "text-[8px]")}>
+              <UserCircle size={elderly ? 32 : 22} aria-hidden="true" />
+              <span className={cn("leading-none", elderly ? "text-[8px] font-semibold" : "text-[8px]")}>
                 Profil
               </span>
             </button>

@@ -145,6 +145,15 @@ def scan_token(
 
     from ..api.documents import _doc_status
     from ..crypto.vault import decrypt as _vault_decrypt
+
+    def _safe_decrypt(value: str | None, owner_id: str) -> str | None:
+        """Never let one undecryptable field (mismatched key, corrupt data)
+        500 the whole scan — degrade that field to None instead."""
+        try:
+            return _vault_decrypt(value, owner_id)
+        except Exception:
+            return None
+
     return {
         "owner": {
             "full_name": owner.full_name if owner else "Necunoscut",
@@ -156,8 +165,8 @@ def scan_token(
             {
                 "id": d.id,
                 "doc_type": d.doc_type,
-                "doc_number": _vault_decrypt(d.doc_number, d.owner_id),
-                "issued_by": _vault_decrypt(d.issued_by, d.owner_id),
+                "doc_number": _safe_decrypt(d.doc_number, d.owner_id),
+                "issued_by": _safe_decrypt(d.issued_by, d.owner_id),
                 "expires_date": d.expires_date.isoformat() if d.expires_date else None,
                 "is_verified": d.is_verified,
                 "status": _doc_status(d.expires_date)[0],

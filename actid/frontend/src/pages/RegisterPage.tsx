@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { User as UserIcon, Phone, Lock, ArrowLeft } from "lucide-react";
+import { User as UserIcon, Phone, Lock, ArrowLeft, ShieldCheck } from "lucide-react";
 import { authApi, getErrMsg, identityApi, type ScanIdResult } from "@/lib/api";
 import { useAuthStore } from "@/store/authStore";
 import { Alert, Button, Input } from "@/components/ui";
@@ -8,6 +8,13 @@ import IdScanner from "@/components/identity/IdScanner";
 import LivenessCheck from "@/components/identity/LivenessCheck";
 
 type Step = "details" | "scan_id" | "liveness" | "done";
+
+const STEP_META: Record<Step, { title: string; subtitle: string }> = {
+  details:  { title: "Datele tale",           subtitle: "Pasul 1 din 3 — informații de bază" },
+  scan_id:  { title: "Scanează documentul",   subtitle: "Pasul 2 din 3 — așază buletinul în cadru" },
+  liveness: { title: "Verificare biometrică", subtitle: "Pasul 3 din 3 — confirmăm că ești o persoană reală" },
+  done:     { title: "Gata",                  subtitle: "" },
+};
 
 export interface RegisterDraft {
   full_name: string;
@@ -134,153 +141,155 @@ export default function RegisterPage() {
     }
   };
 
+  const meta = STEP_META[step];
+
   return (
-    <div className="min-h-[100dvh] bg-gradient-to-br from-actid-blue via-[#0041BF] to-[#1a56db] flex items-center justify-center p-4 safe-top safe-bottom overflow-y-auto">
-      <div className="w-full max-w-sm">
-        {/* Logo */}
-        <div className="text-center mb-6">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-white rounded-2xl shadow-lg mb-3">
-            <div className="text-center">
-              <span className="block text-actid-blue font-black text-lg leading-none">AC</span>
-              <span className="block text-actid-red font-black text-lg leading-none">TID</span>
+    <div className="min-h-[100dvh] bg-background flex items-center justify-center p-5 safe-top safe-bottom overflow-y-auto">
+      <div className="w-full max-w-[440px]">
+
+        {/* Card — single white surface, brand integrated at top, premium shadow */}
+        <div className="bg-white rounded-2xl overflow-hidden shadow-[0_4px_28px_-2px_rgba(0,43,127,0.13),0_2px_8px_-2px_rgba(0,0,0,0.06)]">
+
+          {/* Header — brand, dynamic title, step progress */}
+          <div className="px-6 sm:px-10 pt-9 sm:pt-11 pb-6 flex flex-col gap-6">
+
+            {/* Brand — matches the landing lockup */}
+            <div className="flex items-center justify-center gap-2.5">
+              <div
+                className="w-9 h-9 bg-actid-blue rounded-xl flex items-center justify-center flex-shrink-0"
+                aria-hidden="true"
+              >
+                <span className="text-white font-black text-sm select-none">ID</span>
+              </div>
+              <span className="font-bold text-xl tracking-tight text-foreground">ActID</span>
+            </div>
+
+            {/* Title */}
+            <div className="text-center space-y-1.5">
+              <h1 className="text-2xl font-bold text-foreground tracking-tight">{meta.title}</h1>
+              <p className="text-sm text-muted-foreground leading-relaxed">{meta.subtitle}</p>
+            </div>
+
+            {/* Stepper */}
+            <div className="flex items-center justify-center gap-1.5" aria-hidden="true">
+              {(["details", "scan_id", "liveness"] as Step[]).map((s) => {
+                const order: Step[] = ["details", "scan_id", "liveness", "done"];
+                const active = order.indexOf(s) <= order.indexOf(step);
+                return (
+                  <div
+                    key={s}
+                    className={`h-1.5 rounded-full transition-all ${
+                      active ? "bg-actid-blue w-8" : "bg-actid-blue/15 w-4"
+                    }`}
+                  />
+                );
+              })}
             </div>
           </div>
-          <h1 className="text-white font-bold text-xl">Înregistrare cont nou</h1>
-        </div>
 
-        {/* Stepper */}
-        <div className="flex items-center justify-center gap-1.5 mb-4">
-          {(["details", "scan_id", "liveness"] as Step[]).map((s, i) => {
-            const order: Step[] = ["details", "scan_id", "liveness", "done"];
-            const currentIdx = order.indexOf(step);
-            const stepIdx = order.indexOf(s);
-            const active = stepIdx <= currentIdx;
-            return (
-              <div
-                key={s}
-                className={`h-1.5 rounded-full transition-all ${
-                  active ? "bg-white w-8" : "bg-white/30 w-4"
-                }`}
-                aria-label={`Pasul ${i + 1}`}
-              />
-            );
-          })}
-        </div>
+          {/* Body */}
+          <div className="px-6 sm:px-10 pb-8 sm:pb-10">
+            {step === "details" && (
+              <form onSubmit={handleDetailsSubmit} className="space-y-4" noValidate>
+                {error && <Alert variant="error">{error}</Alert>}
 
-        <div className="bg-white rounded-3xl shadow-2xl overflow-hidden">
-          {step === "details" && (
-            <form onSubmit={handleDetailsSubmit} className="p-6 space-y-4" noValidate>
-              <div className="text-center mb-2">
-                <h2 className="text-lg font-bold">Datele tale</h2>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Pasul 1 din 3 — informații de bază
-                </p>
-              </div>
+                <Input
+                  label="Nume complet"
+                  type="text"
+                  icon={<UserIcon size={16} />}
+                  value={draft.full_name}
+                  onChange={(e) => setDraft({ ...draft, full_name: e.target.value })}
+                  placeholder="Ion Popescu"
+                  autoComplete="name"
+                />
 
-              {error && <Alert variant="error">{error}</Alert>}
+                <Input
+                  label="Telefon"
+                  type="tel"
+                  icon={<Phone size={16} />}
+                  value={draft.phone}
+                  onChange={(e) => setDraft({ ...draft, phone: e.target.value })}
+                  placeholder="+40 712 345 678"
+                  autoComplete="tel"
+                />
 
-              <Input
-                label="Nume complet"
-                type="text"
-                icon={<UserIcon size={16} />}
-                value={draft.full_name}
-                onChange={(e) => setDraft({ ...draft, full_name: e.target.value })}
-                placeholder="Ion Popescu"
-                autoComplete="name"
-              />
+                <Input
+                  label="Parolă"
+                  type="password"
+                  icon={<Lock size={16} />}
+                  value={draft.password}
+                  onChange={(e) => setDraft({ ...draft, password: e.target.value })}
+                  placeholder="Minim 6 caractere"
+                  autoComplete="new-password"
+                />
 
-              <Input
-                label="Telefon"
-                type="tel"
-                icon={<Phone size={16} />}
-                value={draft.phone}
-                onChange={(e) => setDraft({ ...draft, phone: e.target.value })}
-                placeholder="+40 712 345 678"
-                autoComplete="tel"
-              />
+                <Input
+                  label="Confirmă parola"
+                  type="password"
+                  icon={<Lock size={16} />}
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  placeholder="Reintrodu parola"
+                  autoComplete="new-password"
+                />
 
-              <Input
-                label="Parolă"
-                type="password"
-                icon={<Lock size={16} />}
-                value={draft.password}
-                onChange={(e) => setDraft({ ...draft, password: e.target.value })}
-                placeholder="Minim 6 caractere"
-                autoComplete="new-password"
-              />
+                <Button type="submit" size="lg" className="w-full h-14 text-base font-bold">
+                  Continuă
+                </Button>
 
-              <Input
-                label="Confirmă parola"
-                type="password"
-                icon={<Lock size={16} />}
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                placeholder="Reintrodu parola"
-                autoComplete="new-password"
-              />
+                <button
+                  type="button"
+                  onClick={() => navigate("/")}
+                  className="w-full text-sm text-muted-foreground hover:text-foreground transition-colors flex items-center justify-center gap-1"
+                >
+                  <ArrowLeft size={14} aria-hidden="true" />
+                  Înapoi
+                </button>
+              </form>
+            )}
 
-              <Button type="submit" className="w-full" size="lg">
-                Continuă
-              </Button>
-
-              <button
-                type="button"
-                onClick={() => navigate("/")}
-                className="w-full text-sm text-muted-foreground hover:text-foreground transition-colors flex items-center justify-center gap-1"
-              >
-                <ArrowLeft size={14} aria-hidden="true" />
-                Înapoi
-              </button>
-            </form>
-          )}
-
-          {step === "scan_id" && (
-            <div className="p-6 space-y-4">
-              <div className="text-center">
-                <h2 className="text-lg font-bold">Scanare buletin / pașaport</h2>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Pasul 2 din 3 — așază documentul în cadru
-                </p>
-              </div>
-
+            {step === "scan_id" && (
               <IdScanner
                 onSuccess={handleIdScanSuccess}
                 onCancel={() => setStep("details")}
               />
-            </div>
-          )}
+            )}
 
-          {step === "liveness" && (
-            <div className="p-6 space-y-4">
-              <div className="text-center">
-                <h2 className="text-lg font-bold">Verificare biometrică</h2>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Pasul 3 din 3 — confirmăm că ești o persoană reală
-                </p>
+            {step === "liveness" && (
+              <div className="space-y-4">
+                {error && <Alert variant="error">{error}</Alert>}
+
+                {loading ? (
+                  <div className="py-8 text-center space-y-3">
+                    <div className="inline-block w-10 h-10 border-4 border-actid-blue border-t-transparent rounded-full animate-spin" />
+                    <p className="text-sm text-muted-foreground">
+                      Se compară cu fotografia din document…
+                    </p>
+                  </div>
+                ) : (
+                  <LivenessCheck
+                    onSuccess={handleLivenessSuccess}
+                    onCancel={() => setStep("scan_id")}
+                  />
+                )}
               </div>
+            )}
+          </div>
 
-              {error && <Alert variant="error">{error}</Alert>}
+          {/* Footer — security assurances, matches landing */}
+          <div className="px-6 sm:px-10 py-4 sm:py-5 border-t border-border/60 flex items-center justify-center gap-5">
+            <span className="flex items-center gap-1.5 text-xs text-muted-foreground/60">
+              <ShieldCheck size={11} aria-hidden="true" />
+              GDPR
+            </span>
+            <span className="w-px h-3 bg-border/60" aria-hidden="true" />
+            <span className="flex items-center gap-1.5 text-xs text-muted-foreground/60">
+              <Lock size={11} aria-hidden="true" />
+              TLS 1.3
+            </span>
+          </div>
 
-              {loading ? (
-                <div className="py-8 text-center space-y-3">
-                  <div className="inline-block w-10 h-10 border-4 border-actid-blue border-t-transparent rounded-full animate-spin" />
-                  <p className="text-sm text-muted-foreground">
-                    Se compară cu fotografia din document…
-                  </p>
-                </div>
-              ) : (
-                <LivenessCheck
-                  onSuccess={handleLivenessSuccess}
-                  onCancel={() => setStep("scan_id")}
-                />
-              )}
-            </div>
-          )}
         </div>
-
-        <p className="text-center text-white/50 text-xs mt-6">
-          Datele tale sunt protejate conform GDPR
-        </p>
       </div>
     </div>
   );
