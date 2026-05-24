@@ -165,6 +165,14 @@ export function DocumentCard({
             {!doc.expires_date && (
               <p className="text-xs text-muted-foreground mt-1.5">Fără dată de expirare</p>
             )}
+
+            {doc.is_verified && (
+              <div className="mt-2.5">
+                <span className="inline-flex items-center gap-1 text-[11px] font-semibold bg-green-50 text-green-700 px-2 py-0.5 rounded-full border border-green-200">
+                  <ShieldCheck size={11} aria-hidden="true" /> Document Oficial
+                </span>
+              </div>
+            )}
           </div>
         </div>
 

@@ -1,14 +1,19 @@
 import { useEffect, useState } from "react";
 import {
   Files, ShieldCheck, Clock, ShieldAlert, Plus, X, FileText,
-  ChevronRight, ChevronLeft, type LucideIcon,
+  ChevronRight, ChevronLeft, Building2, RotateCcw, Check,
+  type LucideIcon,
 } from "lucide-react";
-import { documentsApi } from "@/lib/api";
+import { documentsApi, type DocumentCatalogItem } from "@/lib/api";
 import { useDocumentStore } from "@/store/documentStore";
 import { useNotificationStore } from "@/store/notificationStore";
-import { DocumentCard, DocumentCardSkeleton, CATEGORY_META } from "@/components/documents/DocumentCard";
+import { useAuthStore } from "@/store/authStore";
+import { DocumentCard, DocumentCardSkeleton, CATEGORY_META, DocTypeIcon } from "@/components/documents/DocumentCard";
 import { Button, Card, CardContent, Input } from "@/components/ui";
-import type { Document, DocType } from "@/types";
+import { CITemplate } from "@/components/documents/templates/CITemplate";
+import { PasaportTemplate } from "@/components/documents/templates/PasaportTemplate";
+import { PermisTemplate } from "@/components/documents/templates/PermisTemplate";
+import type { Document } from "@/types";
 import { DOC_LABELS, DOC_CATEGORIES, groupDocsIntoFolders, cn, formatDate } from "@/lib/utils";
 
 type Filter = "all" | "valid" | "expiră_curând" | "expirat";
@@ -20,27 +25,26 @@ const FILTERS: { key: Filter; label: string; Icon: LucideIcon }[] = [
   { key: "expirat",       label: "Expirate",       Icon: ShieldAlert },
 ];
 
+const CATEGORY_LABELS: Record<string, string> = Object.fromEntries(
+  DOC_CATEGORIES.map((c) => [c.key, c.label])
+);
+
 export default function DocumentsPage() {
   const { documents, setDocuments, loading, setLoading, removeDocument } = useDocumentStore();
   const { generateFromDocuments, addToast } = useNotificationStore();
+  const { user } = useAuthStore();
 
   const [filter, setFilter] = useState<Filter>("all");
   const [search, setSearch] = useState("");
   const [openFolder, setOpenFolder] = useState<string | null>(null);
-  const [showAddForm, setShowAddForm] = useState(false);
-  const [adding, setAdding] = useState(false);
   const [deletePending, setDeletePending] = useState<Document | null>(null);
   const [viewDoc, setViewDoc] = useState<Document | null>(null);
 
-  const [newDoc, setNewDoc] = useState({
-    doc_type: "CI" as DocType,
-    doc_number: "",
-    issued_by: "",
-    issued_date: "",
-    expires_date: "",
-    description: "",
-    cnp: "",
-  });
+  // Catalog modal state
+  const [catalogOpen, setCatalogOpen] = useState(false);
+  const [catalog, setCatalog] = useState<DocumentCatalogItem[] | null>(null);
+  const [catalogLoading, setCatalogLoading] = useState(false);
+  const [requestingType, setRequestingType] = useState<string | null>(null);
 
   useEffect(() => { load(); }, []);
 
@@ -57,6 +61,49 @@ export default function DocumentsPage() {
     }
   };
 
+  const openCatalog = async () => {
+    setCatalogOpen(true);
+    setCatalogLoading(true);
+    try {
+      const res = await documentsApi.catalog();
+      setCatalog(res.data);
+    } catch {
+      addToast("Eroare la încărcarea catalogului", "error");
+      setCatalogOpen(false);
+    } finally {
+      setCatalogLoading(false);
+    }
+  };
+
+  const closeCatalog = () => {
+    setCatalogOpen(false);
+    setCatalog(null);
+    setRequestingType(null);
+  };
+
+  const handleRequest = async (item: DocumentCatalogItem) => {
+    if (item.state === "owned") return;
+    setRequestingType(item.doc_type);
+    try {
+      await documentsApi.request(item.doc_type);
+      await load();
+      // Refresh catalog so the button updates
+      const res = await documentsApi.catalog();
+      setCatalog(res.data);
+      addToast(
+        item.state === "expired"
+          ? `${item.label} reînnoit cu succes!`
+          : `${item.label} a fost emis în portofelul tău!`,
+        "success"
+      );
+    } catch (e: unknown) {
+      const err = e as { response?: { data?: { detail?: string } } };
+      addToast(err.response?.data?.detail || "Eroare la emitere", "error");
+    } finally {
+      setRequestingType(null);
+    }
+  };
+
   const handleDelete = (doc: Document) => setDeletePending(doc);
 
   const handleDeleteConfirm = async () => {
@@ -66,51 +113,9 @@ export default function DocumentsPage() {
     try {
       await documentsApi.delete(doc.id);
       removeDocument(doc.id);
-      addToast("Document șters", "info", { label: "Anulează", onClick: () => restoreDocument(doc) });
+      addToast("Document șters", "info");
     } catch {
       addToast("Ștergerea a eșuat. Documentul nu a fost șters, încearcă din nou.", "error");
-    }
-  };
-
-  const restoreDocument = async (doc: Document) => {
-    try {
-      await documentsApi.create({
-        doc_type: doc.doc_type,
-        doc_number: doc.doc_number ?? "",
-        issued_by: doc.issued_by ?? "",
-        issued_date: doc.issued_date ?? null,
-        expires_date: doc.expires_date ?? null,
-        description: doc.description ?? "",
-      });
-      await load();
-      addToast("Document restaurat", "success");
-    } catch {
-      addToast("Restaurarea a eșuat. Documentul nu a putut fi recuperat.", "error");
-    }
-  };
-
-  const handleAdd = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setAdding(true);
-    try {
-      const payload: Record<string, unknown> = {
-        ...newDoc,
-        issued_date: newDoc.issued_date || null,
-        expires_date: newDoc.expires_date || null,
-        cnp: newDoc.cnp || null,
-      };
-      const res = await documentsApi.create(payload);
-      const docs = [res.data, ...documents];
-      setDocuments(docs);
-      generateFromDocuments(docs);
-      setShowAddForm(false);
-      setOpenFolder(null);
-      setNewDoc({ doc_type: "CI", doc_number: "", issued_by: "", issued_date: "", expires_date: "", description: "", cnp: "" });
-      addToast("Document adăugat!", "success");
-    } catch (e: any) {
-      addToast(e.response?.data?.detail || "Eroare la adăugare", "error");
-    } finally {
-      setAdding(false);
     }
   };
 
@@ -129,8 +134,102 @@ export default function DocumentsPage() {
   const folders = groupDocsIntoFolders(byStatus);
   const activeFolder = openFolder ? folders.find((f) => f.key === openFolder) ?? null : null;
 
+  // Group catalog items by category for the modal
+  const catalogByCategory: Record<string, DocumentCatalogItem[]> = {};
+  if (catalog) {
+    for (const item of catalog) {
+      (catalogByCategory[item.category] ??= []).push(item);
+    }
+  }
+
   return (
     <>
+      {/* ── Catalog modal ─────────────────────────────────────────────────── */}
+      {catalogOpen && (
+        <div
+          className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center"
+          onClick={closeCatalog}
+        >
+          <div
+            className="bg-white w-full sm:max-w-2xl rounded-t-3xl sm:rounded-3xl overflow-hidden max-h-[92dvh] flex flex-col"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="bg-gradient-to-r from-actid-blue to-actid-blue-light p-5 text-white flex-shrink-0">
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-11 h-11 bg-white/20 rounded-xl flex items-center justify-center flex-shrink-0">
+                    <Building2 size={20} className="text-white" aria-hidden="true" />
+                  </div>
+                  <div className="min-w-0">
+                    <h2 className="font-bold text-lg">Solicită document oficial</h2>
+                    <p className="text-white/80 text-xs mt-0.5">
+                      Emis instant de instituția emitentă
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={closeCatalog}
+                  className="w-9 h-9 bg-white/15 rounded-full flex items-center justify-center flex-shrink-0"
+                  aria-label="Închide"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+            </div>
+
+            {/* Body */}
+            <div className="flex-1 overflow-y-auto p-5 space-y-6">
+              {catalogLoading || !catalog ? (
+                <div className="space-y-3">
+                  {[1, 2, 3, 4].map((i) => (
+                    <div key={i} className="bg-white rounded-2xl border border-border p-4">
+                      <div className="flex gap-3">
+                        <div className="w-11 h-11 skeleton rounded-xl" />
+                        <div className="flex-1 space-y-2">
+                          <div className="skeleton h-4 w-40 rounded" />
+                          <div className="skeleton h-3 w-56 rounded" />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                DOC_CATEGORIES.map((cat) => {
+                  const items = catalogByCategory[cat.key];
+                  if (!items || items.length === 0) return null;
+                  const meta = CATEGORY_META[cat.key] ?? CATEGORY_META.altele;
+                  const Icon = meta.Icon;
+                  return (
+                    <section key={cat.key}>
+                      <div className="flex items-center gap-2 mb-3">
+                        <div className={cn("w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0", meta.tile)}>
+                          <Icon size={14} aria-hidden="true" />
+                        </div>
+                        <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">
+                          {CATEGORY_LABELS[cat.key] || cat.key}
+                        </h3>
+                        <div className="flex-1 h-px bg-border" />
+                      </div>
+                      <div className="space-y-2">
+                        {items.map((item) => (
+                          <CatalogRow
+                            key={item.doc_type}
+                            item={item}
+                            loading={requestingType === item.doc_type}
+                            onRequest={() => handleRequest(item)}
+                          />
+                        ))}
+                      </div>
+                    </section>
+                  );
+                })
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ── View modal ────────────────────────────────────────────────────── */}
       {viewDoc && (
         <div
@@ -138,22 +237,28 @@ export default function DocumentsPage() {
           onClick={() => setViewDoc(null)}
         >
           <div
-            className="bg-white w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl overflow-hidden max-h-[90dvh] overflow-y-auto"
+            className="bg-white w-full sm:max-w-2xl rounded-t-3xl sm:rounded-3xl overflow-hidden max-h-[90dvh] overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Photo or placeholder */}
-            {viewDoc.photo_base64 ? (
-              <img
-                src={viewDoc.photo_base64}
-                alt="Document"
-                className="w-full aspect-video object-cover"
-              />
-            ) : (
-              <div className="w-full aspect-video bg-gray-100 flex flex-col items-center justify-center gap-2">
-                <FileText size={48} className="text-gray-300" />
-                <p className="text-xs text-muted-foreground">Nicio fotografie atașată</p>
-              </div>
-            )}
+            {/* Document template — visual replica with watermark */}
+            <div className="p-4 bg-gradient-to-br from-gray-50 to-slate-100">
+              {viewDoc.doc_type === "CI" ? (
+                <CITemplate doc={viewDoc} fullName={user?.full_name || ""} userCnp={user?.cnp} />
+              ) : viewDoc.doc_type === "PASAPORT" ? (
+                <PasaportTemplate doc={viewDoc} fullName={user?.full_name || ""} userCnp={user?.cnp} />
+              ) : viewDoc.doc_type === "PERMIS" ? (
+                <PermisTemplate doc={viewDoc} fullName={user?.full_name || ""} userCnp={user?.cnp} />
+              ) : (
+                <div className="w-full aspect-video bg-gradient-to-br from-blue-50 to-indigo-100 rounded-xl flex flex-col items-center justify-center gap-2 relative">
+                  <DocTypeIcon type={viewDoc.doc_type} size={56} className="text-actid-blue/60" />
+                  {viewDoc.is_verified && (
+                    <span className="absolute top-3 right-3 inline-flex items-center gap-1 text-[11px] font-semibold bg-green-50 text-green-700 px-2 py-1 rounded-full border border-green-200 shadow-sm">
+                      <ShieldCheck size={11} aria-hidden="true" /> Document Oficial
+                    </span>
+                  )}
+                </div>
+              )}
+            </div>
 
             {/* Fields */}
             <div className="p-5 space-y-4">
@@ -190,7 +295,7 @@ export default function DocumentsPage() {
                     <p className="text-sm font-medium font-mono">{viewDoc.doc_number}</p>
                   </div>
                 )}
-                {viewDoc.doc_type !== "CI" && viewDoc.issued_by && (
+                {viewDoc.issued_by && (
                   <div className="col-span-2">
                     <p className="text-xs text-muted-foreground">Emis de</p>
                     <p className="text-sm font-medium">{viewDoc.issued_by}</p>
@@ -218,7 +323,7 @@ export default function DocumentsPage() {
 
               {viewDoc.description && (
                 <div>
-                  <p className="text-xs text-muted-foreground">Note</p>
+                  <p className="text-xs text-muted-foreground">Descriere</p>
                   <p className="text-sm">{viewDoc.description}</p>
                 </div>
               )}
@@ -234,113 +339,17 @@ export default function DocumentsPage() {
           <div>
             <h1 className="text-2xl font-bold">Documentele mele</h1>
             <p className="text-sm text-muted-foreground mt-0.5">
-              {documents.length} documente înregistrate
+              {documents.length} {documents.length === 1 ? "document înregistrat" : "documente înregistrate"}
             </p>
           </div>
           <Button
             size="sm"
-            onClick={() => setShowAddForm(!showAddForm)}
+            onClick={openCatalog}
             className="gap-1.5 flex-shrink-0"
           >
-            {showAddForm
-              ? <><X size={14} aria-hidden="true" /> Anulează</>
-              : <><Plus size={14} aria-hidden="true" /> Adaugă</>}
+            <Plus size={14} aria-hidden="true" /> Solicită
           </Button>
         </div>
-
-        {/* Manual add form (no photo) */}
-        {showAddForm && (
-          <Card className="border-actid-blue/20">
-            <CardContent className="py-5">
-              <h2 className="font-semibold mb-4">Adaugă document nou</h2>
-              <form onSubmit={handleAdd} className="space-y-3">
-                <div>
-                  <label className="text-sm font-medium block mb-1.5">Tip document</label>
-                  <select
-                    value={newDoc.doc_type}
-                    onChange={(e) => setNewDoc({ ...newDoc, doc_type: e.target.value as DocType })}
-                    className="w-full h-11 rounded-xl border border-input bg-white px-4 text-sm focus:outline-none focus:ring-2 focus:ring-actid-blue/30"
-                    required
-                  >
-                    {DOC_CATEGORIES.map((cat) => (
-                      <optgroup key={cat.key} label={cat.label}>
-                        {cat.types.map((t) => (
-                          <option key={t} value={t}>{DOC_LABELS[t]}</option>
-                        ))}
-                      </optgroup>
-                    ))}
-                  </select>
-                </div>
-                {newDoc.doc_type === "CI" ? (
-                  <>
-                    <Input
-                      label="CNP"
-                      value={newDoc.cnp}
-                      onChange={(e) => setNewDoc({ ...newDoc, cnp: e.target.value })}
-                      placeholder="ex: 1234567890123"
-                      maxLength={13}
-                    />
-                    <Input
-                      label="Număr serie"
-                      value={newDoc.doc_number}
-                      onChange={(e) => setNewDoc({ ...newDoc, doc_number: e.target.value })}
-                      placeholder="ex: AX123456"
-                    />
-                    <div className="grid grid-cols-2 gap-3">
-                      <Input
-                        label="Data emiterii"
-                        type="date"
-                        value={newDoc.issued_date}
-                        onChange={(e) => setNewDoc({ ...newDoc, issued_date: e.target.value })}
-                      />
-                      <Input
-                        label="Data expirării"
-                        type="date"
-                        value={newDoc.expires_date}
-                        onChange={(e) => setNewDoc({ ...newDoc, expires_date: e.target.value })}
-                      />
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    <Input
-                      label="Număr document"
-                      value={newDoc.doc_number}
-                      onChange={(e) => setNewDoc({ ...newDoc, doc_number: e.target.value })}
-                      placeholder="ex: CJ123456"
-                    />
-                    <Input
-                      label="Emis de"
-                      value={newDoc.issued_by}
-                      onChange={(e) => setNewDoc({ ...newDoc, issued_by: e.target.value })}
-                      placeholder="ex: SPCLEP Cluj-Napoca"
-                    />
-                    <div className="grid grid-cols-2 gap-3">
-                      <Input
-                        label="Data emiterii"
-                        type="date"
-                        value={newDoc.issued_date}
-                        onChange={(e) => setNewDoc({ ...newDoc, issued_date: e.target.value })}
-                      />
-                      <Input
-                        label="Data expirării"
-                        type="date"
-                        value={newDoc.expires_date}
-                        onChange={(e) => setNewDoc({ ...newDoc, expires_date: e.target.value })}
-                      />
-                    </div>
-                  </>
-                )}
-                <div className="flex gap-2">
-                  <Button type="submit" loading={adding} className="flex-1">Salvează</Button>
-                  <Button type="button" variant="secondary" onClick={() => setShowAddForm(false)}>
-                    Anulează
-                  </Button>
-                </div>
-              </form>
-            </CardContent>
-          </Card>
-        )}
 
         {/* Search */}
         <Input
@@ -385,7 +394,6 @@ export default function DocumentsPage() {
             );
           })}
         </div>
-
 
         {/* ── Loading ─────────────────────────────────────────────────────── */}
         {loading ? (
@@ -485,8 +493,8 @@ export default function DocumentsPage() {
                   : "Nu ai documente înregistrate"}
               </p>
               {filter === "all" && (
-                <Button variant="outline" size="sm" className="mt-4" onClick={() => setShowAddForm(true)}>
-                  Adaugă primul document
+                <Button variant="outline" size="sm" className="mt-4 gap-1.5" onClick={openCatalog}>
+                  <Plus size={14} aria-hidden="true" /> Solicită primul document
                 </Button>
               )}
             </CardContent>
@@ -544,6 +552,67 @@ export default function DocumentsPage() {
   );
 }
 
+// ─── Catalog row ─────────────────────────────────────────────────────────────
+
+function CatalogRow({
+  item,
+  loading,
+  onRequest,
+}: {
+  item: DocumentCatalogItem;
+  loading: boolean;
+  onRequest: () => void;
+}) {
+  const isOwned = item.state === "owned";
+  const isExpired = item.state === "expired";
+
+  return (
+    <div className={cn(
+      "flex items-center gap-3 p-3 rounded-xl border-2 transition-colors",
+      isExpired ? "border-amber-200 bg-amber-50/40" :
+      isOwned ? "border-green-200 bg-green-50/30" :
+      "border-border bg-white"
+    )}>
+      <div className={cn(
+        "w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0",
+        isExpired ? "bg-amber-100 text-amber-700" :
+        isOwned ? "bg-green-100 text-green-700" :
+        "bg-blue-50 text-blue-600"
+      )}>
+        <DocTypeIcon type={item.doc_type} size={18} />
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-semibold truncate">{item.label}</p>
+        <p className="text-xs text-muted-foreground truncate">{item.issuing_authority}</p>
+      </div>
+      {isOwned ? (
+        <span className="inline-flex items-center gap-1 text-xs font-semibold text-green-700 bg-green-100 px-3 py-2 rounded-xl flex-shrink-0">
+          <Check size={13} aria-hidden="true" /> Ai deja
+        </span>
+      ) : isExpired ? (
+        <Button
+          size="sm"
+          onClick={onRequest}
+          loading={loading}
+          variant="secondary"
+          className="gap-1.5 flex-shrink-0 bg-amber-500 text-white hover:bg-amber-600 border-amber-500"
+        >
+          <RotateCcw size={13} aria-hidden="true" /> Reînnoiește
+        </Button>
+      ) : (
+        <Button
+          size="sm"
+          onClick={onRequest}
+          loading={loading}
+          className="gap-1.5 flex-shrink-0"
+        >
+          <Plus size={13} aria-hidden="true" /> Solicită
+        </Button>
+      )}
+    </div>
+  );
+}
+
 function DeleteConfirm({
   label,
   onConfirm,
@@ -563,7 +632,7 @@ function DeleteConfirm({
             Da, șterge
           </Button>
           <Button size="sm" variant="secondary" onClick={onCancel} className="flex-1">
-            Anulează
+            Înapoi
           </Button>
         </div>
       </CardContent>
