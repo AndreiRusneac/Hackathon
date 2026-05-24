@@ -1,10 +1,13 @@
-import { NavLink, useNavigate } from "react-router-dom";
-import { Home, FileText, QrCode, Users, Bell, Link2, Search, ZoomIn, LogOut, ShieldCheck, type LucideIcon } from "lucide-react";
+import { NavLink } from "react-router-dom";
+import {
+  Home, FileText, Bell, QrCode, Shield, ShieldCheck,
+  Users, Search, Link2,
+  type LucideIcon,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useNotificationStore } from "@/store/notificationStore";
-import { useElderlyStore } from "@/store/elderlyStore";
 import { useAuthStore } from "@/store/authStore";
-import { authApi } from "@/lib/api";
+import { useElderlyStore } from "@/store/elderlyStore";
 
 type NavItem = {
   to: string;
@@ -13,43 +16,36 @@ type NavItem = {
 };
 
 const CITIZEN_ITEMS: NavItem[] = [
-  { to: "/dashboard",  icon: Home,        label: "Acasă" },
-  { to: "/documents",  icon: FileText,    label: "Acte" },
-  { to: "/securitate", icon: ShieldCheck, label: "Securitate" },
-  { to: "/family",     icon: Users,       label: "Familie" },
-  { to: "/notifications", icon: Bell,     label: "Notificări" },
+  { to: "/dashboard",     icon: Home,        label: "Acasă" },
+  { to: "/documents",     icon: FileText,    label: "Acte" },
+  { to: "/sharing",       icon: QrCode,      label: "QR" },
+  { to: "/presentations", icon: Shield,      label: "EUDI" },
+  { to: "/securitate",    icon: ShieldCheck, label: "Securitate" },
+  { to: "/notifications", icon: Bell,        label: "Notificări" },
 ];
 
 const FUNCTIONAR_ITEMS: NavItem[] = [
-  { to: "/dashboard",  icon: Home,    label: "Acasă" },
-  { to: "/functionar", icon: Search,  label: "Portal" },
-  { to: "/sharing",    icon: QrCode,  label: "QR" },
-  { to: "/family",     icon: Users,   label: "Familie" },
-  { to: "/audit",      icon: Link2,   label: "Jurnal" },
+  { to: "/dashboard",  icon: Home,   label: "Acasă" },
+  { to: "/functionar", icon: Search, label: "Portal" },
+  { to: "/family",     icon: Users,  label: "Familie" },
+  { to: "/audit",      icon: Link2,  label: "Jurnal" },
 ];
 
 export function BottomNav() {
   const { notifications } = useNotificationStore();
-  const { enabled: elderlyEnabled, toggle: elderlyToggle } = useElderlyStore();
-  const { user, logout } = useAuthStore();
-  const navigate = useNavigate();
-
-  const handleLogout = async () => {
-    try { await authApi.logout(); } catch { /* ignore */ }
-    logout();
-    navigate("/", { replace: true });
-  };
+  const { user } = useAuthStore();
+  const { enabled: elderly } = useElderlyStore();
 
   const unreadCount = notifications.filter((n) => !n.dismissed).length;
   const items = user?.role === "funcționar" ? FUNCTIONAR_ITEMS : CITIZEN_ITEMS;
 
   return (
     <nav
-      className="bg-white border-t border-border safe-bottom"
+      className="bg-white/95 backdrop-blur-md border-t border-border/60 safe-bottom shadow-[0_-4px_16px_rgba(0,0,0,0.07)]"
       role="navigation"
       aria-label="Navigare mobilă"
     >
-      <div className="relative flex items-center justify-around h-16 pr-14">
+      <div className={cn("flex items-center justify-around", elderly ? "h-24" : "h-[72px]")}>
         {items.map((item) => {
           const Icon = item.icon;
           return (
@@ -58,7 +54,8 @@ export function BottomNav() {
               to={item.to}
               className={({ isActive }) =>
                 cn(
-                  "flex flex-col items-center justify-center gap-0.5 flex-1 h-full text-xs font-medium transition-colors relative focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-actid-blue focus-visible:ring-inset",
+                  "flex flex-col items-center justify-center flex-1 h-full font-medium transition-colors relative focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-actid-blue focus-visible:ring-inset",
+                  elderly ? "gap-1.5" : "gap-1",
                   isActive ? "text-actid-blue" : "text-muted-foreground"
                 )
               }
@@ -66,8 +63,12 @@ export function BottomNav() {
             >
               {({ isActive }) => (
                 <>
-                  <Icon size={20} aria-hidden="true" />
-                  <span className={cn("text-[10px]", isActive && "font-bold")}>
+                  <Icon size={elderly ? 28 : 22} aria-hidden="true" />
+                  <span className={cn(
+                    "leading-none",
+                    elderly ? "text-[10px] font-semibold" : "text-[8px]",
+                    isActive && "font-bold"
+                  )}>
                     {item.label}
                   </span>
                   {item.to === "/notifications" && unreadCount > 0 && (
@@ -79,36 +80,16 @@ export function BottomNav() {
                     </span>
                   )}
                   {isActive && (
-                    <span className="absolute top-0 left-1/2 -translate-x-1/2 w-6 h-0.5 bg-actid-blue rounded-b" aria-hidden="true" />
+                    <span
+                      className={cn("absolute top-0 left-1/2 -translate-x-1/2 h-0.5 bg-actid-blue rounded-b", elderly ? "w-8" : "w-5")}
+                      aria-hidden="true"
+                    />
                   )}
                 </>
               )}
             </NavLink>
           );
         })}
-
-        <div className="absolute right-1.5 top-1/2 -translate-y-1/2 flex flex-col gap-1">
-          <button
-            onClick={elderlyToggle}
-            aria-pressed={elderlyEnabled}
-            aria-label={elderlyEnabled ? "Dezactivare mod vârstnici" : "Activare mod vârstnici"}
-            className={cn(
-              "w-6 h-6 rounded-md flex items-center justify-center transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-actid-blue",
-              elderlyEnabled
-                ? "bg-actid-blue text-white shadow-sm"
-                : "bg-gray-100 text-gray-500 hover:bg-gray-200"
-            )}
-          >
-            <ZoomIn size={12} aria-hidden="true" />
-          </button>
-          <button
-            onClick={handleLogout}
-            aria-label="Deconectare"
-            className="w-6 h-6 rounded-md flex items-center justify-center bg-gray-100 text-gray-500 hover:bg-red-50 hover:text-actid-red transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-actid-blue"
-          >
-            <LogOut size={12} aria-hidden="true" />
-          </button>
-        </div>
       </div>
     </nav>
   );

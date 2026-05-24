@@ -163,7 +163,7 @@ export default function PresentationsPage() {
   if (result) return <PresentationResult result={result} onReset={reset} />;
 
   return (
-    <div className="max-w-2xl mx-auto px-4 py-6 space-y-6 animate-slide-up">
+    <div className="max-w-2xl mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-6 animate-slide-up">
       {/* Header banner */}
       <div className="rounded-2xl overflow-hidden border border-border shadow-sm">
         <div className="bg-gradient-to-r from-actid-blue to-actid-blue-light p-5 text-white">
@@ -397,7 +397,7 @@ function PresentationResult({
   onReset: () => void;
 }) {
   return (
-    <div className="max-w-2xl mx-auto px-4 py-6 space-y-5 animate-slide-up">
+    <div className="max-w-2xl mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-5 animate-slide-up">
       <Card className="border-green-200 overflow-hidden">
         <div className="bg-green-50 px-5 py-4 border-b border-green-200">
           <div className="flex items-center gap-3">

@@ -1,7 +1,7 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Files, ShieldCheck, Clock, ShieldAlert, Plus, X, FileText,
-  ChevronRight, ChevronLeft, Camera, type LucideIcon,
+  ChevronRight, ChevronLeft, type LucideIcon,
 } from "lucide-react";
 import { documentsApi } from "@/lib/api";
 import { useDocumentStore } from "@/store/documentStore";
@@ -12,7 +12,6 @@ import type { Document, DocType } from "@/types";
 import { DOC_LABELS, DOC_CATEGORIES, groupDocsIntoFolders, cn, formatDate } from "@/lib/utils";
 
 type Filter = "all" | "valid" | "expiră_curând" | "expirat";
-type ScanStep = "type" | "camera" | "form";
 
 const FILTERS: { key: Filter; label: string; Icon: LucideIcon }[] = [
   { key: "all",           label: "Toate",         Icon: Files },
@@ -20,13 +19,6 @@ const FILTERS: { key: Filter; label: string; Icon: LucideIcon }[] = [
   { key: "expiră_curând", label: "Expiră curând",  Icon: Clock },
   { key: "expirat",       label: "Expirate",       Icon: ShieldAlert },
 ];
-
-const STEP_LABELS: Record<ScanStep, string> = {
-  type:   "Alege tipul documentului",
-  camera: "Fotografiază documentul",
-  form:   "Completează detaliile",
-};
-const STEPS: ScanStep[] = ["type", "camera", "form"];
 
 export default function DocumentsPage() {
   const { documents, setDocuments, loading, setLoading, removeDocument } = useDocumentStore();
@@ -39,11 +31,6 @@ export default function DocumentsPage() {
   const [adding, setAdding] = useState(false);
   const [deletePending, setDeletePending] = useState<Document | null>(null);
   const [viewDoc, setViewDoc] = useState<Document | null>(null);
-  const [scanStep, setScanStep] = useState<ScanStep | null>(null);
-  const [capturedPhoto, setCapturedPhoto] = useState<string | null>(null);
-
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const streamRef = useRef<MediaStream | null>(null);
 
   const [newDoc, setNewDoc] = useState({
     doc_type: "CI" as DocType,
@@ -56,25 +43,6 @@ export default function DocumentsPage() {
   });
 
   useEffect(() => { load(); }, []);
-
-  // Start camera when scan step is "camera", stop otherwise
-  useEffect(() => {
-    if (scanStep !== "camera") return;
-    navigator.mediaDevices
-      .getUserMedia({ video: { facingMode: { ideal: "environment" } } })
-      .then((stream) => {
-        streamRef.current = stream;
-        if (videoRef.current) videoRef.current.srcObject = stream;
-      })
-      .catch(() => {
-        addToast("Nu am putut accesa camera. Acordă permisiune în browser.", "error");
-        setScanStep("type");
-      });
-    return () => {
-      streamRef.current?.getTracks().forEach((t) => t.stop());
-      streamRef.current = null;
-    };
-  }, [scanStep]);
 
   const load = async () => {
     setLoading(true);
@@ -131,14 +99,11 @@ export default function DocumentsPage() {
         expires_date: newDoc.expires_date || null,
         cnp: newDoc.cnp || null,
       };
-      if (capturedPhoto) payload.photo_base64 = capturedPhoto;
       const res = await documentsApi.create(payload);
       const docs = [res.data, ...documents];
       setDocuments(docs);
       generateFromDocuments(docs);
       setShowAddForm(false);
-      setScanStep(null);
-      setCapturedPhoto(null);
       setOpenFolder(null);
       setNewDoc({ doc_type: "CI", doc_number: "", issued_by: "", issued_date: "", expires_date: "", description: "", cnp: "" });
       addToast("Document adăugat!", "success");
@@ -147,29 +112,6 @@ export default function DocumentsPage() {
     } finally {
       setAdding(false);
     }
-  };
-
-  const capturePhoto = () => {
-    const video = videoRef.current;
-    if (!video || !video.videoWidth) return;
-    const canvas = document.createElement("canvas");
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-    canvas.getContext("2d")!.drawImage(video, 0, 0);
-    setCapturedPhoto(canvas.toDataURL("image/jpeg", 0.85));
-    setScanStep("form");
-  };
-
-  const closeScanModal = () => {
-    setScanStep(null);
-    setCapturedPhoto(null);
-    setNewDoc({ doc_type: "CI", doc_number: "", issued_by: "", issued_date: "", expires_date: "", description: "", cnp: "" });
-  };
-
-  const handleScanBack = () => {
-    if (scanStep === "type")   closeScanModal();
-    else if (scanStep === "camera") setScanStep("type");
-    else if (scanStep === "form")   { setCapturedPhoto(null); setScanStep("camera"); }
   };
 
   // Filtered + searched docs
@@ -189,192 +131,6 @@ export default function DocumentsPage() {
 
   return (
     <>
-      {/* ── Scan modal (full-screen) ───────────────────────────────────────── */}
-      {scanStep !== null && (
-        <div className="fixed inset-0 z-50 bg-black flex flex-col">
-          {/* Top bar */}
-          <div className="flex items-center gap-3 px-4 py-3 bg-black/80 backdrop-blur-sm flex-shrink-0">
-            <button
-              onClick={handleScanBack}
-              className="w-10 h-10 flex items-center justify-center rounded-full bg-white/10 text-white"
-              aria-label="Înapoi"
-            >
-              <ChevronLeft size={20} />
-            </button>
-            <div className="flex-1">
-              <p className="text-white font-semibold text-sm">{STEP_LABELS[scanStep]}</p>
-              <div className="flex gap-1 mt-1.5">
-                {STEPS.map((s) => (
-                  <div
-                    key={s}
-                    className={cn(
-                      "h-1 rounded-full flex-1 transition-all",
-                      s === scanStep ? "bg-white" :
-                      STEPS.indexOf(s) < STEPS.indexOf(scanStep) ? "bg-white/60" : "bg-white/20"
-                    )}
-                  />
-                ))}
-              </div>
-            </div>
-            <button
-              onClick={closeScanModal}
-              className="w-10 h-10 flex items-center justify-center rounded-full bg-white/10 text-white"
-              aria-label="Închide"
-            >
-              <X size={20} />
-            </button>
-          </div>
-
-          {/* ── Step: type ── */}
-          {scanStep === "type" && (
-            <div className="flex-1 flex flex-col bg-white overflow-y-auto">
-              <div className="flex-1 p-5 space-y-3">
-                <p className="text-sm text-muted-foreground">Ce document vrei să adaugi?</p>
-                <select
-                  value={newDoc.doc_type}
-                  onChange={(e) => setNewDoc({ ...newDoc, doc_type: e.target.value as DocType })}
-                  className="w-full h-12 rounded-xl border border-input bg-white px-4 text-sm focus:outline-none focus:ring-2 focus:ring-actid-blue/30"
-                >
-                  {DOC_CATEGORIES.map((cat) => (
-                    <optgroup key={cat.key} label={cat.label}>
-                      {cat.types.map((t) => (
-                        <option key={t} value={t}>{DOC_LABELS[t]}</option>
-                      ))}
-                    </optgroup>
-                  ))}
-                </select>
-              </div>
-              <div className="p-5">
-                <Button className="w-full gap-2" onClick={() => setScanStep("camera")}>
-                  <Camera size={16} /> Continuă la cameră
-                </Button>
-              </div>
-            </div>
-          )}
-
-          {/* ── Step: camera ── */}
-          {scanStep === "camera" && (
-            <div className="flex-1 relative overflow-hidden">
-              <video
-                ref={videoRef}
-                autoPlay
-                playsInline
-                muted
-                className="absolute inset-0 w-full h-full object-cover"
-              />
-              {/* Document frame guide */}
-              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                <div className="w-[85%] aspect-[1.586/1] border-2 border-white/80 rounded-2xl shadow-[0_0_0_9999px_rgba(0,0,0,0.45)]" />
-              </div>
-              <p className="absolute top-4 inset-x-0 text-center text-white text-sm font-medium drop-shadow px-4">
-                Încadrează documentul în dreptunghi
-              </p>
-              {/* Shutter button */}
-              <button
-                onClick={capturePhoto}
-                className="absolute bottom-10 left-1/2 -translate-x-1/2 w-20 h-20 rounded-full bg-white border-[5px] border-white/40 shadow-xl active:scale-95 transition-transform"
-                aria-label="Capturează"
-              />
-            </div>
-          )}
-
-          {/* ── Step: form ── */}
-          {scanStep === "form" && (
-            <div className="flex-1 overflow-y-auto bg-white">
-              {/* Captured photo preview */}
-              {capturedPhoto && (
-                <div className="relative">
-                  <img
-                    src={capturedPhoto}
-                    alt="Document capturat"
-                    className="w-full aspect-video object-cover"
-                  />
-                  <button
-                    onClick={() => { setCapturedPhoto(null); setScanStep("camera"); }}
-                    className="absolute top-3 right-3 w-9 h-9 bg-black/60 rounded-full flex items-center justify-center text-white"
-                    aria-label="Refă poza"
-                  >
-                    <Camera size={16} />
-                  </button>
-                </div>
-              )}
-
-              <form onSubmit={handleAdd} className="p-5 space-y-3">
-                <p className="text-sm text-muted-foreground">
-                  Tip:{" "}
-                  <span className="font-semibold text-foreground">
-                    {DOC_LABELS[newDoc.doc_type] || newDoc.doc_type}
-                  </span>
-                </p>
-                {newDoc.doc_type === "CI" ? (
-                  <>
-                    <Input
-                      label="CNP"
-                      value={newDoc.cnp}
-                      onChange={(e) => setNewDoc({ ...newDoc, cnp: e.target.value })}
-                      placeholder="ex: 1234567890123"
-                      maxLength={13}
-                    />
-                    <Input
-                      label="Număr serie"
-                      value={newDoc.doc_number}
-                      onChange={(e) => setNewDoc({ ...newDoc, doc_number: e.target.value })}
-                      placeholder="ex: AX123456"
-                    />
-                    <div className="grid grid-cols-2 gap-3">
-                      <Input
-                        label="Data emiterii"
-                        type="date"
-                        value={newDoc.issued_date}
-                        onChange={(e) => setNewDoc({ ...newDoc, issued_date: e.target.value })}
-                      />
-                      <Input
-                        label="Data expirării"
-                        type="date"
-                        value={newDoc.expires_date}
-                        onChange={(e) => setNewDoc({ ...newDoc, expires_date: e.target.value })}
-                      />
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    <Input
-                      label="Număr document"
-                      value={newDoc.doc_number}
-                      onChange={(e) => setNewDoc({ ...newDoc, doc_number: e.target.value })}
-                      placeholder="ex: CJ123456"
-                    />
-                    <Input
-                      label="Emis de"
-                      value={newDoc.issued_by}
-                      onChange={(e) => setNewDoc({ ...newDoc, issued_by: e.target.value })}
-                      placeholder="ex: SPCLEP Cluj-Napoca"
-                    />
-                    <div className="grid grid-cols-2 gap-3">
-                      <Input
-                        label="Data emiterii"
-                        type="date"
-                        value={newDoc.issued_date}
-                        onChange={(e) => setNewDoc({ ...newDoc, issued_date: e.target.value })}
-                      />
-                      <Input
-                        label="Data expirării"
-                        type="date"
-                        value={newDoc.expires_date}
-                        onChange={(e) => setNewDoc({ ...newDoc, expires_date: e.target.value })}
-                      />
-                    </div>
-                  </>
-                )}
-                <Button type="submit" loading={adding} className="w-full">
-                  Salvează documentul
-                </Button>
-              </form>
-            </div>
-          )}
-        </div>
-      )}
-
       {/* ── View modal ────────────────────────────────────────────────────── */}
       {viewDoc && (
         <div
@@ -472,7 +228,7 @@ export default function DocumentsPage() {
       )}
 
       {/* ── Main page ─────────────────────────────────────────────────────── */}
-      <div className="max-w-2xl mx-auto px-4 py-6 space-y-5">
+      <div className="max-w-2xl mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-5">
         {/* Header */}
         <div className="flex items-center justify-between gap-2">
           <div>
@@ -481,25 +237,15 @@ export default function DocumentsPage() {
               {documents.length} documente înregistrate
             </p>
           </div>
-          <div className="flex gap-2 flex-shrink-0">
-            <Button
-              size="sm"
-              variant="secondary"
-              onClick={() => setScanStep("type")}
-              className="gap-1.5"
-            >
-              <Camera size={14} aria-hidden="true" /> Scanează
-            </Button>
-            <Button
-              size="sm"
-              onClick={() => setShowAddForm(!showAddForm)}
-              className="gap-1.5"
-            >
-              {showAddForm
-                ? <><X size={14} aria-hidden="true" /> Anulează</>
-                : <><Plus size={14} aria-hidden="true" /> Adaugă</>}
-            </Button>
-          </div>
+          <Button
+            size="sm"
+            onClick={() => setShowAddForm(!showAddForm)}
+            className="gap-1.5 flex-shrink-0"
+          >
+            {showAddForm
+              ? <><X size={14} aria-hidden="true" /> Anulează</>
+              : <><Plus size={14} aria-hidden="true" /> Adaugă</>}
+          </Button>
         </div>
 
         {/* Manual add form (no photo) */}
@@ -618,7 +364,7 @@ export default function DocumentsPage() {
                 role="tab"
                 aria-selected={filter === f.key}
                 onClick={() => setFilter(f.key)}
-                className={`flex-shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium border-2 transition-all ${
+                className={`flex-shrink-0 flex items-center gap-1.5 px-3 py-2.5 rounded-xl text-sm font-medium border-2 transition-all ${
                   filter === f.key
                     ? "bg-actid-blue text-white border-actid-blue"
                     : "border-border text-foreground hover:border-gray-300"

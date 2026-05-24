@@ -172,7 +172,7 @@ export default function SecurityPage() {
 
   if (loading) {
     return (
-      <div className="max-w-2xl mx-auto px-4 py-6 space-y-5">
+      <div className="max-w-2xl mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-5">
         {[1, 2, 3].map((i) => (
           <div key={i} className="bg-white rounded-2xl border border-border p-4">
             <div className="skeleton h-4 w-40 rounded mb-3" />
@@ -188,7 +188,7 @@ export default function SecurityPage() {
 
   if (securityError) {
     return (
-      <div className="max-w-2xl mx-auto px-4 py-6">
+      <div className="max-w-2xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
         <Card className="border-red-200">
           <CardContent className="py-10 flex flex-col items-center gap-4 text-center">
             <div className="w-14 h-14 bg-red-50 rounded-2xl flex items-center justify-center">
@@ -210,10 +210,10 @@ export default function SecurityPage() {
   if (!security) return null;
 
   return (
-    <div className="max-w-2xl mx-auto px-4 py-6 space-y-6">
+    <div className="max-w-2xl mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-6">
       <div>
         <h1 className="text-2xl font-bold">Securitate Wallet</h1>
-        <p className="text-sm text-muted-foreground mt-0.5">
+        <p className="text-sm text-muted-foreground mt-0.5 break-all">
           ID instanță: <span className="font-mono">{security.wallet_instance_id}</span>
         </p>
       </div>

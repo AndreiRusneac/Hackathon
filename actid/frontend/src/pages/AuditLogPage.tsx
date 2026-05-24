@@ -123,7 +123,7 @@ export default function AuditLogPage() {
   const hasFilter = Boolean(actionFilter || actorFilter);
 
   return (
-    <div className="max-w-2xl mx-auto px-4 py-6 space-y-5">
+    <div className="max-w-2xl mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-5">
       {/* Header */}
       <div>
         <h1 className="text-2xl font-bold">Jurnal de Audit</h1>
@@ -133,7 +133,7 @@ export default function AuditLogPage() {
       </div>
 
       {/* Stats cards */}
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <StatCard
           value={stats?.total_entries}
           label="Înregistrări totale"
@@ -247,7 +247,7 @@ export default function AuditLogPage() {
               value={actionFilter}
               onChange={(e) => setActionFilter(e.target.value)}
               aria-label="Filtrează după acțiune"
-              className="flex-1 h-9 rounded-xl border border-input bg-white px-3 text-xs focus:outline-none focus:ring-2 focus:ring-actid-blue/30"
+              className="flex-1 h-11 sm:h-9 rounded-xl border border-input bg-white px-3 text-xs focus:outline-none focus:ring-2 focus:ring-actid-blue/30"
             >
               <option value="">Toate acțiunile</option>
               {actions.map((a) => (
@@ -260,7 +260,7 @@ export default function AuditLogPage() {
               value={actorFilter}
               onChange={(e) => setActorFilter(e.target.value)}
               aria-label="Filtrează după actor"
-              className="flex-1 h-9 rounded-xl border border-input bg-white px-3 text-xs focus:outline-none focus:ring-2 focus:ring-actid-blue/30"
+              className="flex-1 h-11 sm:h-9 rounded-xl border border-input bg-white px-3 text-xs focus:outline-none focus:ring-2 focus:ring-actid-blue/30"
             >
               <option value="">Toți actorii</option>
               {actors.map((a) => (

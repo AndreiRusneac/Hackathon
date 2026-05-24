@@ -1,14 +1,15 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  ShieldCheck, Clock, ShieldAlert, QrCode, Users, Link2,
+  ShieldCheck, Clock, ShieldAlert, QrCode, Users, Link2, Bell,
   LogIn, LogOut, Eye, Upload, Trash2, UserPlus, UserMinus, Zap,
-  Globe, FileText, type LucideIcon,
+  Globe, FileText, ZoomIn, type LucideIcon,
 } from "lucide-react";
 import { documentsApi, auditApi, authApi } from "@/lib/api";
 import { useAuthStore } from "@/store/authStore";
 import { useDocumentStore } from "@/store/documentStore";
 import { useNotificationStore } from "@/store/notificationStore";
+import { useElderlyStore } from "@/store/elderlyStore";
 import { Card, CardContent, Badge, Skeleton, Button, ConfirmDialog } from "@/components/ui";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { DocumentCard, DocumentCardSkeleton } from "@/components/documents/DocumentCard";
@@ -48,6 +49,7 @@ export default function DashboardPage() {
   const { user, logout } = useAuthStore();
   const { documents, setDocuments, loading, setLoading } = useDocumentStore();
   const { generateFromDocuments, notifications } = useNotificationStore();
+  const { enabled: elderlyEnabled, toggle: elderlyToggle } = useElderlyStore();
   const navigate = useNavigate();
   const [recentActivity, setRecentActivity] = useState<AuditEntry[]>([]);
   const [auditStats, setAuditStats] = useState<any>(null);
@@ -107,19 +109,20 @@ export default function DashboardPage() {
   };
 
   return (
-    <div className="max-w-2xl mx-auto px-4 py-6 space-y-8">
+    <div className="max-w-2xl mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-8">
       {/* Header */}
-      <div className="flex items-start justify-between">
+      <div className="flex items-center justify-between mb-4">
         <div>
-          <p className="text-muted-foreground text-sm">{greeting()},</p>
-          <h1 className="text-2xl font-bold text-foreground mt-0.5 tracking-tight">
+          <p className="text-muted-foreground text-base">{greeting()},</p>
+          <h1 className="text-3xl sm:text-4xl font-bold text-foreground mt-1 tracking-tight truncate max-w-[200px] sm:max-w-none">
             {user?.full_name.split(" ")[0]}
           </h1>
-          <p className="text-xs text-muted-foreground mt-1">
+          <p className="text-sm text-muted-foreground mt-1.5">
             {user?.city}, {user?.country} · <span className="capitalize">{user?.role}</span>
           </p>
         </div>
-        <div className="relative" ref={profileRef}>
+        <div className="flex flex-col items-center gap-2 flex-shrink-0">
+          <div className="relative" ref={profileRef}>
           <button
             className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-actid-blue focus-visible:ring-offset-2 rounded-full"
             aria-label="Deschide meniul contului"
@@ -166,18 +169,32 @@ export default function DashboardPage() {
               </div>
             </>
           )}
-        </div>
+          </div>
 
-        <ConfirmDialog
-          open={showDeleteConfirm}
-          title="Ștergi contul?"
-          description="Toate documentele, delegările și tokenurile QR vor fi șterse permanent. Această acțiune nu poate fi anulată."
-          confirmLabel={deletingAccount ? "Se șterge..." : "Da, șterge contul"}
-          destructive
-          onConfirm={handleDeleteAccount}
-          onCancel={() => setShowDeleteConfirm(false)}
-        />
+          {/* Elderly mode toggle — mobile only */}
+          <button
+            onClick={elderlyToggle}
+            aria-pressed={elderlyEnabled}
+            aria-label={elderlyEnabled ? "Dezactivare mod vârstnici" : "Activare mod vârstnici"}
+            className={cn(
+              "lg:hidden w-8 h-8 rounded-xl flex items-center justify-center transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-actid-blue",
+              elderlyEnabled ? "bg-actid-blue text-white shadow-sm" : "bg-gray-100 text-gray-500 hover:bg-gray-200"
+            )}
+          >
+            <ZoomIn size={14} aria-hidden="true" />
+          </button>
+        </div>
       </div>
+
+      <ConfirmDialog
+        open={showDeleteConfirm}
+        title="Ștergi contul?"
+        description="Toate documentele, delegările și tokenurile QR vor fi șterse permanent. Această acțiune nu poate fi anulată."
+        confirmLabel={deletingAccount ? "Se șterge..." : "Da, șterge contul"}
+        destructive
+        onConfirm={handleDeleteAccount}
+        onCancel={() => setShowDeleteConfirm(false)}
+      />
 
       {/* Documents preview */}
       <div>
@@ -187,7 +204,7 @@ export default function DashboardPage() {
           </h2>
           <button
             onClick={() => navigate("/documents")}
-            className="text-xs text-actid-blue font-medium hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-actid-blue rounded"
+            className="text-xs text-actid-blue font-medium hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-actid-blue rounded min-h-[44px] flex items-center"
           >
             Vezi toate
           </button>
@@ -248,10 +265,10 @@ export default function DashboardPage() {
         </h2>
         <div className="grid grid-cols-3 gap-2 sm:gap-3">
           <QuickAction
-            Icon={QrCode}
-            label="Partajează QR"
-            desc="Trimite documente rapid"
-            onClick={() => navigate("/sharing")}
+            Icon={Bell}
+            label="Notificări"
+            desc="Alerte de expirare"
+            onClick={() => navigate("/notifications")}
             color="bg-blue-50 text-blue-700"
           />
           <QuickAction
@@ -259,14 +276,14 @@ export default function DashboardPage() {
             label="Familie"
             desc="Gestionează accesul"
             onClick={() => navigate("/family")}
-            color="bg-rose-50 text-rose-700"
+            color="bg-blue-50 text-blue-700"
           />
           <QuickAction
             Icon={Link2}
             label="Jurnal Audit"
             desc="Verifică activitatea"
             onClick={() => navigate("/audit")}
-            color="bg-teal-50 text-teal-700"
+            color="bg-blue-50 text-blue-700"
           />
         </div>
       </div>
@@ -312,7 +329,7 @@ export default function DashboardPage() {
           </h2>
           <button
             onClick={() => navigate("/audit")}
-            className="text-xs text-actid-blue font-medium hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-actid-blue rounded"
+            className="text-xs text-actid-blue font-medium hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-actid-blue rounded min-h-[44px] flex items-center"
           >
             Jurnal complet
           </button>

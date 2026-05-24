@@ -174,7 +174,7 @@ export default function FunctionarPage() {
   };
 
   return (
-    <div className="max-w-2xl mx-auto px-4 py-6 space-y-5 animate-slide-up">
+    <div className="max-w-2xl mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-5 animate-slide-up">
       {/* Header */}
       <div className="rounded-2xl overflow-hidden border border-border shadow-sm">
         <div className="bg-gradient-to-r from-actid-blue to-actid-blue-light p-5 text-white">
@@ -204,7 +204,7 @@ export default function FunctionarPage() {
           aria-selected={activeTab === "eudi"}
           onClick={() => { setActiveTab("eudi"); setEudiResult(null); setScanResult(null); }}
           className={cn(
-            "flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-1.5",
+            "flex-1 py-2 px-2 sm:px-3 min-h-[44px] rounded-lg text-xs sm:text-sm font-medium transition-all flex items-center justify-center gap-1 sm:gap-1.5",
             activeTab === "eudi"
               ? "bg-white shadow-sm text-actid-blue"
               : "text-muted-foreground hover:text-foreground"
@@ -217,7 +217,7 @@ export default function FunctionarPage() {
           aria-selected={activeTab === "token"}
           onClick={() => { setActiveTab("token"); setEudiResult(null); setScanResult(null); }}
           className={cn(
-            "flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-1.5",
+            "flex-1 py-2 px-2 sm:px-3 min-h-[44px] rounded-lg text-xs sm:text-sm font-medium transition-all flex items-center justify-center gap-1 sm:gap-1.5",
             activeTab === "token"
               ? "bg-white shadow-sm text-actid-blue"
               : "text-muted-foreground hover:text-foreground"

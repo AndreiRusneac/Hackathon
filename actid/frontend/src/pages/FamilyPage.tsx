@@ -123,7 +123,7 @@ export default function FamilyPage() {
   };
 
   return (
-    <div className="max-w-2xl mx-auto px-4 py-6 space-y-5">
+    <div className="max-w-2xl mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-5">
       {/* Header */}
       <div className="flex items-start justify-between">
         <div>
@@ -186,7 +186,7 @@ export default function FamilyPage() {
                         key={cat.key}
                         type="button"
                         onClick={() => toggleCategory(cat.key)}
-                        className={`flex items-center gap-1.5 text-left p-2.5 rounded-xl border-2 text-xs font-medium transition-all ${
+                        className={`flex items-center gap-1.5 text-left p-2.5 min-h-[44px] rounded-xl border-2 text-xs font-medium transition-all ${
                           selected
                             ? "border-actid-blue bg-blue-50 text-actid-blue"
                             : "border-border hover:border-gray-300"
@@ -269,7 +269,7 @@ export default function FamilyPage() {
           role="tab"
           aria-selected={activeTab === "received"}
           onClick={() => { setActiveTab("received"); setRevokePendingId(null); }}
-          className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-1.5 ${
+          className={`flex-1 py-2.5 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-1.5 min-h-[44px] ${
             activeTab === "received"
               ? "bg-white shadow-sm text-actid-blue"
               : "text-muted-foreground"
@@ -281,7 +281,7 @@ export default function FamilyPage() {
           role="tab"
           aria-selected={activeTab === "given"}
           onClick={() => { setActiveTab("given"); setRevokePendingId(null); }}
-          className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-1.5 ${
+          className={`flex-1 py-2.5 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-1.5 min-h-[44px] ${
             activeTab === "given"
               ? "bg-white shadow-sm text-actid-blue"
               : "text-muted-foreground"

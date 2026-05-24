@@ -92,11 +92,7 @@ export function DocumentCard({
   const cfg = STATUS_CONFIG[status];
   const label = DOC_LABELS[doc.doc_type] || doc.doc_type;
 
-  const iconBg = {
-    valid:        "bg-blue-50 text-blue-600",
-    expiră_curând: "bg-amber-50 text-amber-600",
-    expirat:       "bg-red-50 text-red-500",
-  }[status] ?? "bg-blue-50 text-blue-600";
+  const iconBg = "bg-blue-50 text-blue-600";
 
   const badgeText = status === "valid"
     ? "Valabil"
@@ -110,8 +106,8 @@ export function DocumentCard({
         "bg-white rounded-2xl border card-hover cursor-pointer",
         // ACCESSIBILITY: visible keyboard focus indicator (WCAG 2.4.7)
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-actid-blue focus-visible:ring-offset-1",
-        status === "expirat"       ? "border-red-200"   : "",
-        status === "expiră_curând" ? "border-amber-200" : "border-border"
+        status === "expirat"       ? "border-2 border-red-300"    : "",
+        status === "expiră_curând" ? "border-2 border-amber-300"  : "border-border"
       )}
       onClick={() => (compact ? onView?.(doc) : setExpanded(!expanded))}
       role="button"
