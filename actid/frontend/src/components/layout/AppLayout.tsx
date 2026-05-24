@@ -33,7 +33,7 @@ export default function AppLayout() {
       </aside>
 
       {/* Main content */}
-      <main className="flex-1 min-w-0 lg:ml-64 pb-[calc(5rem+env(safe-area-inset-bottom))] lg:pb-0">
+      <main className="flex-1 min-w-0 overflow-x-hidden lg:ml-64 pb-[calc(5.5rem+env(safe-area-inset-bottom))] lg:pb-0">
         <Outlet />
       </main>
 

@@ -73,6 +73,21 @@ class DocumentCreate(BaseModel):
     cnp: Optional[str] = None
 
 
+class DocumentCatalogItem(BaseModel):
+    doc_type: str
+    label: str
+    category: str
+    issuing_authority: str
+    validity_days: Optional[int] = None
+    # state: "missing" (can request) / "owned" (already has it, valid) / "expired" (can renew)
+    state: str
+    existing_document_id: Optional[str] = None
+
+
+class DocumentRequestPayload(BaseModel):
+    doc_type: str
+
+
 class DocumentResponse(BaseModel):
     id: str
     owner_id: str

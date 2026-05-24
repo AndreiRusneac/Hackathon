@@ -23,20 +23,27 @@ const ATTR_LABELS: Record<string, string> = {
   document_number:   "Număr document",
   issue_date:        "Data emiterii",
   expiry_date:       "Data expirării",
-  over_18:           "Peste 18 ani",
-  over_65:           "Peste 65 ani",
-  age_over_18:       "Vârstă peste 18 ani",
+  over_18:           "Major (peste 18 ani)",
+  over_65:           "Senior (peste 65 ani)",
   nationality:       "Naționalitate",
   categories:        "Categorii permis",
-  license_categories:"Categorii permis",
   address:           "Adresă domiciliu",
-  has_criminal_record:"Cazier curat",
+  has_criminal_record:"Cazier judiciar",
+  document_type:     "Tip document",
+  issued_by:         "Emis de",
 };
+
+function attrLabel(key: string): string {
+  if (ATTR_LABELS[key]) return ATTR_LABELS[key];
+  const spaced = key.replace(/_/g, " ").trim();
+  return spaced.charAt(0).toUpperCase() + spaced.slice(1);
+}
 
 const CREDENTIAL_TYPE_LABEL: Record<string, string> = {
   RomanianID:         "Carte de Identitate Română",
   Passport:           "Pașaport",
   DriverLicense:      "Permis de Conducere",
+  CriminalRecord:     "Cazier Judiciar",
   GenericAttestation: "Atestat Generic",
 };
 
@@ -174,7 +181,7 @@ export default function FunctionarPage() {
   };
 
   return (
-    <div className="max-w-2xl mx-auto px-4 py-6 space-y-5 animate-slide-up">
+    <div className="max-w-2xl mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-5 animate-slide-up">
       {/* Header */}
       <div className="rounded-2xl overflow-hidden border border-border shadow-sm">
         <div className="bg-gradient-to-r from-actid-blue to-actid-blue-light p-5 text-white">
@@ -204,7 +211,7 @@ export default function FunctionarPage() {
           aria-selected={activeTab === "eudi"}
           onClick={() => { setActiveTab("eudi"); setEudiResult(null); setScanResult(null); }}
           className={cn(
-            "flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-1.5",
+            "flex-1 py-2 px-2 sm:px-3 min-h-[44px] rounded-lg text-xs sm:text-sm font-medium transition-all flex items-center justify-center gap-1 sm:gap-1.5",
             activeTab === "eudi"
               ? "bg-white shadow-sm text-actid-blue"
               : "text-muted-foreground hover:text-foreground"
@@ -217,7 +224,7 @@ export default function FunctionarPage() {
           aria-selected={activeTab === "token"}
           onClick={() => { setActiveTab("token"); setEudiResult(null); setScanResult(null); }}
           className={cn(
-            "flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-1.5",
+            "flex-1 py-2 px-2 sm:px-3 min-h-[44px] rounded-lg text-xs sm:text-sm font-medium transition-all flex items-center justify-center gap-1 sm:gap-1.5",
             activeTab === "token"
               ? "bg-white shadow-sm text-actid-blue"
               : "text-muted-foreground hover:text-foreground"
@@ -487,7 +494,7 @@ function EudiVerifyResult({
                   className="flex items-center justify-between gap-3 px-3 py-2.5 bg-gray-50 rounded-xl"
                 >
                   <span className="text-xs text-muted-foreground">
-                    {ATTR_LABELS[key] || key}
+                    {attrLabel(key)}
                   </span>
                   <span className="text-sm font-semibold text-foreground">
                     {typeof value === "boolean" ? (value ? "Da" : "Nu") : String(value)}

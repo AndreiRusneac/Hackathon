@@ -27,8 +27,8 @@ export default function NotificationsPage() {
   const unreadCount = notifications.filter((n) => !n.dismissed).length;
 
   return (
-    <div className="max-w-2xl mx-auto px-4 py-6 space-y-5 animate-slide-up">
-      <div className="flex items-center justify-between">
+    <div className="max-w-2xl mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-5 animate-slide-up">
+      <div className="flex items-start sm:items-center justify-between gap-3 flex-wrap">
         <div>
           <h1 className="text-2xl font-bold">Notificări</h1>
           <p className="text-sm text-muted-foreground mt-0.5">
@@ -36,7 +36,7 @@ export default function NotificationsPage() {
           </p>
         </div>
         {unreadCount > 0 && (
-          <Button size="sm" variant="outline" onClick={dismissAll}>
+          <Button size="sm" variant="outline" onClick={dismissAll} className="flex-shrink-0">
             Marchează toate citite
           </Button>
         )}
@@ -56,7 +56,7 @@ export default function NotificationsPage() {
               role="tab"
               aria-selected={filter === f.key}
               onClick={() => setFilter(f.key)}
-              className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-1.5 ${
+              className={`flex-1 py-2.5 px-3 min-h-[44px] rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-1.5 ${
                 filter === f.key
                   ? "bg-white shadow-sm text-actid-blue"
                   : "text-muted-foreground hover:text-foreground"

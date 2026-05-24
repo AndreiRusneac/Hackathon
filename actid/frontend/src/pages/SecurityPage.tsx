@@ -1,53 +1,13 @@
 import { useCallback, useEffect, useState, type ElementType, type ReactNode } from "react";
+import { Link } from "react-router-dom";
 import {
   ShieldCheck, Lock, BadgeCheck, History, ChevronDown, ChevronUp,
-  Globe, Calendar, Key, Eye, EyeOff, AlertCircle, CheckCircle2,
+  Globe, Calendar, Key, Eye, EyeOff, AlertCircle, CheckCircle2, RefreshCw,
+  Fingerprint, ExternalLink,
 } from "lucide-react";
 import { walletApi, type WalletSecurity, type PresentationHistoryEntry } from "@/lib/api";
-import { useNotificationStore } from "@/store/notificationStore";
-import { Badge, Card, CardContent } from "@/components/ui";
+import { Badge, Card, CardContent, Button } from "@/components/ui";
 import { cn, formatDate } from "@/lib/utils";
-
-const MOCK_SECURITY: WalletSecurity = {
-  wallet_instance_id: "wia_demo_user_12345678",
-  encryption: {
-    algorithm: "AES-256-GCM",
-    at_rest_enabled: true,
-    encrypted_fields: ["users.cnp", "documents.cnp", "documents.photo_base64"],
-  },
-  trusted_issuers: [
-    {
-      id: "actid-issuer-001",
-      name: "Statul Român — Ministerul Afacerilor Interne",
-      country: "RO",
-      valid_from: "2026-01-01",
-    },
-  ],
-  issuer_public_key_fingerprint: "SHA256:demo123abc456def789...",
-};
-
-const MOCK_HISTORY: PresentationHistoryEntry[] = [
-  {
-    id: "pres_demo1",
-    document_id: "doc_ci",
-    document_type: "CI",
-    disclosed_attributes: ["given_name", "birth_date"],
-    purpose: "Verificare vârstă bar",
-    created_at: new Date(Date.now() - 3600_000).toISOString(),
-    scanned_at: new Date(Date.now() - 3500_000).toISOString(),
-    scanned_by_name: "Funcționar SPCLEP Cluj",
-  },
-  {
-    id: "pres_demo2",
-    document_id: "doc_permis",
-    document_type: "PERMIS",
-    disclosed_attributes: ["given_name", "family_name", "document_number", "expiry_date"],
-    purpose: "Control trafic",
-    created_at: new Date(Date.now() - 86_400_000).toISOString(),
-    scanned_at: null,
-    scanned_by_name: null,
-  },
-];
 
 const ATTR_LABELS: Record<string, string> = {
   given_name: "Prenume",
@@ -188,34 +148,33 @@ function PresentationCard({ entry }: { entry: PresentationHistoryEntry }) {
 }
 
 export default function SecurityPage() {
-  const { addToast } = useNotificationStore();
   const [security, setSecurity] = useState<WalletSecurity | null>(null);
+  const [securityError, setSecurityError] = useState<string | null>(null);
   const [history, setHistory] = useState<PresentationHistoryEntry[]>([]);
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
     setLoading(true);
-    try {
-      const [secRes, histRes] = await Promise.allSettled([
-        walletApi.security(),
-        walletApi.history(),
-      ]);
-      setSecurity(secRes.status === "fulfilled" ? secRes.value.data : MOCK_SECURITY);
-      setHistory(histRes.status === "fulfilled" ? histRes.value.data.presentations : MOCK_HISTORY);
-    } catch {
-      setSecurity(MOCK_SECURITY);
-      setHistory(MOCK_HISTORY);
-      addToast("Date demo — backend în curs de implementare", "info");
-    } finally {
-      setLoading(false);
+    setSecurityError(null);
+    const [secRes, histRes] = await Promise.allSettled([
+      walletApi.security(),
+      walletApi.history(),
+    ]);
+    if (secRes.status === "fulfilled") {
+      setSecurity(secRes.value.data);
+    } else {
+      setSecurity(null);
+      setSecurityError("Nu s-au putut încărca datele de securitate. Verifică conexiunea sau repornește serverul.");
     }
-  }, [addToast]);
+    setHistory(histRes.status === "fulfilled" ? histRes.value.data.presentations : []);
+    setLoading(false);
+  }, []);
 
   useEffect(() => { load(); }, [load]);
 
   if (loading) {
     return (
-      <div className="max-w-2xl mx-auto px-4 py-6 space-y-5">
+      <div className="max-w-2xl mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-5">
         {[1, 2, 3].map((i) => (
           <div key={i} className="bg-white rounded-2xl border border-border p-4">
             <div className="skeleton h-4 w-40 rounded mb-3" />
@@ -229,13 +188,34 @@ export default function SecurityPage() {
     );
   }
 
+  if (securityError) {
+    return (
+      <div className="max-w-2xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
+        <Card className="border-red-200">
+          <CardContent className="py-10 flex flex-col items-center gap-4 text-center">
+            <div className="w-14 h-14 bg-red-50 rounded-2xl flex items-center justify-center">
+              <AlertCircle size={28} className="text-red-500" aria-hidden="true" />
+            </div>
+            <div>
+              <p className="font-semibold text-base">Eroare la încărcare</p>
+              <p className="text-sm text-muted-foreground mt-1 max-w-sm">{securityError}</p>
+            </div>
+            <Button variant="secondary" onClick={load} className="gap-2">
+              <RefreshCw size={14} aria-hidden="true" /> Reîncearcă
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   if (!security) return null;
 
   return (
-    <div className="max-w-2xl mx-auto px-4 py-6 space-y-6">
+    <div className="max-w-2xl mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-6">
       <div>
         <h1 className="text-2xl font-bold">Securitate Wallet</h1>
-        <p className="text-sm text-muted-foreground mt-0.5">
+        <p className="text-sm text-muted-foreground mt-0.5 break-all">
           ID instanță: <span className="font-mono">{security.wallet_instance_id}</span>
         </p>
       </div>
@@ -270,6 +250,56 @@ export default function SecurityPage() {
                 <span className="font-mono text-foreground">{field}</span>
               </div>
             ))}
+          </CardContent>
+        </Card>
+      </section>
+
+      <section>
+        <SectionHeader icon={Fingerprint} title="Criptare documente personale" />
+        <Card className="border-actid-blue/30 bg-gradient-to-br from-blue-50/40 to-indigo-50/30">
+          <CardContent className="py-4 space-y-4">
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-xl bg-actid-blue/10 text-actid-blue flex items-center justify-center flex-shrink-0">
+                <Lock size={20} aria-hidden="true" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="font-semibold text-sm">Cheie de criptare personală</p>
+                <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
+                  Fiecare document din portofelul tău este criptat cu o cheie unică, derivată din identitatea ta.
+                  Două persoane diferite NU au aceeași cheie de criptare.
+                </p>
+              </div>
+            </div>
+
+            <div className="bg-white/70 rounded-xl p-3 space-y-2">
+              <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest mb-1">
+                Cum funcționează
+              </p>
+              <div className="space-y-1.5 text-xs">
+                <FieldRow label="Algoritm" value={<span className="font-mono">AES-256-GCM</span>} />
+                <FieldRow label="Derivare cheie" value={<span className="font-mono">HKDF-SHA256</span>} />
+                <FieldRow label="Cheia ta = " value={<span className="font-mono text-[10px]">HKDF(secret + user_id)</span>} />
+                <FieldRow label="Câmpuri criptate" value="doc_number, cnp, photo, descriere, issued_by" />
+              </div>
+            </div>
+
+            <Link
+              to="/debug/encryption-proof"
+              className="flex items-center justify-between gap-3 p-3 rounded-xl border-2 border-dashed border-actid-blue/40 bg-white hover:border-actid-blue hover:bg-blue-50/40 transition-colors group"
+            >
+              <div className="flex items-center gap-2 min-w-0">
+                <div className="w-9 h-9 rounded-lg bg-amber-100 text-amber-700 flex items-center justify-center flex-shrink-0">
+                  <Eye size={16} />
+                </div>
+                <div className="min-w-0">
+                  <p className="font-semibold text-sm text-foreground">Vezi dovada de criptare</p>
+                  <p className="text-[11px] text-muted-foreground">
+                    Side-by-side: ce vede serverul vs ce vezi tu
+                  </p>
+                </div>
+              </div>
+              <ExternalLink size={14} className="text-muted-foreground group-hover:text-actid-blue flex-shrink-0" />
+            </Link>
           </CardContent>
         </Card>
       </section>

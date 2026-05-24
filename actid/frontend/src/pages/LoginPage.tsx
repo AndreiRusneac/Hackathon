@@ -5,7 +5,7 @@ import {
 } from "lucide-react";
 import { authApi, getErrMsg } from "@/lib/api";
 import { useAuthStore } from "@/store/authStore";
-import { Button, Input, Alert } from "@/components/ui";
+import { Input, Alert } from "@/components/ui";
 
 type Step = "credentials" | "2fa";
 
@@ -14,6 +14,13 @@ const DEMO_ACCOUNTS = [
   { email: "alex.ionescu@gmail.com", initials: "AI", label: "Alex Ionescu",      sublabel: "Diaspora Londra",       color: "bg-teal-600"   },
   { email: "functionar@spclep.ro",   initials: "FS", label: "Funcționar SPCLEP", sublabel: "Verificare documente",  color: "bg-purple-600" },
 ] as const;
+
+const Spinner = () => (
+  <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24" aria-hidden="true">
+    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+  </svg>
+);
 
 export default function LoginPage() {
   const navigate  = useNavigate();
@@ -74,7 +81,8 @@ export default function LoginPage() {
       const res  = await authApi.verify2fa(sessionToken!, otpCode);
       const data = res.data;
       setUser(data.user, data.access_token);
-      navigate(next, { replace: true });
+      const destination = next !== "/dashboard" ? next : data.user.role === "funcționar" ? "/functionar" : "/dashboard";
+      navigate(destination, { replace: true });
     } catch (err) {
       setError(getErrMsg(err, "Cod OTP incorect"));
       setOtp(["", "", "", "", "", ""]);
@@ -90,147 +98,142 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-[100dvh] bg-background flex items-center justify-center p-4 safe-top safe-bottom">
-      <div className="w-full max-w-sm">
+    <div className="min-h-[100dvh] bg-background grid place-items-center p-5 safe-top safe-bottom">
+      <div className="w-full max-w-[440px]">
 
-        {/* Wordmark above card — sits on the page, not inside */}
-        <div className="flex items-center justify-center gap-2.5 mb-6">
-          <div className="w-8 h-8 bg-actid-blue rounded-lg flex items-center justify-center flex-shrink-0" aria-hidden="true">
-            <span className="text-white font-black text-xs select-none">ID</span>
+        {/* Logo above card — matches LandingPage */}
+        <div className="flex items-center justify-center gap-2.5 mb-7">
+          <div className="w-9 h-9 bg-actid-blue rounded-xl flex items-center justify-center flex-shrink-0" aria-hidden="true">
+            <span className="text-white font-black text-sm select-none">ID</span>
           </div>
-          <span className="font-bold text-lg tracking-tight text-foreground">ActID</span>
+          <span className="font-bold text-xl tracking-tight text-foreground">ActID</span>
         </div>
 
-        {/* Card */}
-        <div className="bg-white rounded-2xl border border-border shadow-sm overflow-hidden">
+        {/* Card — same shadow/radius as LandingPage */}
+        <div className="bg-white rounded-2xl overflow-hidden shadow-[0_4px_28px_-2px_rgba(0,43,127,0.13),0_2px_8px_-2px_rgba(0,0,0,0.06)]">
 
           {step === "credentials" ? (
             <>
-              {/* Form section */}
-              <form onSubmit={handleLogin} className="px-6 pt-6 pb-5 space-y-4" noValidate>
-
-                {/* ROeID badge */}
-                <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-secondary rounded-lg border border-border">
-                  <div className="flex gap-px flex-shrink-0" aria-hidden="true">
-                    <span className="w-2.5 h-4 bg-actid-blue rounded-sm" />
-                    <span className="w-2.5 h-4 bg-yellow-400 rounded-sm" />
-                    <span className="w-2.5 h-4 bg-actid-red rounded-sm" />
-                  </div>
-                  <div>
-                    <p className="text-xs font-bold text-foreground leading-tight">ROeID</p>
-                    <p className="text-xs text-muted-foreground leading-tight">Sistem Național de Autentificare</p>
-                  </div>
-                </div>
+              {/* Form */}
+              <form onSubmit={handleLogin} className="px-6 sm:px-10 pt-8 sm:pt-9 pb-7 sm:pb-8 space-y-5" noValidate>
 
                 <div>
-                  <h1 className="text-xl font-bold text-foreground tracking-tight">Autentificare</h1>
-                  <p className="text-sm text-muted-foreground mt-0.5">Intră în contul tău ActID</p>
+                  <h1 className="text-2xl font-bold text-foreground tracking-tight">Autentificare</h1>
+                  <p className="text-sm text-muted-foreground mt-1">Intră în contul tău ActID</p>
                 </div>
 
                 {error && <Alert variant="error">{error}</Alert>}
 
-                <Input
-                  label="Email sau CNP"
-                  type="text"
-                  value={identifier}
-                  onChange={(e) => setIdentifier(e.target.value)}
-                  placeholder="ion.popescu@gmail.com"
-                  autoComplete="username"
-                  aria-label="Email sau CNP"
-                />
+                <div className="space-y-3">
+                  <Input
+                    label="Email sau CNP"
+                    type="text"
+                    value={identifier}
+                    onChange={(e) => setIdentifier(e.target.value)}
+                    placeholder="ion.popescu@gmail.com"
+                    autoComplete="username"
+                    aria-label="Email sau CNP"
+                  />
+                  <Input
+                    label="Parolă"
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="••••••••"
+                    autoComplete="current-password"
+                    aria-label="Parolă"
+                  />
+                </div>
 
-                <Input
-                  label="Parolă"
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
-                  autoComplete="current-password"
-                  aria-label="Parolă"
-                />
+                <div className="space-y-2.5 pt-1">
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="w-full h-12 flex items-center justify-center gap-2 bg-actid-blue text-white text-sm font-semibold rounded-xl transition-all hover:bg-actid-blue-light active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-actid-blue focus-visible:ring-offset-2"
+                  >
+                    {loading && <Spinner />}
+                    Autentifică-te
+                  </button>
 
-                <Button type="submit" loading={loading} className="w-full" size="lg">
-                  Autentifică-te cu ROeID
-                </Button>
-
-                <button
-                  type="button"
-                  onClick={() => navigate("/")}
-                  className="w-full flex items-center justify-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors py-1"
-                >
-                  <ArrowLeft size={14} aria-hidden="true" />
-                  Înapoi
-                </button>
+                  <button
+                    type="button"
+                    onClick={() => navigate("/")}
+                    className="w-full h-10 flex items-center justify-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-actid-blue rounded-xl"
+                  >
+                    <ArrowLeft size={14} aria-hidden="true" />
+                    Înapoi
+                  </button>
+                </div>
               </form>
 
-              {/* Demo section — separated visually, neutral tone */}
-              <div className="border-t border-border bg-secondary/50 px-6 py-4">
-                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-3">
+              {/* Demo accounts */}
+              <div className="border-t border-border/60 bg-secondary/40 px-6 sm:px-10 py-6 sm:py-7">
+                <p className="text-xs font-semibold text-muted-foreground/70 uppercase tracking-widest mb-4">
                   Conturi demo
                 </p>
-                <div className="space-y-1">
+                <div className="space-y-0.5">
                   {DEMO_ACCOUNTS.map((u) => (
                     <button
                       key={u.email}
                       type="button"
                       onClick={() => fillDemo(u.email)}
-                      className="w-full flex items-center gap-3 py-2 px-2.5 rounded-xl hover:bg-secondary transition-colors text-left group"
+                      className="w-full flex items-center gap-3 py-3 px-3 rounded-xl hover:bg-background/70 transition-colors text-left group"
                       aria-label={`Folosește contul demo: ${u.label}`}
                     >
                       <div
-                        className={`w-8 h-8 ${u.color} rounded-full flex items-center justify-center flex-shrink-0 text-white text-xs font-bold select-none`}
+                        className={`w-9 h-9 ${u.color} rounded-full flex items-center justify-center flex-shrink-0 text-white text-xs font-bold select-none`}
                         aria-hidden="true"
                       >
                         {u.initials}
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium text-foreground truncate leading-tight">{u.label}</p>
-                        <p className="text-xs text-muted-foreground truncate leading-tight">{u.sublabel}</p>
+                        <p className="text-xs text-muted-foreground truncate leading-tight mt-0.5">{u.sublabel}</p>
                       </div>
                       <ChevronRight
                         size={14}
-                        className="text-muted-foreground/40 group-hover:text-muted-foreground transition-colors flex-shrink-0"
+                        className="text-muted-foreground/30 group-hover:text-muted-foreground/60 transition-colors flex-shrink-0"
                         aria-hidden="true"
                       />
                     </button>
                   ))}
                 </div>
-                <p className="text-xs text-muted-foreground mt-3 pt-3 border-t border-border">
+                <p className="text-xs text-muted-foreground/50 mt-5 pt-4 border-t border-border/40">
                   Parolă: <span className="font-mono">Parola@123</span> · 2FA: <span className="font-mono">123456</span>
                 </p>
               </div>
 
-              {/* Card footer */}
-              <div className="px-6 py-3 border-t border-border flex items-center justify-center gap-4 text-xs text-muted-foreground">
-                <span className="flex items-center gap-1.5">
-                  <ShieldCheck size={12} aria-hidden="true" />
-                  ROeID · GDPR
+              {/* Footer */}
+              <div className="px-6 sm:px-10 py-4 border-t border-border/60 flex items-center justify-center gap-5">
+                <span className="flex items-center gap-1.5 text-xs text-muted-foreground/60">
+                  <ShieldCheck size={11} aria-hidden="true" />
+                  GDPR
                 </span>
-                <span className="w-px h-3 bg-border" aria-hidden="true" />
-                <span className="flex items-center gap-1.5">
-                  <Lock size={12} aria-hidden="true" />
+                <span className="w-px h-3 bg-border/60" aria-hidden="true" />
+                <span className="flex items-center gap-1.5 text-xs text-muted-foreground/60">
+                  <Lock size={11} aria-hidden="true" />
                   TLS 1.3
                 </span>
               </div>
             </>
           ) : (
-            <div className="px-6 pt-6 pb-5 space-y-5">
 
-              {/* 2FA header */}
-              <div className="text-center">
-                <div className="w-12 h-12 bg-secondary rounded-2xl flex items-center justify-center mx-auto mb-3">
+            /* ── 2FA step ── */
+            <div className="px-6 sm:px-10 pt-8 sm:pt-9 pb-7 sm:pb-8 space-y-6">
+
+              <div className="text-center space-y-2">
+                <div className="w-12 h-12 bg-secondary rounded-2xl flex items-center justify-center mx-auto">
                   <Smartphone size={22} className="text-actid-blue" aria-hidden="true" />
                 </div>
-                <h1 className="text-xl font-bold text-foreground tracking-tight">Verificare în 2 pași</h1>
-                <p className="text-sm text-muted-foreground mt-1">
+                <h1 className="text-2xl font-bold text-foreground tracking-tight">Verificare în 2 pași</h1>
+                <p className="text-sm text-muted-foreground">
                   Bună, <span className="font-semibold text-foreground">{userName}</span>!
                 </p>
                 {otpMessage && (
-                  <p className="text-xs text-muted-foreground mt-0.5">{otpMessage}</p>
+                  <p className="text-xs text-muted-foreground">{otpMessage}</p>
                 )}
               </div>
 
-              {/* Demo OTP — neutral amber, not competing with form */}
               <div className="flex items-center justify-between bg-amber-50 border border-amber-200 rounded-xl px-4 py-3">
                 <div>
                   <p className="text-xs text-amber-700 font-medium">Cod demo</p>
@@ -241,7 +244,6 @@ export default function LoginPage() {
 
               {error && <Alert variant="error">{error}</Alert>}
 
-              {/* OTP inputs */}
               <div>
                 <p className="text-sm font-medium text-foreground text-center mb-3">
                   Introdu codul de 6 cifre
@@ -266,27 +268,29 @@ export default function LoginPage() {
                 </div>
               </div>
 
-              <Button
-                onClick={() => handleVerify()}
-                loading={loading}
-                disabled={otp.some((d) => !d)}
-                className="w-full"
-                size="lg"
-              >
-                Verifică și intră
-              </Button>
+              <div className="space-y-2.5">
+                <button
+                  onClick={() => handleVerify()}
+                  disabled={otp.some((d) => !d) || loading}
+                  className="w-full h-12 flex items-center justify-center gap-2 bg-actid-blue text-white text-sm font-semibold rounded-xl transition-all hover:bg-actid-blue-light active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-actid-blue focus-visible:ring-offset-2"
+                >
+                  {loading && <Spinner />}
+                  Verifică și intră
+                </button>
 
-              <button
-                onClick={() => { setStep("credentials"); setError(""); setOtp(["", "", "", "", "", ""]); }}
-                className="w-full flex items-center justify-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors py-1"
-              >
-                <ArrowLeft size={14} aria-hidden="true" />
-                Înapoi
-              </button>
+                <button
+                  onClick={() => { setStep("credentials"); setError(""); setOtp(["", "", "", "", "", ""]); }}
+                  className="w-full h-10 flex items-center justify-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-actid-blue rounded-xl"
+                >
+                  <ArrowLeft size={14} aria-hidden="true" />
+                  Înapoi
+                </button>
+              </div>
+
             </div>
           )}
-        </div>
 
+        </div>
       </div>
     </div>
   );

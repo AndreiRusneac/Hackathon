@@ -82,7 +82,7 @@ export default function SharingPage() {
   const inactiveTokens = tokens.filter((t) => !t.is_active || new Date(t.expires_at) <= new Date());
 
   return (
-    <div className="max-w-2xl mx-auto px-4 py-6 space-y-5">
+    <div className="max-w-2xl mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-5">
       <div>
         <h1 className="text-2xl font-bold">Distribuire documente</h1>
         <p className="text-sm text-muted-foreground mt-0.5">
@@ -102,7 +102,7 @@ export default function SharingPage() {
             role="tab"
             aria-selected={activeTab === tab.key}
             onClick={() => setActiveTab(tab.key as any)}
-            className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-1.5 ${
+            className={`flex-1 py-2 px-2 sm:px-3 min-h-[44px] rounded-lg text-xs sm:text-sm font-medium transition-all flex items-center justify-center gap-1 sm:gap-1.5 ${
               activeTab === tab.key
                 ? "bg-white shadow-sm text-actid-blue"
                 : "text-muted-foreground hover:text-foreground"

@@ -103,6 +103,13 @@
 
 /* ─── Elderly Mode ───────────────────────────────────────────────────────── */
 
+/* Extra clearance so content doesn't hide behind the taller h-24 bottom nav */
+@media (max-width: 1023px) {
+  html.elderly main {
+    padding-bottom: calc(7.5rem + env(safe-area-inset-bottom)) !important;
+  }
+}
+
 html.elderly {
   font-size: 112.5%;
 }

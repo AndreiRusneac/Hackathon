@@ -1,7 +1,7 @@
 import { NavLink, useNavigate } from "react-router-dom";
 import {
-  Home, FileText, QrCode, Users, Bell, Link2,
-  LogOut, ZoomIn, Search, BookLock, ShieldCheck, Shield,
+  Home, FileText, Users, Bell, Link2, QrCode,
+  LogOut, ZoomIn, Search, ShieldCheck, Shield,
   type LucideIcon,
 } from "lucide-react";
 import { useAuthStore } from "@/store/authStore";
@@ -29,10 +29,7 @@ const CITIZEN_NAV: NavItem[] = [
 ];
 
 const FUNCTIONAR_NAV: NavItem[] = [
-  { to: "/dashboard",  icon: Home,      label: "Acasă" },
   { to: "/functionar", icon: Search,    label: "Portal Funcționar" },
-  { to: "/sharing",    icon: QrCode,    label: "Distribuire QR" },
-  { to: "/family",     icon: Users,     label: "Familie" },
   { to: "/audit",      icon: Link2,     label: "Jurnal Audit" },
 ];
 
@@ -63,28 +60,6 @@ export function SideNav({ user }: { user: User }) {
             <p className="font-bold text-lg leading-tight tracking-tight">ActID</p>
             <p className="text-xs text-white/60 leading-tight">Digital Romania</p>
           </div>
-        </div>
-      </div>
-
-      {/* User */}
-      <div className="px-4 py-4 border-b border-white/10">
-        <div className="flex items-center gap-3 px-2">
-          <div
-            className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center font-bold text-sm flex-shrink-0"
-            aria-hidden="true"
-          >
-            {user.full_name.split(" ").map((n) => n[0]).join("").slice(0, 2)}
-          </div>
-          <div className="min-w-0">
-            <p className="font-medium text-sm truncate">{user.full_name}</p>
-            <p className="text-xs text-white/60 truncate">{user.city}, {user.country}</p>
-          </div>
-        </div>
-        <div className="mt-2 px-2">
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 bg-white/15 rounded-full text-xs capitalize">
-            <BookLock size={11} aria-hidden="true" />
-            {user.role}
-          </span>
         </div>
       </div>
 

@@ -333,15 +333,21 @@ export function QRGenerator({ documents, onTokenCreated, initialSelectedIds }: Q
           </div>
         </div>
 
-        <Button
+        <button
           onClick={generate}
-          loading={loading}
-          disabled={selectedDocs.length === 0}
-          className="w-full gap-1.5"
-          size="lg"
+          disabled={selectedDocs.length === 0 || loading}
+          className="w-full mt-3 py-3 flex items-center justify-center gap-1.5 text-sm font-semibold text-white bg-actid-blue rounded-2xl transition-all hover:bg-actid-blue-light active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-actid-blue"
         >
-          <QrCode size={18} aria-hidden="true" /> Generează QR
-        </Button>
+          {loading ? (
+            <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+            </svg>
+          ) : (
+            <QrCode size={18} aria-hidden="true" />
+          )}
+          Generează QR
+        </button>
       </CardContent>
     </Card>
   );

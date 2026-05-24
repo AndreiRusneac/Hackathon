@@ -1,19 +1,23 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  ShieldCheck, Clock, ShieldAlert, QrCode, Users, Link2,
+  ShieldCheck, Clock, ShieldAlert, QrCode, Users, Link2, Bell,
   LogIn, LogOut, Eye, Upload, Trash2, UserPlus, UserMinus, Zap,
-  Globe, FileText, type LucideIcon,
+  Globe, FileText, ZoomIn, X, type LucideIcon,
 } from "lucide-react";
 import { documentsApi, auditApi, authApi } from "@/lib/api";
 import { useAuthStore } from "@/store/authStore";
 import { useDocumentStore } from "@/store/documentStore";
 import { useNotificationStore } from "@/store/notificationStore";
+import { useElderlyStore } from "@/store/elderlyStore";
 import { Card, CardContent, Badge, Skeleton, Button, ConfirmDialog } from "@/components/ui";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { DocumentCard, DocumentCardSkeleton } from "@/components/documents/DocumentCard";
-import { formatDateTime, cn } from "@/lib/utils";
-import type { AuditEntry } from "@/types";
+import { DocumentCard, DocumentCardSkeleton, DocTypeIcon } from "@/components/documents/DocumentCard";
+import { CITemplate, OfficialStamp } from "@/components/documents/templates/CITemplate";
+import { PasaportTemplate } from "@/components/documents/templates/PasaportTemplate";
+import { PermisTemplate } from "@/components/documents/templates/PermisTemplate";
+import { formatDateTime, formatDate, DOC_LABELS, cn } from "@/lib/utils";
+import type { AuditEntry, Document } from "@/types";
 
 const ACTION_ICON_MAP: Record<string, LucideIcon> = {
   LOGIN_SUCCESS:     LogIn,
@@ -48,12 +52,14 @@ export default function DashboardPage() {
   const { user, logout } = useAuthStore();
   const { documents, setDocuments, loading, setLoading } = useDocumentStore();
   const { generateFromDocuments, notifications } = useNotificationStore();
+  const { enabled: elderlyEnabled, toggle: elderlyToggle } = useElderlyStore();
   const navigate = useNavigate();
   const [recentActivity, setRecentActivity] = useState<AuditEntry[]>([]);
   const [auditStats, setAuditStats] = useState<any>(null);
   const [showProfile, setShowProfile] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deletingAccount, setDeletingAccount] = useState(false);
+  const [viewDoc, setViewDoc] = useState<Document | null>(null);
   const profileRef = useRef<HTMLDivElement>(null);
 
   const handleLogout = async () => {
@@ -107,19 +113,117 @@ export default function DashboardPage() {
   };
 
   return (
-    <div className="max-w-2xl mx-auto px-4 py-6 space-y-8">
+    <>
+    {/* ── View modal ─────────────────────────────────────────────────────── */}
+    {viewDoc && (
+      <div
+        className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center"
+        onClick={() => setViewDoc(null)}
+      >
+        <div
+          className="bg-white w-full sm:max-w-2xl rounded-t-3xl sm:rounded-3xl overflow-hidden max-h-[90dvh] overflow-y-auto"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="relative p-4 bg-gradient-to-br from-gray-50 to-slate-100">
+            {viewDoc.doc_type === "CI" ? (
+              <CITemplate doc={viewDoc} fullName={user?.full_name || ""} userCnp={user?.cnp} />
+            ) : viewDoc.doc_type === "PASAPORT" ? (
+              <PasaportTemplate doc={viewDoc} fullName={user?.full_name || ""} userCnp={user?.cnp} />
+            ) : viewDoc.doc_type === "PERMIS" ? (
+              <PermisTemplate doc={viewDoc} fullName={user?.full_name || ""} userCnp={user?.cnp} />
+            ) : (
+              <div className="w-full aspect-video bg-gradient-to-br from-blue-50 to-indigo-100 rounded-xl flex flex-col items-center justify-center gap-2">
+                <DocTypeIcon type={viewDoc.doc_type} size={56} className="text-actid-blue/60" />
+              </div>
+            )}
+            {viewDoc.is_verified && <OfficialStamp />}
+          </div>
+
+          <div className="p-5 space-y-4">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="font-bold text-lg leading-tight">
+                  {DOC_LABELS[viewDoc.doc_type as keyof typeof DOC_LABELS] || viewDoc.doc_type}
+                </p>
+                {viewDoc.doc_number && (
+                  <p className="font-mono text-sm text-muted-foreground mt-0.5">{viewDoc.doc_number}</p>
+                )}
+              </div>
+              <button
+                onClick={() => setViewDoc(null)}
+                className="w-9 h-9 bg-gray-100 rounded-full flex items-center justify-center flex-shrink-0"
+                aria-label="Închide"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="grid grid-cols-2 gap-x-4 gap-y-3">
+              {viewDoc.doc_type === "CI" && viewDoc.cnp && (
+                <div className="col-span-2">
+                  <p className="text-xs text-muted-foreground">CNP</p>
+                  <p className="text-sm font-medium font-mono">{viewDoc.cnp}</p>
+                </div>
+              )}
+              {viewDoc.doc_number && (
+                <div className="col-span-2">
+                  <p className="text-xs text-muted-foreground">
+                    {viewDoc.doc_type === "CI" ? "Număr serie" : "Număr document"}
+                  </p>
+                  <p className="text-sm font-medium font-mono">{viewDoc.doc_number}</p>
+                </div>
+              )}
+              {viewDoc.issued_by && (
+                <div className="col-span-2">
+                  <p className="text-xs text-muted-foreground">Emis de</p>
+                  <p className="text-sm font-medium">{viewDoc.issued_by}</p>
+                </div>
+              )}
+              {viewDoc.issued_date && (
+                <div>
+                  <p className="text-xs text-muted-foreground">Data emiterii</p>
+                  <p className="text-sm font-medium">{formatDate(viewDoc.issued_date)}</p>
+                </div>
+              )}
+              {viewDoc.expires_date && (
+                <div>
+                  <p className="text-xs text-muted-foreground">Expiră</p>
+                  <p className={cn(
+                    "text-sm font-medium",
+                    viewDoc.status === "expirat" ? "text-red-600" :
+                    viewDoc.status === "expiră_curând" ? "text-amber-600" : ""
+                  )}>
+                    {formatDate(viewDoc.expires_date)}
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {viewDoc.description && (
+              <div>
+                <p className="text-xs text-muted-foreground">Descriere</p>
+                <p className="text-sm">{viewDoc.description}</p>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    )}
+
+    <div className="max-w-2xl mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-8">
       {/* Header */}
-      <div className="flex items-start justify-between">
+      <div className="flex items-center justify-between mb-4">
         <div>
-          <p className="text-muted-foreground text-sm">{greeting()},</p>
-          <h1 className="text-2xl font-bold text-foreground mt-0.5 tracking-tight">
+          <p className="text-muted-foreground text-base">{greeting()},</p>
+          <h1 className="text-3xl sm:text-4xl font-bold text-foreground mt-1 tracking-tight truncate max-w-[200px] sm:max-w-none">
             {user?.full_name.split(" ")[0]}
           </h1>
-          <p className="text-xs text-muted-foreground mt-1">
+          <p className="text-sm text-muted-foreground mt-1.5">
             {user?.city}, {user?.country} · <span className="capitalize">{user?.role}</span>
           </p>
         </div>
-        <div className="relative" ref={profileRef}>
+        <div className="flex flex-col items-center gap-2 flex-shrink-0">
+          <div className="relative" ref={profileRef}>
           <button
             className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-actid-blue focus-visible:ring-offset-2 rounded-full"
             aria-label="Deschide meniul contului"
@@ -166,18 +270,32 @@ export default function DashboardPage() {
               </div>
             </>
           )}
-        </div>
+          </div>
 
-        <ConfirmDialog
-          open={showDeleteConfirm}
-          title="Ștergi contul?"
-          description="Toate documentele, delegările și tokenurile QR vor fi șterse permanent. Această acțiune nu poate fi anulată."
-          confirmLabel={deletingAccount ? "Se șterge..." : "Da, șterge contul"}
-          destructive
-          onConfirm={handleDeleteAccount}
-          onCancel={() => setShowDeleteConfirm(false)}
-        />
+          {/* Elderly mode toggle — mobile only */}
+          <button
+            onClick={elderlyToggle}
+            aria-pressed={elderlyEnabled}
+            aria-label={elderlyEnabled ? "Dezactivare mod vârstnici" : "Activare mod vârstnici"}
+            className={cn(
+              "lg:hidden w-8 h-8 rounded-xl flex items-center justify-center transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-actid-blue",
+              elderlyEnabled ? "bg-actid-blue text-white shadow-sm" : "bg-gray-100 text-gray-500 hover:bg-gray-200"
+            )}
+          >
+            <ZoomIn size={14} aria-hidden="true" />
+          </button>
+        </div>
       </div>
+
+      <ConfirmDialog
+        open={showDeleteConfirm}
+        title="Ștergi contul?"
+        description="Toate documentele, delegările și tokenurile QR vor fi șterse permanent. Această acțiune nu poate fi anulată."
+        confirmLabel={deletingAccount ? "Se șterge..." : "Da, șterge contul"}
+        destructive
+        onConfirm={handleDeleteAccount}
+        onCancel={() => setShowDeleteConfirm(false)}
+      />
 
       {/* Documents preview */}
       <div>
@@ -187,7 +305,7 @@ export default function DashboardPage() {
           </h2>
           <button
             onClick={() => navigate("/documents")}
-            className="text-xs text-actid-blue font-medium hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-actid-blue rounded"
+            className="text-xs text-actid-blue font-medium hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-actid-blue rounded min-h-[44px] flex items-center"
           >
             Vezi toate
           </button>
@@ -224,7 +342,7 @@ export default function DashboardPage() {
                 <DocumentCard
                   key={doc.id}
                   doc={doc}
-                  onView={() => {}}
+                  onView={setViewDoc}
                   onShare={(doc) => navigate("/sharing", { state: { preselect: doc.id } })}
                 />
               ))}
@@ -248,10 +366,10 @@ export default function DashboardPage() {
         </h2>
         <div className="grid grid-cols-3 gap-2 sm:gap-3">
           <QuickAction
-            Icon={QrCode}
-            label="Partajează QR"
-            desc="Trimite documente rapid"
-            onClick={() => navigate("/sharing")}
+            Icon={Bell}
+            label="Notificări"
+            desc="Alerte de expirare"
+            onClick={() => navigate("/notifications")}
             color="bg-blue-50 text-blue-700"
           />
           <QuickAction
@@ -259,14 +377,14 @@ export default function DashboardPage() {
             label="Familie"
             desc="Gestionează accesul"
             onClick={() => navigate("/family")}
-            color="bg-rose-50 text-rose-700"
+            color="bg-blue-50 text-blue-700"
           />
           <QuickAction
             Icon={Link2}
             label="Jurnal Audit"
             desc="Verifică activitatea"
             onClick={() => navigate("/audit")}
-            color="bg-teal-50 text-teal-700"
+            color="bg-blue-50 text-blue-700"
           />
         </div>
       </div>
@@ -312,7 +430,7 @@ export default function DashboardPage() {
           </h2>
           <button
             onClick={() => navigate("/audit")}
-            className="text-xs text-actid-blue font-medium hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-actid-blue rounded"
+            className="text-xs text-actid-blue font-medium hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-actid-blue rounded min-h-[44px] flex items-center"
           >
             Jurnal complet
           </button>
@@ -377,6 +495,7 @@ export default function DashboardPage() {
         </Card>
       )}
     </div>
+    </>
   );
 }
 

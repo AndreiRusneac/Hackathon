@@ -7,7 +7,6 @@ Owner: Radu (eudi/mvp-radu) per API_CONTRACT.md §2.2 + §2.3
 """
 import json
 from datetime import datetime, timedelta
-from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
@@ -23,60 +22,15 @@ from ..schemas.schemas import (
     VerifiedIssuer,
 )
 from ..trust.registry import get_issuer
-from ..vc.sd_jwt import ISSUER_URL, create_presentation, sign_credential, verify_presentation
+from ..vc.issuer import build_attributes, get_vct
+from ..vc.sd_jwt import (
+    ISSUER_URL,
+    create_presentation as build_sd_presentation,
+    sign_credential,
+    verify_presentation,
+)
 
 router = APIRouter(prefix="/presentations", tags=["presentations"])
-
-
-# ── vct mapping per API_CONTRACT.md §1.2 ────────────────────────────────────
-_VCT_MAP = {
-    "CI": "RomanianID",
-    "PASAPORT": "Passport",
-    "PERMIS": "DriverLicense",
-}
-
-
-def _vct_for_doc(doc_type: str) -> str:
-    return _VCT_MAP.get(doc_type.upper(), "GenericAttestation")
-
-
-def _doc_attributes(doc: Document, owner: User) -> dict[str, Any]:
-    """Build the full attribute set that the issuer would sign for this doc."""
-    given_name, _, family_name = (owner.full_name or "").partition(" ")
-
-    attrs: dict[str, Any] = {
-        "given_name": given_name or owner.full_name or "",
-        "family_name": family_name or "",
-        "cnp": doc.cnp or owner.cnp or "",
-        "document_number": doc.doc_number or "",
-        "issued_by": doc.issued_by or "",
-        "issue_date": doc.issued_date.isoformat() if doc.issued_date else "",
-        "expiry_date": doc.expires_date.isoformat() if doc.expires_date else "",
-        "doc_type": doc.doc_type,
-    }
-
-    # Derived "over_18" / "over_65" — citizen birth year is encoded in the CNP
-    # (positions 2..3 for year, sex digit at position 1 disambiguates century).
-    cnp = owner.cnp or ""
-    if len(cnp) == 13 and cnp.isdigit():
-        sex_digit = int(cnp[0])
-        yy = int(cnp[1:3])
-        century = {1: 1900, 2: 1900, 3: 1800, 4: 1800, 5: 2000, 6: 2000}.get(sex_digit, 1900)
-        year = century + yy
-        try:
-            mm = int(cnp[3:5])
-            dd = int(cnp[5:7])
-            from datetime import date as _date
-            birth = _date(year, mm, dd)
-            today = datetime.utcnow().date()
-            age = today.year - birth.year - ((today.month, today.day) < (birth.month, birth.day))
-            attrs["birth_date"] = birth.isoformat()
-            attrs["over_18"] = age >= 18
-            attrs["over_65"] = age >= 65
-        except Exception:
-            pass
-
-    return attrs
 
 
 # ─── 2.2 Create presentation ─────────────────────────────────────────────────
@@ -95,20 +49,31 @@ def create_presentation(
     if not payload.disclosed_attributes:
         raise HTTPException(status_code=400, detail="Trebuie să dezvălui cel puțin un atribut")
 
-    full_attrs = _doc_attributes(doc, current_user)
-    vct = _vct_for_doc(doc.doc_type)
+    # Single source of truth: the same attributes the wallet UI was offered
+    # (GET /api/credentials/{id}) are the ones we sign here.
+    full_attrs = build_attributes(doc, current_user)
+    vct = get_vct(doc)
+
+    # Only keep requested attributes that actually exist in the credential, so a
+    # stale/unknown key can never break the SD-JWT disclosure step.
+    disclosed = [a for a in payload.disclosed_attributes if a in full_attrs]
+    if not disclosed:
+        raise HTTPException(
+            status_code=400,
+            detail="Atributele selectate nu există în acest document",
+        )
 
     # 1) Issuer signs full SD-JWT with all available attributes
     sd_jwt_full = sign_credential(vct=vct, subject_id=current_user.id, attributes=full_attrs)
 
     # 2) Filter disclosures down to what the user agreed to share
-    sd_jwt_presented = create_presentation(sd_jwt_full, payload.disclosed_attributes)
+    sd_jwt_presented = build_sd_presentation(sd_jwt_full, disclosed)
 
     presentation = PresentationLog(
         creator_id=current_user.id,
         document_id=doc.id,
         sd_jwt=sd_jwt_presented,
-        disclosed_attrs=json.dumps(payload.disclosed_attributes),
+        disclosed_attrs=json.dumps(disclosed),
         purpose=payload.purpose,
         verifier_role=payload.verifier_role or "funcționar",
         expires_at=datetime.utcnow() + timedelta(hours=24),
@@ -126,7 +91,7 @@ def create_presentation(
         metadata={
             "presentation_id": presentation.id,
             "vct": vct,
-            "disclosed": payload.disclosed_attributes,
+            "disclosed": disclosed,
             "purpose": payload.purpose,
         },
     )
@@ -137,7 +102,7 @@ def create_presentation(
         presentation_id=presentation.id,
         qr_url=f"/verify/{presentation.id}",
         expires_at=presentation.expires_at,
-        disclosed_attributes=payload.disclosed_attributes,
+        disclosed_attributes=disclosed,
     )
 
 
