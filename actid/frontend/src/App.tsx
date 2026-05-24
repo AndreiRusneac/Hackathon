@@ -15,6 +15,7 @@ import FunctionarPage from "@/pages/FunctionarPage";
 import ScanPage from "@/pages/ScanPage";
 import PresentationsPage from "@/pages/PresentationsPage";
 import SecurityPage from "@/pages/SecurityPage";
+import EncryptionProofPage from "@/pages/EncryptionProofPage";
 
 function VerifyRedirect() {
   const { presentationId } = useParams<{ presentationId: string }>();
@@ -40,6 +41,9 @@ export default function App() {
       <Route path="/register" element={<RegisterPage />} />
       <Route path="/scan/:token" element={<ScanPage />} />
       <Route path="/verify/:presentationId" element={<VerifyRedirect />} />
+      {/* HIDDEN demo route — not in any navigation */}
+      <Route path="/debug/encryption-proof" element={<EncryptionProofPage />} />
+      <Route path="/debug/encryption-proof/:docId" element={<EncryptionProofPage />} />
 
       <Route element={<AppLayout />}>
         <Route path="/dashboard" element={<DashboardPage />} />

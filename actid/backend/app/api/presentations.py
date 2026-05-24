@@ -15,6 +15,7 @@ from sqlalchemy.orm import Session
 from ..api.auth import get_current_user_dep, require_role
 from ..database import get_db
 from ..ledger import add_audit_entry
+from ..crypto.vault import decrypt as vault_decrypt
 from ..models.models import Document, PresentationLog, User
 from ..schemas.schemas import (
     PresentationCreatePayload,
@@ -44,12 +45,13 @@ def _doc_attributes(doc: Document, owner: User) -> dict[str, Any]:
     """Build the full attribute set that the issuer would sign for this doc."""
     given_name, _, family_name = (owner.full_name or "").partition(" ")
 
+    uid = owner.id
     attrs: dict[str, Any] = {
         "given_name": given_name or owner.full_name or "",
         "family_name": family_name or "",
-        "cnp": doc.cnp or owner.cnp or "",
-        "document_number": doc.doc_number or "",
-        "issued_by": doc.issued_by or "",
+        "cnp": vault_decrypt(doc.cnp, uid) or owner.cnp or "",
+        "document_number": vault_decrypt(doc.doc_number, uid) or "",
+        "issued_by": vault_decrypt(doc.issued_by, uid) or "",
         "issue_date": doc.issued_date.isoformat() if doc.issued_date else "",
         "expiry_date": doc.expires_date.isoformat() if doc.expires_date else "",
         "doc_type": doc.doc_type,

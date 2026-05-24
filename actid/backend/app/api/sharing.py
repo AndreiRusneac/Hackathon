@@ -144,6 +144,7 @@ def scan_token(
     db.commit()
 
     from ..api.documents import _doc_status
+    from ..crypto.vault import decrypt as _vault_decrypt
     return {
         "owner": {
             "full_name": owner.full_name if owner else "Necunoscut",
@@ -155,8 +156,8 @@ def scan_token(
             {
                 "id": d.id,
                 "doc_type": d.doc_type,
-                "doc_number": d.doc_number,
-                "issued_by": d.issued_by,
+                "doc_number": _vault_decrypt(d.doc_number, d.owner_id),
+                "issued_by": _vault_decrypt(d.issued_by, d.owner_id),
                 "expires_date": d.expires_date.isoformat() if d.expires_date else None,
                 "is_verified": d.is_verified,
                 "status": _doc_status(d.expires_date)[0],

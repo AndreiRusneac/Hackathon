@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useState, type ElementType, type ReactNode } from "react";
+import { Link } from "react-router-dom";
 import {
   ShieldCheck, Lock, BadgeCheck, History, ChevronDown, ChevronUp,
   Globe, Calendar, Key, Eye, EyeOff, AlertCircle, CheckCircle2, RefreshCw,
+  Fingerprint, ExternalLink,
 } from "lucide-react";
 import { walletApi, type WalletSecurity, type PresentationHistoryEntry } from "@/lib/api";
 import { Badge, Card, CardContent, Button } from "@/components/ui";
@@ -248,6 +250,56 @@ export default function SecurityPage() {
                 <span className="font-mono text-foreground">{field}</span>
               </div>
             ))}
+          </CardContent>
+        </Card>
+      </section>
+
+      <section>
+        <SectionHeader icon={Fingerprint} title="Criptare documente personale" />
+        <Card className="border-actid-blue/30 bg-gradient-to-br from-blue-50/40 to-indigo-50/30">
+          <CardContent className="py-4 space-y-4">
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-xl bg-actid-blue/10 text-actid-blue flex items-center justify-center flex-shrink-0">
+                <Lock size={20} aria-hidden="true" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="font-semibold text-sm">Cheie de criptare personală</p>
+                <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
+                  Fiecare document din portofelul tău este criptat cu o cheie unică, derivată din identitatea ta.
+                  Două persoane diferite NU au aceeași cheie de criptare.
+                </p>
+              </div>
+            </div>
+
+            <div className="bg-white/70 rounded-xl p-3 space-y-2">
+              <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest mb-1">
+                Cum funcționează
+              </p>
+              <div className="space-y-1.5 text-xs">
+                <FieldRow label="Algoritm" value={<span className="font-mono">AES-256-GCM</span>} />
+                <FieldRow label="Derivare cheie" value={<span className="font-mono">HKDF-SHA256</span>} />
+                <FieldRow label="Cheia ta = " value={<span className="font-mono text-[10px]">HKDF(secret + user_id)</span>} />
+                <FieldRow label="Câmpuri criptate" value="doc_number, cnp, photo, descriere, issued_by" />
+              </div>
+            </div>
+
+            <Link
+              to="/debug/encryption-proof"
+              className="flex items-center justify-between gap-3 p-3 rounded-xl border-2 border-dashed border-actid-blue/40 bg-white hover:border-actid-blue hover:bg-blue-50/40 transition-colors group"
+            >
+              <div className="flex items-center gap-2 min-w-0">
+                <div className="w-9 h-9 rounded-lg bg-amber-100 text-amber-700 flex items-center justify-center flex-shrink-0">
+                  <Eye size={16} />
+                </div>
+                <div className="min-w-0">
+                  <p className="font-semibold text-sm text-foreground">Vezi dovada de criptare</p>
+                  <p className="text-[11px] text-muted-foreground">
+                    Side-by-side: ce vede serverul vs ce vezi tu
+                  </p>
+                </div>
+              </div>
+              <ExternalLink size={14} className="text-muted-foreground group-hover:text-actid-blue flex-shrink-0" />
+            </Link>
           </CardContent>
         </Card>
       </section>

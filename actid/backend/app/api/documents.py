@@ -1,5 +1,7 @@
 import json
-from datetime import date, datetime, timezone
+import random
+import string
+from datetime import date, datetime, timedelta, timezone
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -10,9 +12,82 @@ from ..crypto.vault import decrypt as vault_decrypt, encrypt as vault_encrypt
 from ..database import get_db
 from ..ledger import add_audit_entry
 from ..models.models import DelegationGrant, Document, User
-from ..schemas.schemas import DocumentCreate, DocumentResponse, RenewalRequestCreate, RenewalRequestResponse
+from ..schemas.schemas import (
+    DocumentCatalogItem,
+    DocumentCreate,
+    DocumentRequestPayload,
+    DocumentResponse,
+    RenewalRequestCreate,
+    RenewalRequestResponse,
+)
 
 router = APIRouter(prefix="/documents", tags=["documents"])
+
+
+# ── Catalog: doc_type → label, issuing authority, default validity ──────────
+_CATALOG: dict[str, dict] = {
+    # Identitate
+    "CI":                    {"label": "Carte de Identitate",            "issuer": "SPCLEP Cluj-Napoca",          "validity_days": 3650, "category": "identitate"},
+    "PASAPORT":              {"label": "Pașaport",                       "issuer": "MAI - Direcția Pașapoarte",   "validity_days": 3650, "category": "identitate"},
+    "CERT_CETATENIE":        {"label": "Certificat de Cetățenie",        "issuer": "Ministerul Justiției",        "validity_days": None, "category": "identitate"},
+    "CAZIER":                {"label": "Cazier Judiciar",                "issuer": "IPJ Cluj",                    "validity_days": 180,  "category": "identitate"},
+    # Familie & Stare Civilă
+    "CERT_NASTERE":          {"label": "Certificat de Naștere",          "issuer": "Primăria Cluj-Napoca",        "validity_days": None, "category": "familie"},
+    "CERT_CASATORIE":        {"label": "Certificat de Căsătorie",        "issuer": "Primăria Cluj-Napoca",        "validity_days": None, "category": "familie"},
+    "CERT_DECES":            {"label": "Certificat de Deces",            "issuer": "Primăria Cluj-Napoca",        "validity_days": None, "category": "familie"},
+    "LIVRET_FAMILIE":        {"label": "Livret de Familie",              "issuer": "Primăria Cluj-Napoca",        "validity_days": None, "category": "familie"},
+    # Domiciliu & Acte Juridice
+    "ADEVERINTA_DOMICILIU":  {"label": "Adeverință de Domiciliu",        "issuer": "Primăria Cluj-Napoca",        "validity_days": 90,   "category": "domiciliu"},
+    "PROCURA":               {"label": "Procură Notarială",              "issuer": "Notariat Public Cluj",        "validity_days": 365,  "category": "domiciliu"},
+    # Muncă & Venituri
+    "ADEVERINTA_VENIT":      {"label": "Adeverință de Venit",            "issuer": "ANAF Cluj",                   "validity_days": 30,   "category": "munca"},
+    "CONTRACT_MUNCA":        {"label": "Contract de Muncă",              "issuer": "ITM Cluj",                    "validity_days": None, "category": "munca"},
+    # Educație
+    "DIPLOMA_BAC":           {"label": "Diplomă de Bacalaureat",         "issuer": "Ministerul Educației",        "validity_days": None, "category": "educatie"},
+    "DIPLOMA_LICENTA":       {"label": "Diplomă de Licență",             "issuer": "Universitatea Babeș-Bolyai",  "validity_days": None, "category": "educatie"},
+    "CERT_COMPETENTE":       {"label": "Certificat de Competențe",       "issuer": "ANC - Autoritatea Națională", "validity_days": 1825, "category": "educatie"},
+    # Sănătate
+    "CARD_SANATATE":         {"label": "Card de Sănătate CNAS",          "issuer": "CNAS Cluj",                   "validity_days": 1825, "category": "sanatate"},
+    "CERT_HANDICAP":         {"label": "Certificat de Handicap",         "issuer": "DGASPC Cluj",                 "validity_days": 365,  "category": "sanatate"},
+    "ECUSON_PARCARE":        {"label": "Ecuson Parcare Dizabilități",    "issuer": "Primăria Cluj-Napoca",        "validity_days": 1825, "category": "sanatate"},
+    # Vehicul & Transport
+    "PERMIS":                {"label": "Permis de Conducere",            "issuer": "RAR Cluj",                    "validity_days": 3650, "category": "vehicul"},
+    "TALON":                 {"label": "Certificat de Înmatriculare",    "issuer": "RAR Cluj",                    "validity_days": None, "category": "vehicul"},
+    "INMATRICULARE_TEMP":    {"label": "Înmatriculare Temporară",        "issuer": "RAR Cluj",                    "validity_days": 30,   "category": "vehicul"},
+    "ITP":                   {"label": "ITP",                            "issuer": "Centru ITP Autorizat",        "validity_days": 730,  "category": "vehicul"},
+    "ASIGURARE":             {"label": "Asigurare RCA",                  "issuer": "ASF - Companie Asigurări",    "validity_days": 365,  "category": "vehicul"},
+    "ROVINIETA":             {"label": "Rovinietă",                      "issuer": "CNAIR",                       "validity_days": 365,  "category": "vehicul"},
+}
+
+
+def _generate_doc_number(doc_type: str) -> str:
+    """Realistic-looking Romanian doc numbers per type."""
+    rand_digits = lambda n: "".join(random.choices(string.digits, k=n))
+    if doc_type == "CI":
+        return f"CJ{rand_digits(6)}"
+    if doc_type == "PASAPORT":
+        return f"RO{rand_digits(7)}"
+    if doc_type == "PERMIS":
+        return f"CJ{rand_digits(6)}"
+    if doc_type == "CAZIER":
+        return f"CZ{datetime.utcnow().year}-{rand_digits(4)}"
+    if doc_type == "ROVINIETA":
+        return f"RO-{datetime.utcnow().year}-{''.join(random.choices(string.ascii_uppercase, k=2))}{rand_digits(4)}"
+    if doc_type.startswith("CERT_"):
+        prefix = doc_type.split("_", 1)[1][:2].upper()
+        return f"{prefix}-{datetime.utcnow().year}-{rand_digits(4)}"
+    if doc_type == "DIPLOMA_BAC":
+        return f"BAC-{datetime.utcnow().year}-{rand_digits(5)}"
+    if doc_type == "DIPLOMA_LICENTA":
+        return f"LIC-{datetime.utcnow().year}-{rand_digits(5)}"
+    if doc_type == "ITP":
+        return f"ITP-{rand_digits(8)}"
+    if doc_type == "ASIGURARE":
+        return f"RCA-{rand_digits(10)}"
+    if doc_type == "TALON":
+        return f"CJ{rand_digits(6)}"
+    # Generic fallback
+    return f"{doc_type[:3]}-{rand_digits(6)}"
 
 
 def _doc_status(expires_date: Optional[date]) -> tuple[str, Optional[int]]:
@@ -28,19 +103,21 @@ def _doc_status(expires_date: Optional[date]) -> tuple[str, Optional[int]]:
 
 
 def _serialize_doc(doc: Document) -> DocumentResponse:
+    """Decrypts all sensitive fields with the owner's per-user key."""
     status, days = _doc_status(doc.expires_date)
+    uid = doc.owner_id
     return DocumentResponse(
         id=doc.id,
         owner_id=doc.owner_id,
         doc_type=doc.doc_type,
-        doc_number=doc.doc_number,
-        issued_by=doc.issued_by,
+        doc_number=vault_decrypt(doc.doc_number, uid),
+        issued_by=vault_decrypt(doc.issued_by, uid),
         issued_date=doc.issued_date,
         expires_date=doc.expires_date,
         is_verified=doc.is_verified,
-        description=doc.description,
-        photo_base64=vault_decrypt(doc.photo_base64),
-        cnp=vault_decrypt(doc.cnp),
+        description=vault_decrypt(doc.description, uid),
+        photo_base64=vault_decrypt(doc.photo_base64, uid),
+        cnp=vault_decrypt(doc.cnp, uid),
         created_at=doc.created_at,
         days_remaining=days,
         status=status,
@@ -148,6 +225,115 @@ def list_delegated_documents(
     return result
 
 
+@router.get("/catalog", response_model=List[DocumentCatalogItem])
+def documents_catalog(
+    current_user: User = Depends(get_current_user_dep),
+    db: Session = Depends(get_db),
+):
+    """
+    EUDI-style catalog: all document types a citizen can request from the state.
+    For each, returns whether the user already has it and whether it's expired.
+    """
+    if current_user.role == "funcționar":
+        raise HTTPException(status_code=403, detail="Indisponibil pentru funcționar")
+
+    owned = db.query(Document).filter(Document.owner_id == current_user.id).all()
+    by_type: dict[str, Document] = {d.doc_type: d for d in owned}
+
+    items: List[DocumentCatalogItem] = []
+    for doc_type, meta in _CATALOG.items():
+        existing = by_type.get(doc_type)
+        if existing is None:
+            state = "missing"
+            existing_id = None
+        else:
+            status, _ = _doc_status(existing.expires_date)
+            state = "expired" if status == "expirat" else "owned"
+            existing_id = existing.id
+        items.append(DocumentCatalogItem(
+            doc_type=doc_type,
+            label=meta["label"],
+            category=meta["category"],
+            issuing_authority=meta["issuer"],
+            validity_days=meta["validity_days"],
+            state=state,
+            existing_document_id=existing_id,
+        ))
+    return items
+
+
+@router.post("/request", response_model=DocumentResponse)
+def request_document(
+    payload: DocumentRequestPayload,
+    current_user: User = Depends(get_current_user_dep),
+    db: Session = Depends(get_db),
+):
+    """
+    EUDI-style instant issuance from a simulated governmental agency.
+    - If user has no doc of this type → create new
+    - If user has an EXPIRED doc → delete old + create new (renewal)
+    - If user has a VALID doc → 409 conflict
+    Issued documents are flagged is_verified=True (Document Oficial badge).
+    """
+    if current_user.role == "funcționar":
+        raise HTTPException(status_code=403, detail="Funcționarul nu poate solicita documente")
+
+    meta = _CATALOG.get(payload.doc_type)
+    if meta is None:
+        raise HTTPException(status_code=400, detail=f"Tip document necunoscut: {payload.doc_type}")
+
+    existing = (
+        db.query(Document)
+        .filter(Document.owner_id == current_user.id, Document.doc_type == payload.doc_type)
+        .first()
+    )
+    action = "DOCUMENT_REQUESTED"
+    if existing is not None:
+        status, _ = _doc_status(existing.expires_date)
+        if status != "expirat":
+            raise HTTPException(status_code=409, detail="Ai deja acest document în portofel")
+        db.delete(existing)
+        db.flush()
+        action = "DOCUMENT_RENEWED"
+
+    today = datetime.now(timezone.utc).date()
+    expires = (today + timedelta(days=meta["validity_days"])) if meta["validity_days"] else None
+
+    uid = current_user.id
+    cnp_value = current_user.cnp if payload.doc_type in {"CI", "PASAPORT"} else None
+    doc = Document(
+        owner_id=uid,
+        doc_type=payload.doc_type,
+        doc_number=vault_encrypt(_generate_doc_number(payload.doc_type), uid),
+        issued_by=vault_encrypt(meta["issuer"], uid),
+        issued_date=today,
+        expires_date=expires,
+        description=vault_encrypt(meta["label"], uid),
+        cnp=vault_encrypt(cnp_value, uid),
+        photo_base64=None,
+        is_verified=True,
+    )
+    db.add(doc)
+    db.flush()
+
+    add_audit_entry(
+        db,
+        action=action,
+        actor_id=current_user.id,
+        actor_name=current_user.full_name,
+        actor_role=current_user.role,
+        target_document_id=doc.id,
+        metadata={
+            "doc_type": payload.doc_type,
+            "issuer": meta["issuer"],
+            "channel": "EUDI Wallet — emitere instantă simulată",
+        },
+    )
+    db.commit()
+    db.refresh(doc)
+    return _serialize_doc(doc)
+
+
 @router.get("/{doc_id}", response_model=DocumentResponse)
 def get_document(
     doc_id: str,
@@ -198,16 +384,17 @@ def create_document(
     if current_user.role == "funcționar":
         raise HTTPException(status_code=403, detail="Funcționarul nu poate crea documente")
 
+    uid = current_user.id
     doc = Document(
-        owner_id=current_user.id,
+        owner_id=uid,
         doc_type=data.doc_type,
-        doc_number=data.doc_number,
-        issued_by=data.issued_by,
+        doc_number=vault_encrypt(data.doc_number, uid),
+        issued_by=vault_encrypt(data.issued_by, uid),
         issued_date=data.issued_date,
         expires_date=data.expires_date,
-        description=data.description,
-        photo_base64=vault_encrypt(data.photo_base64),
-        cnp=vault_encrypt(data.cnp),
+        description=vault_encrypt(data.description, uid),
+        photo_base64=vault_encrypt(data.photo_base64, uid),
+        cnp=vault_encrypt(data.cnp, uid),
         is_verified=False,
     )
     db.add(doc)

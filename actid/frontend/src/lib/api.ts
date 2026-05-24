@@ -126,6 +126,16 @@ export const identityApi = {
 
 // ─── Documents ────────────────────────────────────────────────────────────────
 
+export interface DocumentCatalogItem {
+  doc_type: string;
+  label: string;
+  category: string;
+  issuing_authority: string;
+  validity_days: number | null;
+  state: "missing" | "owned" | "expired";
+  existing_document_id: string | null;
+}
+
 export const documentsApi = {
   list: () => api.get("/documents/"),
   listDelegated: () => api.get("/documents/delegated"),
@@ -134,6 +144,8 @@ export const documentsApi = {
   delete: (id: string) => api.delete(`/documents/${id}`),
   renewalRequest: (document_id: string, note?: string) =>
     api.post("/documents/renewal-request", { document_id, note }),
+  catalog: () => api.get<DocumentCatalogItem[]>("/documents/catalog"),
+  request: (doc_type: string) => api.post("/documents/request", { doc_type }),
 };
 
 // ─── Sharing ─────────────────────────────────────────────────────────────────
@@ -245,4 +257,56 @@ export interface PresentationHistoryEntry {
 export const walletApi = {
   security: () => api.get<WalletSecurity>("/wallet/security"),
   history: () => api.get<{ presentations: PresentationHistoryEntry[] }>("/wallet/presentations-history"),
+};
+
+// ─── Debug / Encryption Proof (hidden route — for demo) ──────────────────────
+
+export type EncryptionStatus = "v1" | "v2" | "plain" | null;
+
+export interface RawDocumentView {
+  doc_id: string;
+  plaintext_fields: {
+    doc_type: string;
+    owner_id: string;
+    issued_date: string | null;
+    expires_date: string | null;
+    is_verified: boolean;
+    status: string;
+    days_remaining: number | null;
+    created_at: string | null;
+  };
+  server_view: {
+    doc_number: string | null;
+    issued_by: string | null;
+    description: string | null;
+    cnp: string | null;
+    photo_base64: string | null;
+  };
+  user_view: {
+    doc_number: string | null;
+    issued_by: string | null;
+    description: string | null;
+    cnp: string | null;
+    photo_base64: string | null;
+  };
+  encryption: {
+    algorithm: string;
+    key_derivation: string;
+    per_field_status: Record<string, EncryptionStatus>;
+    user_id: string;
+    key_fingerprint: string;
+  };
+}
+
+export interface DebugDocListItem {
+  id: string;
+  doc_type: string;
+  is_verified: boolean;
+  doc_number_status: EncryptionStatus;
+  cnp_status: EncryptionStatus;
+}
+
+export const debugApi = {
+  rawDocument: (docId: string) => api.get<RawDocumentView>(`/debug/raw-document/${docId}`),
+  myDocsList: () => api.get<{ user_id: string; user_name: string; documents: DebugDocListItem[] }>("/debug/my-documents-list"),
 };

@@ -119,14 +119,14 @@ def _over_18(birth_date_iso: str | None) -> bool | None:
 
 def _ci_attributes(doc: Document, owner: User) -> dict[str, Any]:
     given_name, family_name = _split_name(owner.full_name)
-    cnp = vault_decrypt(doc.cnp) or owner.cnp
+    cnp = vault_decrypt(doc.cnp, owner.id) or owner.cnp
     bd = _birth_date_from_cnp(cnp)
     return {
         "given_name": given_name,
         "family_name": family_name,
         "birth_date": bd,
         "cnp": cnp,
-        "document_number": doc.doc_number,
+        "document_number": vault_decrypt(doc.doc_number, owner.id),
         "issue_date": doc.issued_date.isoformat() if doc.issued_date else None,
         "expiry_date": doc.expires_date.isoformat() if doc.expires_date else None,
         "over_18": _over_18(bd),
@@ -135,14 +135,14 @@ def _ci_attributes(doc: Document, owner: User) -> dict[str, Any]:
 
 def _pasaport_attributes(doc: Document, owner: User) -> dict[str, Any]:
     given_name, family_name = _split_name(owner.full_name)
-    cnp = vault_decrypt(doc.cnp) or owner.cnp
+    cnp = vault_decrypt(doc.cnp, owner.id) or owner.cnp
     bd = _birth_date_from_cnp(cnp)
     return {
         "given_name": given_name,
         "family_name": family_name,
         "birth_date": bd,
         "cnp": cnp,
-        "document_number": doc.doc_number,
+        "document_number": vault_decrypt(doc.doc_number, owner.id),
         "issue_date": doc.issued_date.isoformat() if doc.issued_date else None,
         "expiry_date": doc.expires_date.isoformat() if doc.expires_date else None,
         "nationality": "RO",
@@ -162,7 +162,7 @@ def _permis_attributes(doc: Document, owner: User) -> dict[str, Any]:
     return {
         "given_name": given_name,
         "family_name": family_name,
-        "document_number": doc.doc_number,
+        "document_number": vault_decrypt(doc.doc_number, owner.id),
         "issue_date": doc.issued_date.isoformat() if doc.issued_date else None,
         "expiry_date": doc.expires_date.isoformat() if doc.expires_date else None,
         "categories": categories or ["B"],
@@ -175,7 +175,7 @@ def _generic_attributes(doc: Document, owner: User) -> dict[str, Any]:
         "given_name": given_name,
         "family_name": family_name,
         "document_type": doc.doc_type,
-        "document_number": doc.doc_number,
+        "document_number": vault_decrypt(doc.doc_number, owner.id),
         "issue_date": doc.issued_date.isoformat() if doc.issued_date else None,
         "expiry_date": doc.expires_date.isoformat() if doc.expires_date else None,
         "issued_by": doc.issued_by,
